@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:esense_flutter/esense.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:yeimu/accel_gyro_pair.dart';
+import 'package:yeimu/results.dart';
+import 'package:yeimu/structure/sensor_reading.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,15 +13,14 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Yawn Collector',
+      title: 'Yeimu',
       theme: ThemeData(
         primarySwatch: Colors.purple,
       ),
-      home: const MainPage(title: 'Yawn Collector'),
+      home: const MainPage(title: 'Yeimu'),
     );
   }
 }
@@ -83,12 +83,13 @@ class _MainPageState extends State<MainPage> {
       bool connected = await eSenseManager.isConnected();
       _printEvent("Connection complete: $connected\n");
 
-      setState(() {
-        _isConnected = connected;
-        if (connected) {
+      if (connected) {
+        setState(() {
+          _isConnected = true;
           _connectButtonText = 'Disconnect';
-        }
-      });
+        });
+      }
+
       return connected;
     } else {
       _newAlert("No permissions", "Lacking permissions. Please grant the requested permissions.");
@@ -100,12 +101,12 @@ class _MainPageState extends State<MainPage> {
   Future<bool> _disconnect() async {
     _printEvent("Disconnecting...");
     bool disconnected = await eSenseManager.disconnect();
-    setState(() {
-      _isConnected = !disconnected;
-      if (disconnected) {
+    if (disconnected) {
+      setState(() {
         _connectButtonText = 'Connect';
-      }
-    });
+        _isConnected = false;
+      });
+    }
     return disconnected;
   }
 
@@ -121,7 +122,11 @@ class _MainPageState extends State<MainPage> {
 
   void _printEvent(String event) {
     setState(() {
-      _eventsText += '\n$event';
+      if (_eventsText == '') {
+        _eventsText = event;
+      } else {
+        _eventsText += '\n$event';
+      }
     });
   }
 
@@ -162,7 +167,7 @@ class _MainPageState extends State<MainPage> {
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
             Padding(
               padding: const EdgeInsets.only(left: 100, right: 100, top: 20),
@@ -223,15 +228,15 @@ class _MainPageState extends State<MainPage> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                TextButton(
+                ElevatedButton(
                   style: ButtonStyle(
                       backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor)),
                   onPressed: () {
-                    //TODO
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => Results()));
                   },
                   child: const Text("View Results", style: TextStyle(color: Colors.white)),
                 ),
-                TextButton(
+                ElevatedButton(
                   style: ButtonStyle(
                       backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor)),
                   onPressed: () {
@@ -244,11 +249,20 @@ class _MainPageState extends State<MainPage> {
                 ),
               ],
             ),
-            Expanded(
-              flex: 1,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: Text(_eventsText),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(width: 1.0),
+                ),
+                child: SizedBox(
+                    height: 150,
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: Text(_eventsText),
+                      ),
+                    )),
               ),
             ),
           ],

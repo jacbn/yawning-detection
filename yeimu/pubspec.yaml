@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.2
   esense_flutter: ^0.6.1
   permission_handler: ^10.0.2
+  fl_chart: ^0.55.2
 
 dev_dependencies:
   flutter_test:

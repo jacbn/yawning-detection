@@ -1,4 +1,4 @@
-package com.example.yeimu
+package me.jacbn.yeimu
 
 import io.flutter.embedding.android.FlutterActivity
 
