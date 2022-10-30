@@ -232,7 +232,8 @@ class _MainPageState extends State<MainPage> {
                   style: ButtonStyle(
                       backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor)),
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => Results()));
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => Results(data: _sensorEvents)));
                   },
                   child: const Text("View Results", style: TextStyle(color: Colors.white)),
                 ),
@@ -241,7 +242,7 @@ class _MainPageState extends State<MainPage> {
                       backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor)),
                   onPressed: () {
                     setState(() {
-                      //_sensorEvents.clear();
+                      _sensorEvents.clear();
                       _eventsText = '';
                     });
                   },
@@ -256,13 +257,15 @@ class _MainPageState extends State<MainPage> {
                   border: Border.all(width: 1.0),
                 ),
                 child: SizedBox(
-                    height: 150,
-                    child: SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: Text(_eventsText),
-                      ),
-                    )),
+                  height: 150,
+                  width: MediaQuery.of(context).size.width,
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Text(_eventsText),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],

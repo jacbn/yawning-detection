@@ -37,6 +37,7 @@ dependencies:
   esense_flutter: ^0.6.1
   permission_handler: ^10.0.2
   fl_chart: ^0.55.2
+  collection: ^1.16.0
 
 dev_dependencies:
   flutter_test:
