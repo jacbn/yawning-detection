@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:esense_flutter/esense.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:yeimu/io/io_manager.dart';
 import 'package:yeimu/results.dart';
 import 'package:yeimu/structure/sensor_reading.dart';
 
@@ -36,7 +37,8 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   String _eSenseId = 'eSense-0662';
   late ESenseManager eSenseManager;
-  late StreamSubscription subscription;
+  late StreamSubscription connectionEvents;
+  late StreamSubscription sensorEvents;
 
   bool _isCollecting = false;
   bool _isConnected = false;
@@ -45,21 +47,26 @@ class _MainPageState extends State<MainPage> {
   double _sliderVal = 4.0;
   String _eventsText = '';
   String _connectButtonText = 'Connect';
-  List<SensorReading> _sensorEvents = [];
+  final List<SensorReading> _sensorReadings = [];
 
   _MainPageState() {
     eSenseManager = ESenseManager(_eSenseId);
     eSenseManager.setSamplingRate(_sampleRate);
   }
 
-  Future<bool> _connect() async {
+  void _initiateConnection() async {
+    bool connecting = false;
     _printEvent("Attempting to connect to $_eSenseId");
     if (await _hasPermissions()) {
       _printEvent("Permissions granted. Connecting...");
 
-      // add a listener to the connection event stream, to allow events to be printed to the app
-      StreamSubscription connectionEvents = eSenseManager.connectionEvents.listen((event) {
+      // add a listener to the connection event stream to allow events to be printed to the app
+      connectionEvents = eSenseManager.connectionEvents.listen((event) {
         _printEvent('Connection event: $event');
+        // once a 'connected' event is found (and we were expecting it), update the app state to reflect this
+        if (connecting && event.type == ConnectionType.connected) {
+          _completeConnection();
+        }
       });
       _printEvent("Connection event listener added");
 
@@ -67,35 +74,31 @@ class _MainPageState extends State<MainPage> {
       await Future.delayed(const Duration(seconds: 1));
 
       // initiate the connection process
-      bool connecting = await eSenseManager.connect();
+      connecting = await eSenseManager.connect();
       _printEvent("Connection scanning started: $connecting");
 
-      // if an error with initiation occurred, stop
-      if (!connecting) {
-        return false;
-      }
-
-      // give some time for the connection to be established
-      // TODO: await on the actual connection event instead of a timer
-      await Future.delayed(const Duration(seconds: 5));
-
-      // check if the connection was successful
-      bool connected = await eSenseManager.isConnected();
-      _printEvent("Connection complete: $connected\n");
-
-      if (connected) {
-        setState(() {
-          _isConnected = true;
-          _connectButtonText = 'Disconnect';
-        });
-      }
-
-      return connected;
+      // await _completeConnection() call from the connection events listener
     } else {
       _newAlert("No permissions", "Lacking permissions. Please grant the requested permissions.");
       _printEvent("No permissions.");
-      return false;
     }
+  }
+
+  void _completeConnection() async {
+    // check eSense device sees connection as successful
+    bool connected = await eSenseManager.isConnected();
+    _printEvent("Connection complete: $connected\n");
+
+    // update app state
+    if (connected) {
+      setState(() {
+        _isConnected = true;
+        _connectButtonText = 'Disconnect';
+      });
+    }
+
+    // stop receiving events on this listener as it is now redundant (even if the connection fails, as we'd make a new one when trying again)
+    connectionEvents.cancel();
   }
 
   Future<bool> _disconnect() async {
@@ -132,13 +135,10 @@ class _MainPageState extends State<MainPage> {
 
   void _toggleDataCollection() async {
     if (!eSenseManager.connected) {
-      bool connect = await _connect();
-      if (!connect) {
-        _newAlert(
-          "Not Connected",
-          "No eSense device connected. Connect via Bluetooth and try again.",
-        );
-      }
+      _newAlert(
+        "Not Connected",
+        "No eSense device connected. Connect via Bluetooth and try again.",
+      );
       return;
     }
 
@@ -147,13 +147,16 @@ class _MainPageState extends State<MainPage> {
       if (_isCollecting) {
         eSenseManager.setSamplingRate(_sampleRate);
         _printEvent("Sampling rate set to $_sampleRate Hz");
-        subscription = eSenseManager.sensorEvents.listen((event) {
+
+        // add new listener to sensor event stream, with a function to add any new reading to _sensorReadings
+        sensorEvents = eSenseManager.sensorEvents.listen((event) {
           _printEvent('Sensor event: $event');
-          _sensorEvents.add(SensorReading(event.accel, event.gyro));
+          _sensorReadings.add(SensorReading(event.accel, event.gyro));
         });
         _recordIcon = const Icon(Icons.save);
       } else {
-        subscription.cancel();
+        sensorEvents.cancel();
+        IOManager.saveData(SensorReading.sensorReadingsToString(_sensorReadings));
         _recordIcon = const Icon(Icons.play_arrow);
       }
     });
@@ -169,6 +172,7 @@ class _MainPageState extends State<MainPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
+            // device name input field
             Padding(
               padding: const EdgeInsets.only(left: 100, right: 100, top: 20),
               child: TextFormField(
@@ -186,9 +190,10 @@ class _MainPageState extends State<MainPage> {
                 },
               ),
             ),
+            // connect button
             TextButton(
               onPressed: () {
-                _isConnected ? _disconnect() : _connect();
+                _isConnected ? _disconnect() : _initiateConnection();
               },
               child: Text(_connectButtonText, style: const TextStyle(color: Colors.blue)),
             ),
@@ -205,6 +210,7 @@ class _MainPageState extends State<MainPage> {
                   height: 100,
                   child: Column(
                     children: [
+                      // sampling rate
                       Text("Sampling Rate: $_sampleRate Hz"),
                       Slider(
                         max: 12.0,
@@ -222,27 +228,30 @@ class _MainPageState extends State<MainPage> {
                     ],
                   ),
                 ),
+                // is recording data
                 Center(
                   child: Text(
                     "Recording Data: \n\n$_isCollecting\n",
                     textAlign: TextAlign.center,
                   ),
                 ),
+                // results button
                 ElevatedButton(
                   style: ButtonStyle(
                       backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor)),
                   onPressed: () {
                     Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => Results(data: _sensorEvents)));
+                        MaterialPageRoute(builder: (context) => Results(data: _sensorReadings)));
                   },
                   child: const Text("View Results", style: TextStyle(color: Colors.white)),
                 ),
+                // clear log button
                 ElevatedButton(
                   style: ButtonStyle(
                       backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor)),
                   onPressed: () {
                     setState(() {
-                      _sensorEvents.clear();
+                      _sensorReadings.clear();
                       _eventsText = '';
                     });
                   },
@@ -250,6 +259,7 @@ class _MainPageState extends State<MainPage> {
                 ),
               ],
             ),
+            // log
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Container(

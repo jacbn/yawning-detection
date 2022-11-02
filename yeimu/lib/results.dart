@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:yeimu/structure/sensor_reading.dart';
 import 'package:collection/collection.dart';
 
+import 'io/io_manager.dart';
+import 'structure/sensor_reading.dart';
+
 class Results extends StatefulWidget {
-  const Results({super.key, required this.data});
-  final List<SensorReading> data;
+  Results({super.key, required this.data});
+  List<SensorReading> data;
 
   @override
   State<Results> createState() => _ResultsState();
@@ -15,6 +17,22 @@ class Results extends StatefulWidget {
 
 class _ResultsState extends State<Results> {
   List<Color> axisColors = [Colors.red, Colors.green, Colors.blue];
+  String? dropdownValue;
+
+  Future<List<DropdownMenuItem<String>>> getSavedData() async {
+    List<String> files = await IOManager.listCompatibleFiles();
+    return files
+        .map((String file) => DropdownMenuItem<String>(value: file, child: Text(file)))
+        .toList();
+  }
+
+  void updateCurrentFile(newFile) async {
+    String data = await IOManager.loadData(newFile);
+    setState(() {
+      dropdownValue = newFile;
+      widget.data = SensorReading.stringToSensorReadings(data);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +43,21 @@ class _ResultsState extends State<Results> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          FutureBuilder(
+              future: getSavedData(),
+              builder: (BuildContext context, AsyncSnapshot snapshot) {
+                if (snapshot.hasData) {
+                  return DropdownButton(
+                    value: dropdownValue,
+                    items: snapshot.data,
+                    onChanged: updateCurrentFile,
+                  );
+                } else if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                } else {
+                  return const CircularProgressIndicator();
+                }
+              }),
           Text('Accelerometer Data', style: Theme.of(context).textTheme.headline5),
           Padding(
             padding: const EdgeInsets.only(left: 0, top: 8, right: 8, bottom: 2),
@@ -108,6 +141,7 @@ class _ResultsState extends State<Results> {
   }
 
   List<LineChartBarData> getIMUReadings(List<SensorReading> allData, Function sensorReadingToAxes) {
+    // for each IMU field, for each axis (x, y, z), map allData to the list of values for that axis
     List<LineChartBarData> gyroAxisReadings = axisColors
         .mapIndexed(
           (chartId, col) => LineChartBarData(
@@ -127,13 +161,13 @@ class _ResultsState extends State<Results> {
   LineChartData makeLineChartData(List<LineChartBarData> data, int numPoints) {
     double minY = (data[0].spots.isEmpty) ? -1 : data.map((e) => e.mostBottomSpot.y).reduce(min);
     double maxY = (data[0].spots.isEmpty) ? 1 : data.map((e) => e.mostTopSpot.y).reduce(max);
-    double horizontalInterval = (maxY - minY) / 8;
+    double horizontalInterval = (max(minY.abs(), maxY.abs())) / 4;
     double verticalInterval = max(1, numPoints / 8);
     return LineChartData(
       minX: 0,
-      minY: minY,
+      minY: -max(minY.abs(), maxY.abs()),
       maxX: numPoints - 1.0,
-      maxY: maxY,
+      maxY: max(minY.abs(), maxY.abs()),
       gridData: FlGridData(
         show: true,
         drawVerticalLine: true,
