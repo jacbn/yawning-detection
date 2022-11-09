@@ -1,6 +1,6 @@
 # Yeimu
 
-A data collection app for my Part II project, *Yawning Detection using In-Ear Headphone Inertial Measurement Units*.
+The data collection app for communicating with and receiving data from the eSense headphones.
 
 ## How to use
 
