@@ -2,14 +2,17 @@ import 'dart:async';
 import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:collection/collection.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:yeimu/io/sensor_data_file.dart';
 
 import 'io/io_manager.dart';
 import 'structure/sensor_reading.dart';
+import 'structure/timestamps.dart';
 
 class Results extends StatefulWidget {
-  Results({super.key, required this.data});
-  List<SensorReading> data;
+  const Results({super.key, required this.data, required this.timestamps});
+  final List<SensorReading> data;
+  final List<Timestamp> timestamps;
 
   @override
   State<Results> createState() => _ResultsState();
@@ -18,20 +21,59 @@ class Results extends StatefulWidget {
 class _ResultsState extends State<Results> {
   List<Color> axisColors = [Colors.red, Colors.green, Colors.blue];
   String? dropdownValue;
+  List<VerticalRangeAnnotation> _timestampAnnotations = [];
 
   Future<List<DropdownMenuItem<String>>> getSavedData() async {
-    List<String> files = await IOManager.listCompatibleFiles();
+    List<String> files = await IOManager.listCompatibleFilenames();
     return files
         .map((String file) => DropdownMenuItem<String>(value: file, child: Text(file)))
         .toList();
   }
 
-  void updateCurrentFile(newFile) async {
-    String data = await IOManager.loadData(newFile);
+  void updateCurrentFile(String newFile) async {
+    SensorDataFile file = await IOManager.loadData(newFile);
+
     setState(() {
       dropdownValue = newFile;
-      widget.data = SensorReading.stringToSensorReadings(data);
+      widget.data.clear();
+      widget.data.addAll(file.data);
+      widget.timestamps.clear();
+      widget.timestamps.addAll(file.timestamps);
+
+      _timestampAnnotations = file.timestamps
+          .map((t) => VerticalRangeAnnotation(
+                x1: max(0, t.time.toDouble() - file.data.length / 200),
+                x2: min(widget.data.length - 1, t.time.toDouble() + file.data.length / 200),
+                color: Colors.black.withOpacity(0.8),
+              ))
+          .toList();
     });
+  }
+
+  void _confirmDeleteAllFiles() {
+    // confirm dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete all files?'),
+          content: const Text('This cannot be undone.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                IOManager.deleteAllFiles();
+                Navigator.of(context).pop();
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -43,21 +85,46 @@ class _ResultsState extends State<Results> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          FutureBuilder(
-              future: getSavedData(),
-              builder: (BuildContext context, AsyncSnapshot snapshot) {
-                if (snapshot.hasData) {
-                  return DropdownButton(
-                    value: dropdownValue,
-                    items: snapshot.data,
-                    onChanged: updateCurrentFile,
-                  );
-                } else if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                } else {
-                  return const CircularProgressIndicator();
-                }
-              }),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              ElevatedButton(
+                style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor)),
+                onPressed: () {
+                  IOManager.shareAllFiles();
+                },
+                child: const Text("Share", style: TextStyle(color: Colors.white)),
+              ),
+              FutureBuilder(
+                future: getSavedData(),
+                builder: (BuildContext context, AsyncSnapshot snapshot) {
+                  if (snapshot.hasData) {
+                    return DropdownButton(
+                      value: dropdownValue,
+                      items: snapshot.data,
+                      onChanged: (String? s) {
+                        if (s != null) {
+                          updateCurrentFile(s);
+                        }
+                      },
+                    );
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  } else {
+                    return const CircularProgressIndicator();
+                  }
+                },
+              ),
+              ElevatedButton(
+                style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.red[600])),
+                onPressed: () {
+                  _confirmDeleteAllFiles();
+                },
+                child: const Text("Delete All", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
           Text('Accelerometer Data', style: Theme.of(context).textTheme.headline5),
           Padding(
             padding: const EdgeInsets.only(left: 0, top: 8, right: 8, bottom: 2),
@@ -136,26 +203,28 @@ class _ResultsState extends State<Results> {
   }
 
   LineChartData accelData(List<SensorReading> allData) {
-    List<LineChartBarData> gyroAxisReadings = getIMUReadings(allData, (v) => v.accel);
-    return makeLineChartData(gyroAxisReadings, allData.length);
+    List<LineChartBarData> accelAxisReadings = getIMUReadings(allData, (v) => v.accel);
+    return makeLineChartData(accelAxisReadings, allData.length);
   }
 
   List<LineChartBarData> getIMUReadings(List<SensorReading> allData, Function sensorReadingToAxes) {
     // for each IMU field, for each axis (x, y, z), map allData to the list of values for that axis
-    List<LineChartBarData> gyroAxisReadings = axisColors
-        .mapIndexed(
-          (chartId, col) => LineChartBarData(
-            spots: allData
-                .mapIndexed(
-                    (i, v) => FlSpot(i.toDouble(), sensorReadingToAxes(v)![chartId].toDouble()))
-                .toList(),
-            isCurved: true,
-            isStrokeCapRound: true,
-            color: col,
-          ),
-        )
-        .toList();
-    return gyroAxisReadings;
+    List<LineChartBarData> axisReadings = [];
+    for (int axis = 0; axis < axisColors.length; axis++) {
+      List<FlSpot> values = [];
+      for (int i = 0; i < allData.length; i++) {
+        List<int> sensorReading = sensorReadingToAxes(allData[i]);
+        values.add(FlSpot(i.toDouble(), sensorReading[axis].toDouble()));
+      }
+      LineChartBarData reading = LineChartBarData(
+        spots: values,
+        isCurved: true,
+        isStrokeCapRound: true,
+        color: axisColors[axis],
+      );
+      axisReadings.add(reading);
+    }
+    return axisReadings;
   }
 
   LineChartData makeLineChartData(List<LineChartBarData> data, int numPoints) {
@@ -193,6 +262,15 @@ class _ResultsState extends State<Results> {
             interval: horizontalInterval,
           ),
         ),
+      ),
+      rangeAnnotations: RangeAnnotations(
+        verticalRangeAnnotations: [
+          VerticalRangeAnnotation(
+            x1: 0,
+            x2: numPoints - 1.0,
+            color: Colors.grey.withOpacity(0.1),
+          ),
+        ].followedBy(_timestampAnnotations).toList(),
       ),
     );
   }

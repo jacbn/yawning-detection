@@ -39,6 +39,7 @@ dependencies:
   fl_chart: ^0.55.2
   collection: ^1.16.0
   path_provider: ^2.0.11
+  share_plus: ^6.2.0
 
 dev_dependencies:
   flutter_test:

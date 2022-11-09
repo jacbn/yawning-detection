@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:yeimu/io/io_manager.dart';
 import 'package:yeimu/results.dart';
 import 'package:yeimu/structure/sensor_reading.dart';
+import 'package:yeimu/structure/timestamps.dart';
 
 void main() {
   runApp(const MyApp());
@@ -36,6 +37,8 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   String _eSenseId = 'eSense-0662';
+  String _recordingName = '';
+  TimestampType _timestampType = TimestampType.yawn;
   late ESenseManager eSenseManager;
   late StreamSubscription connectionEvents;
   late StreamSubscription sensorEvents;
@@ -48,6 +51,7 @@ class _MainPageState extends State<MainPage> {
   String _eventsText = '';
   String _connectButtonText = 'Connect';
   final List<SensorReading> _sensorReadings = [];
+  final List<Timestamp> _timestamps = [];
 
   _MainPageState() {
     eSenseManager = ESenseManager(_eSenseId);
@@ -144,22 +148,41 @@ class _MainPageState extends State<MainPage> {
 
     setState(() {
       _isCollecting = !_isCollecting;
-      if (_isCollecting) {
+    });
+    if (_isCollecting) {
+      setState(() {
         eSenseManager.setSamplingRate(_sampleRate);
         _printEvent("Sampling rate set to $_sampleRate Hz");
 
         // add new listener to sensor event stream, with a function to add any new reading to _sensorReadings
         sensorEvents = eSenseManager.sensorEvents.listen((event) {
           _printEvent('Sensor event: $event');
-          _sensorReadings.add(SensorReading(event.accel, event.gyro));
+          _sensorReadings.add(SensorReading(event.accel ?? [], event.gyro ?? []));
         });
+
+        _sensorReadings.clear();
+        _timestamps.clear();
         _recordIcon = const Icon(Icons.save);
-      } else {
-        sensorEvents.cancel();
-        IOManager.saveData(SensorReading.sensorReadingsToString(_sensorReadings));
+      });
+    } else {
+      sensorEvents.cancel();
+      //must be outside of setState
+      await IOManager.saveData(
+          (_recordingName.isEmpty) ? null : _recordingName.trim(), _sensorReadings, _timestamps);
+      setState(() {
         _recordIcon = const Icon(Icons.play_arrow);
-      }
-    });
+        _sensorReadings.clear();
+        _timestamps.clear();
+      });
+    }
+  }
+
+  void addTimestamp() {
+    if (_isCollecting) {
+      setState(() {
+        _timestamps.add(Timestamp(_sensorReadings.length, _timestampType));
+      });
+    }
   }
 
   @override
@@ -168,7 +191,7 @@ class _MainPageState extends State<MainPage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(
+      body: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
@@ -204,6 +227,7 @@ class _MainPageState extends State<MainPage> {
               mainAxisSpacing: 30,
               childAspectRatio: 2.8,
               shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.all(10),
               children: [
                 SizedBox(
@@ -240,8 +264,15 @@ class _MainPageState extends State<MainPage> {
                   style: ButtonStyle(
                       backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor)),
                   onPressed: () {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => Results(data: _sensorReadings)));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Results(
+                          data: _sensorReadings,
+                          timestamps: _timestamps,
+                        ),
+                      ),
+                    );
                   },
                   child: const Text("View Results", style: TextStyle(color: Colors.white)),
                 ),
@@ -252,6 +283,7 @@ class _MainPageState extends State<MainPage> {
                   onPressed: () {
                     setState(() {
                       _sensorReadings.clear();
+                      _timestamps.clear();
                       _eventsText = '';
                     });
                   },
@@ -276,6 +308,54 @@ class _MainPageState extends State<MainPage> {
                     ),
                   ),
                 ),
+              ),
+            ),
+            const Text("Timestamp:"),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // timestamp dropdown menu
+                DropdownButton<String>(
+                  value: _timestampType.string,
+                  items: TimestampType.values
+                      .map((type) => DropdownMenuItem<String>(
+                            value: type.string,
+                            // title case the string for display
+                            child: Text(type.string
+                                .replaceRange(0, 1, type.string.substring(0, 1).toUpperCase())),
+                          ))
+                      .toList(),
+                  onChanged: (value) => setState(() {
+                    _timestampType = Timestamp.eventFromString(value ?? TimestampType.other.string);
+                  }),
+                ),
+                const SizedBox(width: 10),
+                // add timestamp button
+                ElevatedButton(
+                  style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor)),
+                  onPressed: () {
+                    addTimestamp();
+                  },
+                  child: const Text("Add", style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 30),
+            Padding(
+              padding: const EdgeInsets.only(left: 100, right: 100, top: 20),
+              child: TextFormField(
+                initialValue: _recordingName,
+                decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Recording Name',
+                    isDense: true,
+                    contentPadding: EdgeInsets.all(16.0)),
+                onChanged: (text) {
+                  setState(() {
+                    _recordingName = text;
+                  });
+                },
               ),
             ),
           ],

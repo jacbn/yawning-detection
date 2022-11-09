@@ -1,32 +1,36 @@
 import 'package:path_provider/path_provider.dart';
-import 'package:yeimu/structure/file_metadata.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:yeimu/io/sensor_data_file.dart';
 import 'dart:io';
 import 'dart:convert';
 
 import 'package:yeimu/versioning/version.dart';
 
-class IOManager {
-  late FileMetadata metadata;
+import '../structure/sensor_reading.dart';
+import '../structure/timestamps.dart';
 
-  static Future<bool> saveData(String data) async {
-    final FileMetadata metadata = await _getMetaData();
-    final File file = await _getLocalFile('data_${metadata.numFiles}');
-    // when writing a file, always make the first line the version it was made with:
-    file.writeAsString('${Version.version}\n$data');
-    return true;
+class IOManager {
+  static Future<bool> saveData(
+      String? filename, List<SensorReading> data, List<Timestamp>? timestamps) async {
+    List<String> files = await listCompatibleFilenames();
+    final File file = await _getLocalFile(filename ?? 'data_${files.length}');
+    return await SensorDataFile.save(file, timestamps ?? [], data);
   }
 
-  static Future<String> loadData(String filename) async {
+  static Future<SensorDataFile> loadData(String filename) async {
     // note: no compatibility check, assumes the file has been picked from the list provided by listCompatibleFiles()
     final File file = await _getLocalFile(filename);
-    final String str = await file.readAsString();
-    return str.substring(1 + str.indexOf('\n')); // remove the version number
+    final String fileContents = await file.readAsString();
+    return SensorDataFile.from(filename, fileContents);
   }
 
-  static Future<List<String>> listCompatibleFiles() async {
+  static Future<List<File>> listCompatibleFiles() async {
     final Directory dir = await _localDirectory;
-    final List<File> files = dir.listSync().whereType<File>().toList();
-    // no async filter, so do manually:
+    return dir.listSync().whereType<File>().toList();
+  }
+
+  static Future<List<String>> listCompatibleFilenames() async {
+    List<File> files = await listCompatibleFiles();
     final List<String> compatibleFileNames = [];
     for (final File file in files) {
       if (await _isDataFileCompatible(file)) {
@@ -37,42 +41,39 @@ class IOManager {
   }
 
   static Future<bool> _isDataFileCompatible(File file) async {
-    if (!file.path.contains('data_')) {
-      return false;
-    }
-    final String firstLine =
-        await file.openRead().transform(utf8.decoder).transform(const LineSplitter()).first;
     try {
+      if (file.path.substring(file.path.length - 5) != '.eimu') {
+        return false;
+      }
+      final String firstLine =
+          await file.openRead().transform(utf8.decoder).transform(const LineSplitter()).first;
       return int.parse(firstLine) >= Version.lowestCompatibleVersion;
     } catch (e) {
+      print("exception parsing file: $file");
       return false;
     }
-  }
-
-  static Future<FileMetadata> _getMetaData() async {
-    final File metadataFile = await _localMetaData;
-    if (!await metadataFile.exists()) {
-      // create new metadata file
-      metadataFile.writeAsString('${Version.version}\n0');
-      return FileMetadata(Version.version, 0);
-    }
-    final String contents = await metadataFile.readAsString();
-    final List<String> lines = contents.split('\n');
-    return FileMetadata(int.parse(lines[0]), int.parse(lines[1]));
   }
 
   static Future<Directory> get _localDirectory async {
-    // TODO: redundant?
     return await getApplicationDocumentsDirectory();
-  }
-
-  static Future<File> get _localMetaData async {
-    final Directory dir = await _localDirectory;
-    return File('${dir.path}/.metadata');
   }
 
   static Future<File> _getLocalFile(String filename) async {
     final Directory dir = await _localDirectory;
-    return File('${dir.path}/$filename.txt');
+    return File('${dir.path}/$filename.eimu');
+  }
+
+  static Future<void> shareAllFiles() async {
+    final List<File> files = await listCompatibleFiles();
+    Share.shareXFiles(files.map((f) => XFile(f.path)).toList());
+  }
+
+  static Future<void> deleteAllFiles() async {
+    final List<File> files = await listCompatibleFiles();
+    for (final File file in files) {
+      if (await _isDataFileCompatible(file)) {
+        file.delete();
+      }
+    }
   }
 }
