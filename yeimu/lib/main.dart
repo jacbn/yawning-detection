@@ -156,7 +156,7 @@ class _MainPageState extends State<MainPage> {
 
         // add new listener to sensor event stream, with a function to add any new reading to _sensorReadings
         sensorEvents = eSenseManager.sensorEvents.listen((event) {
-          _printEvent('Sensor event: $event');
+          // _printEvent('Sensor event: $event');
           _sensorReadings.add(SensorReading(event.accel ?? [], event.gyro ?? []));
         });
 
