@@ -171,6 +171,7 @@ class _MainPageState extends State<MainPage> {
         (_recordingName.isEmpty) ? null : _recordingName.trim(),
         _sensorReadings,
         _timestamps,
+        _sampleRate,
       );
       setState(() {
         _recordIcon = const Icon(Icons.play_arrow);

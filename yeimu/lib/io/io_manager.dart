@@ -14,7 +14,7 @@ class IOManager {
       List<Timestamp>? timestamps, int sampleRate) async {
     List<String> files = await listCompatibleFilenames();
     final File file = await _getLocalFile(filename ?? 'data_${files.length}');
-    return await SensorDataFile.save(file, timestamps ?? [], data);
+    return await SensorDataFile.save(file, timestamps ?? [], data, sampleRate);
   }
 
   static Future<SensorDataFile> loadData(String filename) async {
