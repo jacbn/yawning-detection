@@ -168,7 +168,10 @@ class _MainPageState extends State<MainPage> {
       sensorEvents.cancel();
       //must be outside of setState
       await IOManager.saveData(
-          (_recordingName.isEmpty) ? null : _recordingName.trim(), _sensorReadings, _timestamps);
+        (_recordingName.isEmpty) ? null : _recordingName.trim(),
+        _sensorReadings,
+        _timestamps,
+      );
       setState(() {
         _recordIcon = const Icon(Icons.play_arrow);
         _sensorReadings.clear();

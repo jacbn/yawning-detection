@@ -10,8 +10,8 @@ import '../structure/sensor_reading.dart';
 import '../structure/timestamps.dart';
 
 class IOManager {
-  static Future<bool> saveData(
-      String? filename, List<SensorReading> data, List<Timestamp>? timestamps) async {
+  static Future<bool> saveData(String? filename, List<SensorReading> data,
+      List<Timestamp>? timestamps, int sampleRate) async {
     List<String> files = await listCompatibleFilenames();
     final File file = await _getLocalFile(filename ?? 'data_${files.length}');
     return await SensorDataFile.save(file, timestamps ?? [], data);
