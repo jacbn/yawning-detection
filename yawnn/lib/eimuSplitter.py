@@ -7,7 +7,7 @@ import eimuReader
 def convertSession(session : eimuReader.SessionData):
     samplesPerGroup = session.sampleRate * N
     
-    if session.numPoints > samplesPerGroup:
+    if session.numPoints < samplesPerGroup:
         print("Session too short to split. Returning original session.")
         return [session]
     
