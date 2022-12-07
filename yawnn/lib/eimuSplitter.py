@@ -4,7 +4,7 @@ N = 2
 
 import eimuReader
 
-def convertSession(session : eimuReader.SessionData):
+def splitSession(session : eimuReader.SessionData):
     samplesPerGroup = session.sampleRate * N
     
     if session.numPoints < samplesPerGroup:

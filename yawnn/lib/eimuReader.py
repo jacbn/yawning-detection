@@ -2,13 +2,13 @@
 # via getSession(filepath).
 
 import numpy as np
+import eimuSplitter
 from matplotlib import pyplot as plt 
 
 class SensorReading:
     def __init__(self, accel, gyro):
         self.accel = accel
         self.gyro = gyro
-        
         
 class Timestamp:
     def __init__(self, time, ttype):
@@ -31,6 +31,18 @@ class SessionData:
         self.timestamps = timestamps
         self.sampleRate = sampleRate
         
+    def toRaw(self, sessions):
+        # return a numpy array of shape (numPoints, 3, 2), with the 3 being the x, y, z axes of accel and gyro
+        # and the 2 being the accel and gyro data
+        return np.array(list(map(lambda x: np.array([x.accel, x.gyro]), sessions)))
+        
+    
+    def toTensorflowData(self):
+        splits = eimuSplitter.splitSession(self)
+        return [self.toRaw(s) for s in splits]
+    
+    def plot(self):
+        pass # todo
             
 def toSensorReadingString(string):
     splits = string.split('[')
@@ -68,4 +80,12 @@ def getSession(filepath):
 
     return SessionData(data, timestamps, sampleRate)
 
+# TODO: build app onto phone, record new data, put in data, getSession (below), fix up toRaw(), then hopefully
+# TODO: an input of size (numPoints, 3, 2, t) can be used in the lstm model? or find something that does
 
+# https://machinelearningmastery.com/sequence-classification-lstm-recurrent-neural-networks-python-keras/
+# https://machinelearningmastery.com/time-series-prediction-lstm-recurrent-neural-networks-python-keras/
+# https://keras.io/api/layers/recurrent_layers/lstm/
+
+s = getSession("./yawnn/data/1.eimu")
+print(s.toRaw())
