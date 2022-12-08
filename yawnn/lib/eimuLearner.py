@@ -13,9 +13,8 @@ model = Sequential()
 model.add(LSTM(units=10, return_sequences=True))
 model.add(Dense(units=1, activation='sigmoid'))
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-# model.build(input_shape=(None, 50, 1))
-# print(model.summary())
 
+# convert a single eimu file to a tuple of (trainX, trainY), (testX, testY)
 def eimuToLSTMInput(eimuPath, shuffle=True):
     session = eimuReader.getSession(eimuPath)
     data, timestamps = session.toRaw()
@@ -30,6 +29,7 @@ def eimuToLSTMInput(eimuPath, shuffle=True):
     trainLength = int(len(data) * trainPercent)
     return (data[:trainLength], predicates[:trainLength]), (data[trainLength:], predicates[trainLength:])
 
+# convert a directory of eimu files to a tuple of (trainX, trainY), (testX, testY)
 def directoryToLSTMInput(path):
     inputs = [eimuToLSTMInput(join(path,f)) for f in listdir(path) if isfile(join(path, f))]
     # combine all the inputs. each is a tuple of (trainX, trainY), (testX, testY),
@@ -38,7 +38,6 @@ def directoryToLSTMInput(path):
 
 if __name__ == "__main__":
     # (trainX, trainY), (testX, testY) = eimuToLSTMInput("./yawnn/data/long1.eimu")
-    # print(directoryToLSTMInput("./yawnn/data")[0][0].shape)
     (trainX, trainY), (testX, testY) = directoryToLSTMInput("./yawnn/data")
     model.fit(trainX, trainY, epochs=100, batch_size=32)
     model.evaluate(testX, testY)
