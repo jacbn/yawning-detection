@@ -4,7 +4,10 @@
         "Dialog",
         "eimu",
         "esense",
+        "keras",
+        "LSTM",
         "Tensorflow",
         "yeimu"
-    ]
+    ],
+    "python.analysis.typeCheckingMode": "basic"
 }

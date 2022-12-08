@@ -34,20 +34,16 @@ class SessionData:
         
     def toRaw(self):
         splits = self.splitSession()
-        # return an array of numpy arrays of shape (64, 3, 2),
+        # return an array of numpy arrays of shape (64, 6),
         # with 64 being the number of points per session, 
-        # 3 being the x, y, z axes, and
-        # 2 being the accel and gyro data.
-        arr = np.array(list(map(lambda x: np.array([x.accel, x.gyro]), splits)))
-        arr.resize(len(splits), 64, 3, 2)
+        # 6 being the x, y, z axes for the accel and gyro data, respectively
+        arr = np.array(list(map(lambda x: np.array([*x.accel, *x.gyro]), splits)))
+        arr.resize(len(splits), 64, 6)
             
         # return these arrays, alongside a list timestamps for each
         return arr, list(map(lambda x: x.timestamps, splits))
-        
-    
-    def toTensorflowData(self):
-        splits = self.splitSession(self)
-        return [self.toRaw(s) for s in splits]
+        # final format is an np array (length = len(splits)) of (64, 3, 2) data arrays,
+        # paired with another array (length = len(splits)) of lists of timestamps per split
     
     # Split a SessionData object into a list of SessionData objects,
     # each of the same N-second length.
@@ -74,7 +70,7 @@ class SessionData:
     
     # filter only those timestamps in the range, then shift their times to match
     def _getRelevantTimestamps(self, timestamps, start, end):
-        return list(map(lambda x: x - start, filter(lambda t: t.time >= start and t.time <= end, timestamps)))
+        return list(map(lambda x: Timestamp(x.time - start, x.type), filter(lambda t: t.time >= start and t.time <= end, timestamps)))
     
     def plot(self):
         pass # todo
@@ -123,5 +119,6 @@ def getSession(filepath):
 # https://machinelearningmastery.com/time-series-prediction-lstm-recurrent-neural-networks-python-keras/
 # https://keras.io/api/layers/recurrent_layers/lstm/
 
-s = getSession("./yawnn/data/yawn-1.eimu")
-print(s.toRaw())
+if __name__ == "__main__":
+    s = getSession("./yawnn/data/yawn-1.eimu")
+    print(s.toRaw()[0].shape)
