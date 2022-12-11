@@ -1,36 +1,61 @@
-# Converts a raw .eimu file input into a SessionData object
-# via getSession(filepath).
+# Includes the SessionData, SensorReading and Timestamp classes.
+# Create a SessionData via SessionData.fromPath(filepath), where filepath the path to a .eimu file
 
 import numpy as np
 from matplotlib import pyplot as plt 
 
 class SensorReading:
-    def __init__(self, accel, gyro):
+    def __init__(self, accel : list[float], gyro : list[float]):
         self.accel = accel
         self.gyro = gyro
         
+    @classmethod
+    def fromString(cls, string : str):
+        nonEmptySplits = filter(lambda v: v, string.split('['))
+        accelAndGyroLists = list(map(lambda w: w.replace('[', '').replace(',', '').replace(']', ''), nonEmptySplits))
+        
+        m1 = map(float, filter(lambda v: v, accelAndGyroLists[0].split(' ')))
+        m2 = map(float, filter(lambda v: v, accelAndGyroLists[1].split(' ')))
+        
+        reading = cls(list(m1), list(m2))
+        assert len(reading.accel) == 3 and len(reading.gyro) == 3
+        return reading
+        
 class Timestamp:
-    def __init__(self, time, ttype):
+    def __init__(self, time : int, ttype : str):
         self.time = time
         self.type = ttype
-
-def rawAccelConversion(accel):
-    return list(map(lambda x: x/8192, accel))
-
-def rawGyroConversion(gyro):
-    return list(map(lambda x: x/65.5, gyro))
 
 class SessionData:
     def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int):
         self.rawDataset = dataset,
-        self.accel = list(map(lambda x: rawAccelConversion(x.accel), dataset))
-        self.gyro = list(map(lambda x: rawGyroConversion(x.gyro), dataset))
+        # TODO: is converting x.accel and x.gyro to standard units useful for the NN or do we only need it for graphing purposes?
+        self.accel = list(map(lambda x: self.accelConversion(x.accel), dataset))
+        self.gyro = list(map(lambda x: self.gyroConversion(x.gyro), dataset))
         self.accelLim = max(abs(min(map(min, self.accel))), abs(max(map(max, self.accel))))
         self.gyroLim = max(abs(min(map(min, self.gyro))), abs(max(map(max, self.gyro))))
         self.numPoints = len(dataset)
         self.timestamps = timestamps
         self.sampleRate = sampleRate
         self.version = version
+        
+    @classmethod
+    def fromPath(cls, filepath : str):
+        data = []
+        with open(filepath, "r") as f:
+            lines = f.read().splitlines()
+            version = int(lines[0])
+            timestamps = []
+            sampleRate = int(lines[2])
+            numTimestamps = int(lines[3])
+            for i in range(4, 4 + numTimestamps):
+                split = lines[i].split(' ')
+                timestamps.append(Timestamp(int(split[0]), split[1]))
+            for i in range(4 + numTimestamps, len(lines)):
+                if lines[i]:
+                    data.append(SensorReading.fromString(lines[i]))
+
+        return cls(data, timestamps, sampleRate, version)
         
     def toRaw(self):
         splits = self.splitSession()
@@ -65,60 +90,34 @@ class SessionData:
         return converted
     
     # Convert a list of accel and gyro data into a list of SensorReading objects
-    def _toSensorReadings(self, accel, gyro):
+    @staticmethod
+    def _toSensorReadings(accel : list[list[float]], gyro : list[list[float]]) -> list[SensorReading]:
         return list(map(lambda x: SensorReading(x[0], x[1]), zip(accel, gyro)))
     
     # filter only those timestamps in the range, then shift their times to match
-    def _getRelevantTimestamps(self, timestamps, start, end):
+    @staticmethod
+    def _getRelevantTimestamps(timestamps : list[Timestamp], start : int, end : int) -> list[Timestamp]:
         return list(map(lambda x: Timestamp(x.time - start, x.type), filter(lambda t: t.time >= start and t.time <= end, timestamps)))
+    
+    # convert raw accel units to m/s^2
+    @staticmethod
+    def accelConversion(accel : list[float]) -> list[float]:
+        return list(map(lambda x: x/8192, accel))
+
+    # convert raw gyro units to deg/s
+    @staticmethod
+    def gyroConversion(gyro : list[float]) -> list[float]:
+        return list(map(lambda x: x/65.5, gyro))
     
     def plot(self):
         pass # todo
-
-            
-def toSensorReadingString(string):
-    splits = string.split('[')
-    f = filter(lambda v: v, splits)
-    m = map(lambda w: w.replace('[', '').replace(',', '').replace(']', ''), f)
-    accelAndGyroLists = list(m)
-    # accelAndGyroLists = list(filter(lambda w: w.replace('[', '').replace(',', '').replace(']', ''), lambda v: v), string.split('[')))
-    # string.split('[').filter(lambda v: v).map(lambda w: w.replace('[', '').replace(',', '').replace(']', '')).toList()
     
-    splits = accelAndGyroLists[0].split(' ')
-    f = filter(lambda v: v, splits)
-    m1 = map(lambda v: int(v), f)
-    splits = accelAndGyroLists[1].split(' ')
-    f = filter(lambda v: v, splits)
-    m2 = map(lambda v: int(v), f)
+
+if __name__ == "__main__":
+    s = SessionData.fromPath("./yawnn/data/long1.eimu")
+    print(s.toRaw()[0].shape)
     
-    reading = SensorReading(list(m1), list(m2))
-    assert len(reading.accel) == 3 and len(reading.gyro) == 3
-    return reading
-
-def getSession(filepath):
-    data = []
-    with open(filepath, "r") as f:
-        lines = f.read().splitlines()
-        version = int(lines[0])
-        timestamps = []
-        sampleRate = int(lines[2])
-        numTimestamps = int(lines[3])
-        for i in range(4, 4 + numTimestamps):
-            split = lines[i].split(' ')
-            timestamps.append(Timestamp(int(split[0]), split[1]))
-        for i in range(4 + numTimestamps, len(lines)):
-            if lines[i]:
-                data.append(toSensorReadingString(lines[i]))
-
-    return SessionData(data, timestamps, sampleRate, version)
-
-# TODO: build app onto phone, record new data, put in data, getSession (below), fix up toRaw(), then hopefully
-# TODO: an input of size (numPoints, 3, 2, t) can be used in the lstm model? or find something that does
-
+    
 # https://machinelearningmastery.com/sequence-classification-lstm-recurrent-neural-networks-python-keras/
 # https://machinelearningmastery.com/time-series-prediction-lstm-recurrent-neural-networks-python-keras/
 # https://keras.io/api/layers/recurrent_layers/lstm/
-
-if __name__ == "__main__":
-    s = getSession("./yawnn/data/yawn-1.eimu")
-    print(s.toRaw()[0].shape)

@@ -1,4 +1,4 @@
-import eimuReader
+from eimuReader import SessionData
 from os import listdir
 from os.path import isfile, join
 import numpy as np
@@ -16,7 +16,7 @@ model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy']
 
 # convert a single eimu file to a tuple of (trainX, trainY), (testX, testY)
 def eimuToLSTMInput(eimuPath, shuffle=True):
-    session = eimuReader.getSession(eimuPath)
+    session = SessionData.fromPath(eimuPath)
     data, timestamps = session.toRaw()
     predicates = np.array(list(map(timestampPredicate, timestamps)))
     predicates.resize(predicates.shape[0], 1)
