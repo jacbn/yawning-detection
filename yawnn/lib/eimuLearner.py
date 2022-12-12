@@ -1,6 +1,6 @@
+import commons
 from eimuReader import SessionData
-from os import listdir
-from os.path import isfile, join
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
@@ -26,7 +26,7 @@ def eimuToLSTMInput(eimuPath : str, shuffle=True) -> tuple[tuple, tuple]:
 
 # convert a directory of eimu files to a tuple of (trainX, trainY), (testX, testY)
 def directoryToLSTMInput(path : str) -> tuple[tuple, tuple]:
-    inputs = [eimuToLSTMInput(join(path,f)) for f in listdir(path) if isfile(join(path, f))]
+    inputs = commons.mapToDirectory(eimuToLSTMInput, path)
     # combine all the inputs. each is a tuple of (trainX, trainY), (testX, testY),
     # and the result is a combination of all the trainX, trainY, testX, testY individually
     return (np.concatenate(list(map(lambda x: x[0][0], inputs))), np.concatenate(list(map(lambda x: x[0][1], inputs)))), (np.concatenate(list(map(lambda x: x[1][0], inputs))), np.concatenate(list(map(lambda x: x[1][1], inputs))))
