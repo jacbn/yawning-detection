@@ -26,6 +26,9 @@ class Timestamp:
         self.time = time
         self.type = ttype
 
+# a session is one entire recording, with no set length.
+# session.toRaw() returns a tuple of (data, timestamps), 
+#  where data is a list of 2 second chunks of data
 class SessionData:
     def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int):
         self.rawDataset = dataset,
@@ -109,9 +112,29 @@ class SessionData:
     def gyroConversion(gyro : list[float]) -> list[float]:
         return list(map(lambda x: x/65.5, gyro))
     
-    def plot(self):
-        pass # todo
-    
+    def plot(self, show=True):
+        ax1 = plt.subplot(211)
+        ax1.set_title("Accelerometer", fontsize=8)
+        ax1.set_ylabel("Acceleration (m/s^2)")
+        for i, axis in enumerate(['x', 'y', 'z']):
+            plt.plot(range(0, self.numPoints), list(map(lambda x: x[i], self.accel)), label=axis)
+        plt.grid()
+        plt.tick_params('x', labelbottom=False)
+        plt.legend(loc="upper right")
+
+        ax2 = plt.subplot(212, sharex=ax1)
+        ax2.set_title("Gyroscope", fontsize=8)
+        for i, axis in enumerate(['x', 'y', 'z']):
+            plt.plot(range(0, self.numPoints), list(map(lambda x: x[i], self.gyro)), label=axis)
+        ax2.set_xlabel("Samples (32 = 1 sec)")
+        ax2.set_ylabel("Gyro (deg/s)")
+        
+        tick = pow(2, np.ceil(np.log(self.numPoints)/np.log(2)))/16
+        plt.xticks(np.arange(0, self.numPoints, tick))
+        plt.grid()
+        plt.suptitle("Session Data")
+        if show:
+            plt.show()
 
 if __name__ == "__main__":
     s = SessionData.fromPath("./yawnn/data/long1.eimu")
