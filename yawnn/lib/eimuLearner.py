@@ -6,14 +6,16 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM, Dropout
 
-trainPercent = 0.8
-timestampPredicate = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
+TRAIN_PERCENT = 0.8
+TIMESTAMP_PREDICATE = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
+LSTM_UNITS = 10
+EPOCHS = 100
 
 # convert a single eimu file to a tuple of (trainX, trainY), (testX, testY)
 def eimuToLSTMInput(eimuPath : str, shuffle=True) -> tuple[tuple, tuple]:
     session = SessionData.fromPath(eimuPath)
     data, timestamps = session.toRaw()
-    predicates = np.array(list(map(timestampPredicate, timestamps)))
+    predicates = np.array(list(map(TIMESTAMP_PREDICATE, timestamps)))
     predicates.resize(predicates.shape[0], 1)
     
     if shuffle:
@@ -21,7 +23,7 @@ def eimuToLSTMInput(eimuPath : str, shuffle=True) -> tuple[tuple, tuple]:
         np.random.shuffle(pair)
         data, predicates = list(map(lambda x: x[0], pair)), list(map(lambda x: x[1], pair))
     
-    trainLength = int(len(data) * trainPercent)
+    trainLength = int(len(data) * TRAIN_PERCENT)
     return (data[:trainLength], predicates[:trainLength]), (data[trainLength:], predicates[trainLength:])
 
 # convert a directory of eimu files to a tuple of (trainX, trainY), (testX, testY)
@@ -33,11 +35,11 @@ def directoryToLSTMInput(path : str) -> tuple[tuple, tuple]:
 
 if __name__ == "__main__":
     model = Sequential()
-    model.add(LSTM(units=10, return_sequences=True))
+    model.add(LSTM(units=LSTM_UNITS, return_sequences=True))
     model.add(Dense(units=1, activation='sigmoid'))
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     
     (trainX, trainY), (testX, testY) = directoryToLSTMInput("./yawnn/data")
-    model.fit(trainX, trainY, epochs=100, batch_size=32)
+    model.fit(trainX, trainY, epochs=EPOCHS, batch_size=32)
     model.evaluate(testX, testY)
     
