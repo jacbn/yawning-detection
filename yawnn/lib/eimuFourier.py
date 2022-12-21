@@ -2,15 +2,32 @@ import commons
 from eimuReader import SessionData, SensorReading, Timestamp
 
 import numpy as np
-from scipy.fft import fft, fftfreq
+from scipy.fft import rfft, rfftfreq, ifft
 from matplotlib import pyplot as plt
 
-SIGNIFICANT_FREQ = 0.1
+SIGNIFICANT_FREQ = 1
 SAMPLE_RATE = 32
 
 class FourierData(SessionData):
     def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int):
         super().__init__(dataset, timestamps, sampleRate, version)
+        
+        f = rfft(list(map(lambda x: x[2], self.accel)))
+        N = len(f)
+        xf = rfftfreq(N*2-1, 1/SAMPLE_RATE)
+        
+        # we use abs below when we only care about the magnitude, not whether it is negative
+        
+        plt.stem(xf, np.abs(f), 'r', markerfmt=' ') # plots the magnitude of all frequencies in red
+        f = np.where(np.abs(f) > SIGNIFICANT_FREQ, f, 0)  
+        
+        plt.stem(xf, np.abs(f)) # plots the magnitude of all frequencies greater than SIGNIFICANT_FREQ in blue
+        plt.figure(4)
+        
+        yinv = ifft(f)
+        plt.plot(np.arange(len(yinv)), yinv) # plots the reconstruction (inverse fft) of the frequencies greater than SIGNIFICANT_FREQ
+        plt.figure(3)
+        
         self._initFrequencies()
         
     # @classmethod
@@ -23,9 +40,10 @@ class FourierData(SessionData):
         # self.frequencies = [[None for _ in range(6)] for _ in range(len(sessionData))]
         for i in range(len(sessionData)):
             for axis in range(6):
-                fftVal = fft(sessionData[i][:,axis])[:sessionData.shape[1]//2] # type: ignore
+                fftVal = rfft(sessionData[i][:,axis])#[:sessionData.shape[1]//2] # type: ignore
                 fftVal = 2/len(sessionData) * np.abs(fftVal) # type: ignore
                 # self.frequencies[i][axis] = fftVal # type: ignore
+                
                 
                 if len(self.sumFrequencies[axis]) == 0:
                     self.sumFrequencies[axis] = fftVal
@@ -38,15 +56,22 @@ class FourierData(SessionData):
         
         N = len(self.sumFrequencies[0])
         T = 1 / SAMPLE_RATE
-        xf = fftfreq(N*2, T)[:N]
+        xf = rfftfreq(N*2 - (1 if N%2==1 else 0), T)
+        # xf = np.arange(0, 1/SAMPLE_RATE, 1/(SAMPLE_RATE*N))
         
         for i in range(6):
             yf = self.sumFrequencies[i]
             
+            if i == 2:
+                print("--------------------------------------")
+                print(yf)
+                
+            
             # significant = list(map(lambda y: xf[y[0]], filter(lambda x: x[1] > SIGNIFICANT_FREQ, enumerate(posF))))
             # print(significant)
         
-            plt.plot(xf, yf) 
+            # plt.plot(xf, yf) 
+            plt.stem(xf, yf) #[:N//2]
     
             
         plt.grid()
@@ -64,7 +89,7 @@ class FourierData(SessionData):
 #     # directoryToFourierInput("./yawnn/data")
 #     eimuToFourier("./yawnn/data/long3.eimu")
     
-s = FourierData.fromPath("./yawnn/data/long1.eimu")
+s = FourierData.fromPath("./yawnn/data/long2.eimu")
 
 s.plot(show=False)
 s.plotFrequencies()
