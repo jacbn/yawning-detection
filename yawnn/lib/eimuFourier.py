@@ -1,38 +1,98 @@
 import commons
+
 from eimuReader import SessionData, SensorReading, Timestamp
 
 import numpy as np
 from scipy.fft import rfft, rfftfreq, ifft
+from scipy import signal
 from matplotlib import pyplot as plt
 
-SIGNIFICANT_FREQ = 1
-SAMPLE_RATE = 32
+SIGNIFICANT_FREQ = 0
 
 class FourierData(SessionData):
     def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int):
         super().__init__(dataset, timestamps, sampleRate, version)
+        self.sumFrequencies = []
+        self.plotSessionData(show=False, dataFilter=commons.LowPassFilter(2))
+        #self.plotFrequencies()
         
-        f = rfft(list(map(lambda x: x[2], self.accel)))
-        N = len(f)
-        xf = rfftfreq(N*2-1, 1/SAMPLE_RATE)
+    def plotSessionData(self, show : bool = False, figure : int = 2, dataFilter : commons.DataFilter = commons.NoneFilter()):
+        for axis in range(6):
+            data = np.array(list(map(lambda x: x[axis%2][axis//2], zip(self.accel, self.gyro))))
+            filterdata = dataFilter.apply(data, self.sampleRate)
+
+            self.plotFFTMagnitudes(data, axis, figure, False)
+            self.plotIFFTReconstruction(data, axis, figure+1, False)
+            self.plotSpectrograms(data, axis, figure+2, False, fmin=0, fmax=6) 
+            
+            self.plotFFTMagnitudes(filterdata, axis, figure+5, False)
+            self.plotIFFTReconstruction(filterdata, axis, figure+6, False)
+            self.plotSpectrograms(filterdata, axis, figure+7, False, fmin=0, fmax=6)           
         
-        # we use abs below when we only care about the magnitude, not whether it is negative
+        if show:
+            plt.show()
+    
+    def plotFFTMagnitudes(self, data : np.ndarray, axis : int, figure : int = 2, show : bool = False):
+        plt.figure(figure)
+        plt.suptitle("FFT Magnitudes")
+        ax = plt.subplot(3,2,axis+1)
+        ax.set_title(commons.AXIS_NAMES[axis%2][axis//2])
         
-        plt.stem(xf, np.abs(f), 'r', markerfmt=' ') # plots the magnitude of all frequencies in red
-        f = np.where(np.abs(f) > SIGNIFICANT_FREQ, f, 0)  
+        fourierData = np.abs(rfft(data)) # we use abs for everything here as we only care about the magnitude
+        N = len(fourierData)
+        xf = rfftfreq(N*2-1, 1/self.sampleRate)
         
-        plt.stem(xf, np.abs(f)) # plots the magnitude of all frequencies greater than SIGNIFICANT_FREQ in blue
-        plt.figure(4)
+        ax.stem(xf, fourierData, 'r', markerfmt=' ') # plots the magnitude of all frequencies in red
+        fourierData = np.where(fourierData > SIGNIFICANT_FREQ, fourierData, 0)  
+        ax.stem(xf, fourierData, commons.AXIS_COLOURS[axis//2], markerfmt=' ') # plots the magnitude of all frequencies greater than SIGNIFICANT_FREQ in blue
+
+        if (show):
+            plt.show()
+            
+    def plotIFFTReconstruction(self, data : np.ndarray, axis : int, figure : int = 3, show : bool = False):
+        plt.figure(figure)
+        plt.suptitle("Inverse FFT Reconstructions")
+        ax = plt.subplot(3,2,axis+1)
+        ax.set_title(commons.AXIS_NAMES[axis%2][axis//2], loc='left')
         
-        yinv = ifft(f)
-        plt.plot(np.arange(len(yinv)), yinv) # plots the reconstruction (inverse fft) of the frequencies greater than SIGNIFICANT_FREQ
-        plt.figure(3)
+        fourierData = rfft(data)
+        reconstructedData = ifft(fourierData) # here we do care about the sign, so we don't use abs
         
-        self._initFrequencies()
+        # plots the reconstruction of the frequencies greater than SIGNIFICANT_FREQ
+        ax.plot(np.arange(len(reconstructedData))*2, reconstructedData, color=commons.AXIS_COLOURS[axis//2]) 
         
-    # @classmethod
-    # def fromSessionData(cls, session : SessionData):
-    #     return cls(session.rawDataset, session.timestamps, session.sampleRate, session.version)
+        ax.set_title(commons.AXIS_NAMES[axis%2][axis//2], loc='left')
+        ax.set_ylabel("Acceleration (m/s^2)" if axis//2 == 0 else "Angular Velocity (deg/s)")
+        ax.set_xlabel(f"Samples ({self.sampleRate} = 1 sec)")
+        
+        for timestamp in self.timestamps:
+            ax.axvline(timestamp.time, color='black', alpha=0.5)
+            
+        if (show):
+            plt.show()
+            
+    def plotSpectrograms(self, data : np.ndarray, axis : int, figure : int = 5, show : bool = False, fmin : int = 0, fmax : int = 6):
+        plt.figure(figure)
+        plt.suptitle("Axis Spectrograms")
+        ax = plt.subplot(3,2,axis+1)
+        f, t, Sxx = signal.spectrogram(data, self.sampleRate, nperseg=256, noverlap=128)
+        
+        freq_slice = np.where((f >= fmin) & (f <= fmax))
+        f = f[freq_slice]
+        Sxx = Sxx[freq_slice,:][0]
+        
+        pc = ax.pcolormesh(t, f, Sxx, shading='gouraud')
+        plt.colorbar(pc)
+        
+        for timestamp in self.timestamps:
+            ax.axvline(timestamp.time/self.sampleRate, color='black', alpha=0.5)
+            
+        ax.set_title(commons.AXIS_NAMES[axis%2][axis//2], loc='left')
+        ax.set_ylabel('Frequency [Hz]')
+        ax.set_xlabel('Time [sec]')
+        
+        if (show):
+            plt.show()
     
     def _initFrequencies(self):    
         sessionData, sessionTimestamps = self.toRaw()
@@ -51,11 +111,13 @@ class FourierData(SessionData):
                     self.sumFrequencies[axis] += fftVal
     
     
-    def plotFrequencies(self, start=0, end=-1, figure : int = 2):
+    def plotFrequencies(self, start=0, end=-1, figure : int = 4):
+        if self.sumFrequencies == []:
+            self._initFrequencies()
         plt.figure(figure)
         
         N = len(self.sumFrequencies[0])
-        T = 1 / SAMPLE_RATE
+        T = 1 / self.sampleRate
         xf = rfftfreq(N*2 - (1 if N%2==1 else 0), T)
         # xf = np.arange(0, 1/SAMPLE_RATE, 1/(SAMPLE_RATE*N))
         
@@ -89,7 +151,7 @@ class FourierData(SessionData):
 #     # directoryToFourierInput("./yawnn/data")
 #     eimuToFourier("./yawnn/data/long3.eimu")
     
-s = FourierData.fromPath("./yawnn/data/long2.eimu")
+s = FourierData.fromPath("./yawnn/data/96hz-long2.eimu")
 
-s.plot(show=False)
-s.plotFrequencies()
+s.plot(show=True)
+# s.plotFrequencies()

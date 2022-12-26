@@ -112,21 +112,26 @@ class SessionData:
     def gyroConversion(gyro : list[float]) -> list[float]:
         return list(map(lambda x: x/65.5, gyro))
     
-    def plot(self, show=True):
+    def plot(self, show=True, figure : int = 1):
+        plt.figure(figure)
         ax1 = plt.subplot(211)
         ax1.set_title("Accelerometer", fontsize=8)
         ax1.set_ylabel("Acceleration (m/s^2)")
-        for i, axis in enumerate(['x', 'y', 'z']):
+        for i, axis in enumerate('xyz'):
             plt.plot(range(0, self.numPoints), list(map(lambda x: x[i], self.accel)), label=axis)
+        for timestamp in self.timestamps:
+            ax1.axvline(timestamp.time, color='black')
         plt.grid()
         plt.tick_params('x', labelbottom=False)
         plt.legend(loc="upper right")
 
         ax2 = plt.subplot(212, sharex=ax1)
         ax2.set_title("Gyroscope", fontsize=8)
-        for i, axis in enumerate(['x', 'y', 'z']):
+        for i, axis in enumerate('xyz'):
             plt.plot(range(0, self.numPoints), list(map(lambda x: x[i], self.gyro)), label=axis)
-        ax2.set_xlabel("Samples (32 = 1 sec)")
+        for timestamp in self.timestamps:
+            ax2.axvline(timestamp.time, color='black')
+        ax2.set_xlabel(f"Samples ({self.sampleRate} = 1 sec)")
         ax2.set_ylabel("Gyro (deg/s)")
         
         tick = pow(2, np.ceil(np.log(self.numPoints)/np.log(2)))/16
