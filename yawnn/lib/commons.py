@@ -9,6 +9,8 @@ from scipy import signal
 AXIS_NAMES = [['Accel X', 'Accel Y', 'Accel Z'], ['Gyro X', 'Gyro Y', 'Gyro Z']]
 AXIS_COLOURS = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
+YAWN_TIME = 2 # time, in seconds, an individual yawn lasts for
+
 T = TypeVar('T')
 
 def mapToDirectory(f : Callable[[str], T], path : str) -> list[T]:
@@ -29,8 +31,6 @@ class LowPassFilter(DataFilter):
         return signal.filtfilt(b, a, data)
 
 class NoneFilter(DataFilter):
-    def apply(self, data : np.ndarray, sampleRate : int, cutoff : int = 5) -> np.ndarray:
+    def apply(self, data : np.ndarray, sampleRate : int) -> np.ndarray:
         return data
     
-    def cutoff(self) -> int:
-        return 0

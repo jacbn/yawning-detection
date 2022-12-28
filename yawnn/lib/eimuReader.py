@@ -1,5 +1,6 @@
 # Includes the SessionData, SensorReading and Timestamp classes.
 # Create a SessionData via SessionData.fromPath(filepath), where filepath the path to a .eimu file
+import commons
 
 import numpy as np
 from matplotlib import pyplot as plt 
@@ -92,6 +93,16 @@ class SessionData:
             ))
         return converted
     
+    # turn the 2 lists of 3D vectors into one list of 6D vectors
+    def get6DDataVector(self):
+        return list(map(lambda x: sum(x, start=[]), zip(self.accel, self.gyro)))
+    
+    def getYawnIndices(self):
+        yawnTimes = sum(list(map(lambda x: list(range(max(0, x.time-self.sampleRate*commons.YAWN_TIME//2), min(self.numPoints, x.time+self.sampleRate*commons.YAWN_TIME//2+1))), list(filter(lambda x: x.type == "yawn", self.timestamps)))), start=[])
+        t = np.zeros(self.numPoints)
+        t[yawnTimes] = 1
+        return t
+    
     # Convert a list of accel and gyro data into a list of SensorReading objects
     @staticmethod
     def _toSensorReadings(accel : list[list[float]], gyro : list[list[float]]) -> list[SensorReading]:
@@ -111,6 +122,11 @@ class SessionData:
     @staticmethod
     def gyroConversion(gyro : list[float]) -> list[float]:
         return list(map(lambda x: x/65.5, gyro))
+    
+    @staticmethod
+    def combineSessions(sessions):
+        # todo
+        pass
     
     def plot(self, show=True, figure : int = 1):
         plt.figure(figure)

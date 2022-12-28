@@ -19,15 +19,15 @@ class FourierData(SessionData):
     def plotSessionData(self, show : bool = False, figure : int = 2, dataFilter : commons.DataFilter = commons.NoneFilter()):
         for axis in range(6):
             data = np.array(list(map(lambda x: x[axis%2][axis//2], zip(self.accel, self.gyro))))
-            filterdata = dataFilter.apply(data, self.sampleRate)
+            dataFiltered = dataFilter.apply(data, self.sampleRate)
 
-            self.plotFFTMagnitudes(data, axis, figure, False)
-            self.plotIFFTReconstruction(data, axis, figure+1, False)
-            self.plotSpectrograms(data, axis, figure+2, False, fmin=0, fmax=6) 
+            # self.plotFFTMagnitudes(data, axis, figure+5, False)
+            # self.plotIFFTReconstruction(data, axis, figure+6, False)
+            # self.plotSpectrograms(data, axis, figure+7, False, fmin=0, fmax=6) 
             
-            self.plotFFTMagnitudes(filterdata, axis, figure+5, False)
-            self.plotIFFTReconstruction(filterdata, axis, figure+6, False)
-            self.plotSpectrograms(filterdata, axis, figure+7, False, fmin=0, fmax=6)           
+            self.plotFFTMagnitudes(dataFiltered, axis, figure, False)
+            self.plotIFFTReconstruction(dataFiltered, axis, figure+1, False)
+            self.plotSpectrograms(dataFiltered, axis, figure+2, False, fmin=0, fmax=6)           
         
         if show:
             plt.show()
@@ -38,7 +38,7 @@ class FourierData(SessionData):
         ax = plt.subplot(3,2,axis+1)
         ax.set_title(commons.AXIS_NAMES[axis%2][axis//2])
         
-        fourierData = np.abs(rfft(data)) # we use abs for everything here as we only care about the magnitude
+        fourierData = np.abs(rfft(data)) # type: ignore # we use abs for everything here as we only care about the magnitude
         N = len(fourierData)
         xf = rfftfreq(N*2-1, 1/self.sampleRate)
         
@@ -79,7 +79,7 @@ class FourierData(SessionData):
         
         freq_slice = np.where((f >= fmin) & (f <= fmax))
         f = f[freq_slice]
-        Sxx = Sxx[freq_slice,:][0]
+        Sxx = Sxx[freq_slice,:][0] # type: ignore
         
         pc = ax.pcolormesh(t, f, Sxx, shading='gouraud')
         plt.colorbar(pc)
@@ -97,19 +97,15 @@ class FourierData(SessionData):
     def _initFrequencies(self):    
         sessionData, sessionTimestamps = self.toRaw()
         self.sumFrequencies = [[] for _ in range(6)]
-        # self.frequencies = [[None for _ in range(6)] for _ in range(len(sessionData))]
         for i in range(len(sessionData)):
             for axis in range(6):
                 fftVal = rfft(sessionData[i][:,axis])#[:sessionData.shape[1]//2] # type: ignore
                 fftVal = 2/len(sessionData) * np.abs(fftVal) # type: ignore
-                # self.frequencies[i][axis] = fftVal # type: ignore
-                
                 
                 if len(self.sumFrequencies[axis]) == 0:
                     self.sumFrequencies[axis] = fftVal
                 else:
                     self.sumFrequencies[axis] += fftVal
-    
     
     def plotFrequencies(self, start=0, end=-1, figure : int = 4):
         if self.sumFrequencies == []:
