@@ -61,7 +61,7 @@ class SessionData:
 
         return cls(data, timestamps, sampleRate, version)
         
-    def toRaw(self):
+    def getEimuData(self):
         splits = self.splitSession()
         # return an array of numpy arrays of shape (64, 6),
         # with 64 being the number of points per session, 
@@ -97,6 +97,7 @@ class SessionData:
     def get6DDataVector(self):
         return list(map(lambda x: sum(x, start=[]), zip(self.accel, self.gyro)))
     
+    # return a list of 0s and 1s for each point in the session, where 1s represent the presence of a yawn at most one YAWN_TIME//2 seconds before or after the point
     def getYawnIndices(self):
         yawnTimes = sum(list(map(lambda x: list(range(max(0, x.time-self.sampleRate*commons.YAWN_TIME//2), min(self.numPoints, x.time+self.sampleRate*commons.YAWN_TIME//2+1))), list(filter(lambda x: x.type == "yawn", self.timestamps)))), start=[])
         t = np.zeros(self.numPoints)
@@ -159,7 +160,7 @@ class SessionData:
 
 if __name__ == "__main__":
     s = SessionData.fromPath("./yawnn/data/long1.eimu")
-    print(s.toRaw()[0].shape)
+    print(s.getEimuData()[0].shape)
     
     
 # https://machinelearningmastery.com/sequence-classification-lstm-recurrent-neural-networks-python-keras/

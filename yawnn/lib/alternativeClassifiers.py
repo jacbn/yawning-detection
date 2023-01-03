@@ -24,7 +24,7 @@ def trainKNN(testPath : str, trainPath : str):
     
     score(classification, testYawns)
     
-def score(result, ground):
+def score(result : np.ndarray, ground : np.ndarray):
     print(f"Accuracy: {sum(result == ground) / len(result)}")
     print(f"Precision: {sum(result & ground) / sum(result)}")
     print(f"Recall: {sum(result & ground) / sum(ground)}")
