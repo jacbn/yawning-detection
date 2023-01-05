@@ -18,7 +18,7 @@ def fitSVM(X, y):
 # the total margin between the two closest points and the hyperplane, then, is 2/||W||
 # minimising the term 2/||W|| will maximise the separability of the two classes
 
-# how to we minimise W: Karush-Kuhn-Tucker conditions.
+# how do we minimise W: Karush-Kuhn-Tucker conditions.
 # main conditions are:
 # - W = sum_i^N(lambda_i * y_i * X_i)
 # - sum_i^N(lambda_i * y_i) = 0

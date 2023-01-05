@@ -95,7 +95,7 @@ class SessionData:
     
     # turn the 2 lists of 3D vectors into one list of 6D vectors
     def get6DDataVector(self):
-        return list(map(lambda x: sum(x, start=[]), zip(self.accel, self.gyro)))
+        return np.array(list(map(lambda x: sum(x, start=[]), zip(self.accel, self.gyro))))
     
     # return a list of 0s and 1s for each point in the session, where 1s represent the presence of a yawn at most one YAWN_TIME//2 seconds before or after the point
     def getYawnIndices(self):
