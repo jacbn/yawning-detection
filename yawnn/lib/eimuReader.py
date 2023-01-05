@@ -6,6 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt 
 
 class SensorReading:
+    """ A class representing a single reading from the sensor. """
     def __init__(self, accel : list[float], gyro : list[float]):
         self.accel = accel
         self.gyro = gyro
@@ -23,14 +24,13 @@ class SensorReading:
         return reading
         
 class Timestamp:
+    """ A class representing a timestamp as found in a .eimu file, i.e. a single point in time. """
     def __init__(self, time : int, ttype : str):
         self.time = time
         self.type = ttype
 
-# a session is one entire recording, with no set length.
-# session.toRaw() returns a tuple of (data, timestamps), 
-#  where data is a list of 2 second chunks of data
 class SessionData:
+    """ A class representing a single session of data. """
     def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int):
         self.rawDataset = dataset,
         # TODO: is converting x.accel and x.gyro to standard units useful for the NN or do we only need it for graphing purposes?
@@ -45,6 +45,7 @@ class SessionData:
         
     @classmethod
     def fromPath(cls, filepath : str):
+        """ Create a SessionData object from a .eimu file. """
         data = []
         with open(filepath, "r") as f:
             lines = f.read().splitlines()
@@ -62,22 +63,27 @@ class SessionData:
         return cls(data, timestamps, sampleRate, version)
         
     def getEimuData(self):
+        """ Returns the data required to input to the CSTM model.
+
+        Returns:
+            np.ndarray: an array of arrays of shape (YAWN_TIME * sampleRate, 6), with each row a 6D vector of the accel and gyro data
+            list[int]: a list of timestamps for each point in the session
+        """
         splits = self.splitSession()
-        # return an array of numpy arrays of shape (64, 6),
-        # with 64 being the number of points per session, 
-        # 6 being the x, y, z axes for the accel and gyro data, respectively
-        arr = np.array(list(map(lambda x: np.array([*x.accel, *x.gyro]), splits)))
-        arr.resize(len(splits), 64, 6)
+        arr = np.array(list(map(lambda x: x.get6DDataVector(), splits)))
+        arr.resize(len(splits), commons.YAWN_TIME * self.sampleRate, 6)
             
-        # return these arrays, alongside a list timestamps for each
         return arr, list(map(lambda x: x.timestamps, splits))
-        # final format is an np array (length = len(splits)) of (64, 3, 2) data arrays,
-        # paired with another array (length = len(splits)) of lists of timestamps per split
     
     # Split a SessionData object into a list of SessionData objects,
     # each of the same N-second length.
     def splitSession(self):
-        samplesPerGroup = self.sampleRate * 2 # 2 seconds per group
+        """Splits one SessionData into a list of smaller SessionData, each of length commons.YAWN_TIME seconds.
+
+        Returns:
+            list[SessionData]: the list of smaller SessionData objects
+        """
+        samplesPerGroup = commons.YAWN_TIME * self.sampleRate
     
         if self.numPoints < samplesPerGroup:
             print("Session too short to split. Returning original session.")
@@ -93,35 +99,36 @@ class SessionData:
             ))
         return converted
     
-    # turn the 2 lists of 3D vectors into one list of 6D vectors
     def get6DDataVector(self):
+        """ Convert accel and gyro into one list of 6D vectors. """
         return np.array(list(map(lambda x: sum(x, start=[]), zip(self.accel, self.gyro))))
     
-    # return a list of 0s and 1s for each point in the session, where 1s represent the presence of a yawn at most one YAWN_TIME//2 seconds before or after the point
     def getYawnIndices(self):
+        """ Return a list of 0s and 1s for each point in the session, where 1s represent the presence of a yawn timestamp at most one YAWN_TIME//2 seconds before or after the point. """
         yawnTimes = sum(list(map(lambda x: list(range(max(0, x.time-self.sampleRate*commons.YAWN_TIME//2), min(self.numPoints, x.time+self.sampleRate*commons.YAWN_TIME//2+1))), list(filter(lambda x: x.type == "yawn", self.timestamps)))), start=[])
         t = np.zeros(self.numPoints)
         t[yawnTimes] = 1
         return t
     
-    # Convert a list of accel and gyro data into a list of SensorReading objects
+    
     @staticmethod
     def _toSensorReadings(accel : list[list[float]], gyro : list[list[float]]) -> list[SensorReading]:
+        """ Convert a list of accel and gyro data into a list of SensorReading objects. """
         return list(map(lambda x: SensorReading(x[0], x[1]), zip(accel, gyro)))
     
-    # filter only those timestamps in the range, then shift their times to match
     @staticmethod
     def _getRelevantTimestamps(timestamps : list[Timestamp], start : int, end : int) -> list[Timestamp]:
+        """ Filter only those timestamps in the range, then shift their times to match. """
         return list(map(lambda x: Timestamp(x.time - start, x.type), filter(lambda t: t.time >= start and t.time <= end, timestamps)))
     
-    # convert raw accel units to m/s^2
     @staticmethod
     def accelConversion(accel : list[float]) -> list[float]:
+        """ Convert raw accel units to m/s^2. """
         return list(map(lambda x: x/8192, accel))
 
-    # convert raw gyro units to deg/s
     @staticmethod
     def gyroConversion(gyro : list[float]) -> list[float]:
+        """ Convert raw gyro units to deg/s. """
         return list(map(lambda x: x/65.5, gyro))
     
     @staticmethod
@@ -130,6 +137,7 @@ class SessionData:
         pass
     
     def plot(self, show=True, figure : int = 1):
+        """ Plot the accel and gyro data for this session. """
         plt.figure(figure)
         ax1 = plt.subplot(211)
         ax1.set_title("Accelerometer", fontsize=8)
@@ -163,6 +171,3 @@ if __name__ == "__main__":
     print(s.getEimuData()[0].shape)
     
     
-# https://machinelearningmastery.com/sequence-classification-lstm-recurrent-neural-networks-python-keras/
-# https://machinelearningmastery.com/time-series-prediction-lstm-recurrent-neural-networks-python-keras/
-# https://keras.io/api/layers/recurrent_layers/lstm/
