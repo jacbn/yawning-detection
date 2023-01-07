@@ -4,7 +4,6 @@ from os import listdir
 from os.path import isfile, join
 from matplotlib import pyplot as plt
 import numpy as np
-from scipy import signal
 
 AXIS_NAMES = [['Accel X', 'Accel Y', 'Accel Z'], ['Gyro X', 'Gyro Y', 'Gyro Z']]
 AXIS_COLOURS = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -13,54 +12,61 @@ YAWN_TIME = 2 # time, in seconds, an individual yawn lasts for
 TRAIN_PERCENT = 0.8 # percentage of data to use for training
 
 T = TypeVar('T')
+ModelData = tuple[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]]
+
+class ModelType(ABC):
+    """ An abstract class that represents an input to an LSTM model. See eimuLSTM.EimuLSTMInput for an example implementation. """
+    @abstractmethod
+    def fromPath(self, path : str) -> ModelData:
+        pass
+    
+
+def directoryToModelData(directoryPath : str, modelType : ModelType, shuffle : bool = True, equalPositiveAndNegative : bool = True) -> ModelData:
+    """ Convert a directory of .eimu files to a tuple of (trainX, trainY), (testX, testY) using a given LSTMInput. """
+    inputs = mapToDirectory(modelType.fromPath, directoryPath)
+    # combine all the inputs. each is a tuple of (trainX, trainY), (testX, testY),
+    # and the result is a combination of all the trainX, trainY, testX, testY individually
+    combined = (np.concatenate(list(map(lambda x: x[0][0], inputs))), np.concatenate(list(map(lambda x: x[0][1], inputs)))), (np.concatenate(list(map(lambda x: x[1][0], inputs))), np.concatenate(list(map(lambda x: x[1][1], inputs))))
+    
+    if equalPositiveAndNegative:
+        combined = equalizePositiveAndNegative(combined, shuffle)
+    if shuffle:
+        combined = shuffleAllData(combined)
+    
+    return combined
 
 def mapToDirectory(f : Callable[[str], T], path : str) -> list[T]:
     return [f(join(path,file)) for file in listdir(path) if isfile(join(path, file))]
 
-def shuffleTrainingData(combined : tuple[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]]) -> tuple[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]]:
+def shuffleAllData(combined : ModelData) -> ModelData:
+    """ Shuffles all the data, across both the training and test sets. """
     dataLength = len(combined[0][0])
-    train = np.concatenate((combined[0][0], combined[1][0]))
-    test = np.concatenate((combined[0][1], combined[1][1]))
+    data = np.concatenate((combined[0][0], combined[1][0]))
+    annotations = np.concatenate((combined[0][1], combined[1][1]))
     indices = np.arange(dataLength)
+    np.random.shuffle(indices)
     
     trainLength = int(dataLength * TRAIN_PERCENT)
-    return (train[indices][:trainLength], test[indices][:trainLength]), (train[indices][trainLength:], test[indices][trainLength:])
+    return (data[indices][:trainLength], annotations[indices][:trainLength]), (data[indices][trainLength:], annotations[indices][trainLength:])
 
-class DataFilter(ABC):
-    @abstractmethod
-    def apply(self, data : np.ndarray) -> np.ndarray:
-        pass
+def equalizePositiveAndNegative(combined : ModelData, shuffle : bool) -> ModelData:
+    """ Equalizes the number of positive and negative examples in the training data. """
+    trainX, trainY = combined[0]
+    positiveIndices = np.where(trainY == 1)[0]
+    negativeIndices = np.where(trainY == 0)[0]
     
-class FilterCollection(DataFilter):
-    def __init__(self, filters : list[DataFilter]) -> None:
-        super().__init__()
-        self.filters = filters
+    np.random.shuffle(positiveIndices) # shuffle the indices so we don't always remove the last ones
+    np.random.shuffle(negativeIndices)
+    
+    if len(positiveIndices) > len(negativeIndices):
+        positiveIndices = positiveIndices[:len(negativeIndices)]
+    elif len(negativeIndices) > len(positiveIndices):
+        negativeIndices = negativeIndices[:len(positiveIndices)]
+    
+    indices = np.concatenate((positiveIndices, negativeIndices))
+    if not shuffle:
+        # if we're not going to shuffle later, need to sort the indices back into the original order
+        indices = np.sort(indices)
         
-    def apply(self, data : np.ndarray) -> np.ndarray:
-        for f in self.filters:
-            data = f.apply(data)
-        return data
+    return (trainX[indices], trainY[indices]), combined[1]
 
-# remove high frequency noise. returns a new signal (same length as original) with the noise removed
-class LowPassFilter(DataFilter):
-    def __init__(self, sampleRate, cutoff=5) -> None:
-        super().__init__()
-        self.sampleRate = sampleRate
-        self.cutoff = cutoff
-    
-    def apply(self, data : np.ndarray) -> np.ndarray:
-        b, a = signal.butter(4, self.cutoff/(self.sampleRate/2), 'low', analog=False)
-        return signal.filtfilt(b, a, data)
-
-class NoneFilter(DataFilter):
-    def apply(self, data : np.ndarray) -> np.ndarray:
-        return data
-    
-class MovingAverageFilter(DataFilter):
-    def __init__(self, windowSize=5) -> None:
-        super().__init__()
-        self.windowSize = windowSize
-    
-    def apply(self, data : np.ndarray) -> np.ndarray:
-        return np.convolve(data, np.ones(self.windowSize)/self.windowSize, mode='same')
-    

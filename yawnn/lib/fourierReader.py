@@ -1,4 +1,5 @@
 import commons
+import filters
 
 from eimuReader import SessionData, SensorReading, Timestamp
 
@@ -16,13 +17,13 @@ class FourierData(SessionData):
         super().__init__(dataset, timestamps, sampleRate, version)
         self.sumFrequencies = []
         # _filter = commons.FilterCollection([commons.LowPassFilter(self.sampleRate, 2), commons.MovingAverageFilter(5)])
-        _filter = commons.NoneFilter()
+        _filter = filters.NoneFilter()
         # self.plotSessionData(show=False, dataFilter=_filter)
         # self.getFourierData(dataFilter=_filter)
         #self.plotFrequencies()
     
     
-    def getFourierData(self, dataFilter : commons.DataFilter = commons.NoneFilter(), chunkSize : float = commons.YAWN_TIME, chunkSeparation : float = commons.YAWN_TIME/4):
+    def getFourierData(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME, chunkSeparation : float = commons.YAWN_TIME/4):
         '''Returns spectrogram data for the given input data, split into chunks of chunkSize seconds, with a separation between chunks of chunkSeparation seconds.'''
         frequencies = []
         timestamps = []
@@ -70,7 +71,7 @@ class FourierData(SessionData):
         return np.array(frequencies), timestamps
     
         
-    def plotSessionData(self, show : bool = False, figure : int = 2, dataFilter : commons.DataFilter = commons.NoneFilter()):
+    def plotSessionData(self, show : bool = False, figure : int = 2, dataFilter : filters.DataFilter = filters.NoneFilter()):
         for axis in range(6):
             data = np.array(list(map(lambda x: x[axis%2][axis//2], zip(self.accel, self.gyro))))
             dataFiltered = dataFilter.apply(data)
@@ -189,20 +190,9 @@ class FourierData(SessionData):
         plt.legend(["ax", "ay", "az", "gx", "gy", "gz"], loc="upper right")
         plt.show()
     
-
-# def directoryToFourierInput(path : str) -> tuple[tuple, tuple]:
-#     inputs = commons.mapToDirectory(eimuToFourier, path)
-#     # combine all the inputs. each is a tuple of (trainX, trainY), (testX, testY),
-#     # and the result is a combination of all the trainX, trainY, testX, testY individually
-#     return ((),())
-    
-# if __name__ == "__main__":
-#     # directoryToFourierInput("./yawnn/data")
-#     eimuToFourier("./yawnn/data/long3.eimu")
     
 if __name__ == "__main__":
     s = FourierData.fromPath("./yawnn/data/96hz-yawns1.eimu")
-    
     s.plot(show=True)
     # s.plotFrequencies()
     
