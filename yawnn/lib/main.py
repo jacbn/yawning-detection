@@ -13,7 +13,6 @@ def makeLSTM(modelType : commons.ModelType, dataDirectory : str, lstmUnits : int
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
     (trainX, trainY), (testX, testY) = commons.directoryToModelData(dataDirectory, modelType, shuffle=shuffle, equalPositiveAndNegative=equalPositiveAndNegative)
-    print(trainX.shape)
 
     model.fit(trainX, trainY, epochs=epochs, batch_size=32)
     model.evaluate(testX, testY)
@@ -22,5 +21,3 @@ if __name__ == "__main__":
     # makeLSTM(EimuLSTMInput(), "./yawnn/data/96hz", 10, 100)
     makeLSTM(FourierLSTMInput(), "./yawnn/data/96hz", lstmUnits=10, epochs=100)
     
-# (25196, 6, 129)
-# (13648, 6, 129)

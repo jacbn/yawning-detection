@@ -63,7 +63,7 @@ class SessionData:
         return cls(data, timestamps, sampleRate, version)
         
     def getEimuData(self):
-        """ Returns the data required to input to the CSTM model.
+        """ Returns the data required to input to the LSTM model.
 
         Returns:
             np.ndarray: an array of arrays of shape (YAWN_TIME * sampleRate, 6), with each row a 6D vector of the accel and gyro data
@@ -169,5 +169,4 @@ class SessionData:
 if __name__ == "__main__":
     s = SessionData.fromPath("./yawnn/data/long1.eimu")
     print(s.getEimuData()[0].shape)
-    
     

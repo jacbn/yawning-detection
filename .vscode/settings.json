@@ -1,12 +1,16 @@
 {
     "cSpell.words": [
         "accel",
-        "Dialog",
+        "crossentropy",
+        "cutoff",
+        "dialog",
         "eimu",
         "esense",
         "keras",
         "LSTM",
-        "Tensorflow",
+        "ndarray",
+        "tensorflow",
+        "yawnn",
         "yeimu"
     ],
     "python.analysis.typeCheckingMode": "basic"
