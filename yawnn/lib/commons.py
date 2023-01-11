@@ -30,7 +30,11 @@ def directoryToModelData(directoryPath : str, modelType : ModelType, shuffle : b
     inputs = mapToDirectory(modelType.fromPath, directoryPath)
     # combine all the inputs. each is a tuple of (trainX, trainY), (testX, testY),
     # and the result is a combination of all the trainX, trainY, testX, testY individually
-    combined = (np.concatenate(list(map(lambda x: x[0][0], inputs))), np.concatenate(list(map(lambda x: x[0][1], inputs)))), (np.concatenate(list(map(lambda x: x[1][0], inputs))), np.concatenate(list(map(lambda x: x[1][1], inputs))))
+
+    try:
+        combined = (np.concatenate(list(map(lambda x: x[0][0], inputs))), np.concatenate(list(map(lambda x: x[0][1], inputs)))), (np.concatenate(list(map(lambda x: x[1][0], inputs))), np.concatenate(list(map(lambda x: x[1][1], inputs))))
+    except ValueError:
+        raise ValueError(f"Data from directory {directoryPath} could not be combined. Ensure all files use the same sampling rate.")
     
     if equalPositiveAndNegative:
         combined = equalizePositiveAndNegative(combined, shuffle)

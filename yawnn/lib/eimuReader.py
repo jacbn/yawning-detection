@@ -74,17 +74,19 @@ class SessionData:
         splits = self.splitSession()
         arr = np.array(list(map(lambda x: x.get6DDataVector(), splits)))
         arr.resize(len(splits), commons.YAWN_TIME * self.sampleRate, 6)
-            
         return arr, list(map(lambda x: x.timestamps, splits))
     
     # Split a SessionData object into a list of SessionData objects,
     # each of the same N-second length.
-    def splitSession(self):
+    def splitSession(self, sessionGap : int = 3):
         """Splits one SessionData into a list of smaller SessionData, each of length commons.YAWN_TIME seconds.
+        sessionGap represents how many samples forward to move between each split. Minimum 1, default 3.
 
         Returns:
             list[SessionData]: the list of smaller SessionData objects
         """
+        assert sessionGap > 0
+        
         samplesPerGroup = commons.YAWN_TIME * self.sampleRate
     
         if self.numPoints < samplesPerGroup:
@@ -92,7 +94,7 @@ class SessionData:
             return [self]
         
         converted = []
-        for i in range(self.numPoints - samplesPerGroup):
+        for i in range(0, self.numPoints - samplesPerGroup, sessionGap):
             converted.append(SessionData(
                 self._toSensorReadings(self.accel[i:i+samplesPerGroup], self.gyro[i:i+samplesPerGroup]),
                 self._getRelevantTimestamps(self.timestamps, i, i + samplesPerGroup),
