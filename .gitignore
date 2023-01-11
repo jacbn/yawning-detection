@@ -1,2 +1,3 @@
 yawnn/lib/__pycache__*
 /tests*
+/yawnn/data/user-trials*

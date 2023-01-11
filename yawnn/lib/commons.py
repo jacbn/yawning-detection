@@ -17,7 +17,11 @@ ModelData = tuple[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]]
 class ModelType(ABC):
     """ An abstract class that represents an input to an LSTM model. See eimuLSTM.EimuLSTMInput for an example implementation. """
     @abstractmethod
-    def fromPath(self, path : str) -> ModelData:
+    def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> ModelData:
+        pass
+    
+    @abstractmethod
+    def getType(self) -> str:
         pass
     
 
@@ -35,8 +39,12 @@ def directoryToModelData(directoryPath : str, modelType : ModelType, shuffle : b
     
     return combined
 
-def mapToDirectory(f : Callable[[str], T], path : str) -> list[T]:
-    return [f(join(path,file)) for file in listdir(path) if isfile(join(path, file))]
+
+def mapToDirectory(f : Callable[[str, int, int], T], path : str) -> list[T]:
+    """ Apply a function to all files in a directory. The function should take input parameters [fileName : str, fileNum : int, totalFiles : int]. """
+    files = [join(path,file) for file in listdir(path) if isfile(join(path, file))]
+    return [f(file, i+1, len(files)) for i, file in enumerate(files)]
+
 
 def shuffleAllData(combined : ModelData) -> ModelData:
     """ Shuffles all the data, across both the training and test sets. """
@@ -48,6 +56,7 @@ def shuffleAllData(combined : ModelData) -> ModelData:
     
     trainLength = int(dataLength * TRAIN_PERCENT)
     return (data[indices][:trainLength], annotations[indices][:trainLength]), (data[indices][trainLength:], annotations[indices][trainLength:])
+
 
 def equalizePositiveAndNegative(combined : ModelData, shuffle : bool) -> ModelData:
     """ Equalizes the number of positive and negative examples in the training data. """

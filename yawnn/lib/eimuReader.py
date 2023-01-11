@@ -31,7 +31,7 @@ class Timestamp:
 
 class SessionData:
     """ A class representing a single session of data. """
-    def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int):
+    def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1):
         self.rawDataset = dataset,
         # TODO: is converting x.accel and x.gyro to standard units useful for the NN or do we only need it for graphing purposes?
         self.accel = list(map(lambda x: self.accelConversion(x.accel), dataset))
@@ -42,9 +42,11 @@ class SessionData:
         self.timestamps = timestamps
         self.sampleRate = sampleRate
         self.version = version
+        self.fileNum = fileNum
+        self.totalFiles = totalFiles
         
     @classmethod
-    def fromPath(cls, filepath : str):
+    def fromPath(cls, filepath : str, fileNum : int = -1, totalFiles : int = -1):
         """ Create a SessionData object from a .eimu file. """
         data = []
         with open(filepath, "r") as f:
@@ -60,7 +62,7 @@ class SessionData:
                 if lines[i]:
                     data.append(SensorReading.fromString(lines[i]))
 
-        return cls(data, timestamps, sampleRate, version)
+        return cls(data, timestamps, sampleRate, version, fileNum, totalFiles)
         
     def getEimuData(self):
         """ Returns the data required to input to the LSTM model.

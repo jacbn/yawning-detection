@@ -13,8 +13,8 @@ N_PER_SEG = 256
 N_OVERLAP = N_PER_SEG-1 # greater n_overlap generally preferable. will miss the start/end of recording but much higher time resolution
 
 class FourierData(SessionData):
-    def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int):
-        super().__init__(dataset, timestamps, sampleRate, version)
+    def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int, sessionID : int = -1, totalSessions : int = -1):
+        super().__init__(dataset, timestamps, sampleRate, version, sessionID, totalSessions)
         self.sumFrequencies = []
         # _filter = commons.FilterCollection([commons.LowPassFilter(self.sampleRate, 2), commons.MovingAverageFilter(5)])
         _filter = filters.NoneFilter()
@@ -31,8 +31,9 @@ class FourierData(SessionData):
         trueChunkSize = int(chunkSize * self.sampleRate)
         trueChunkSeparation = int(chunkSeparation * self.sampleRate)
         boundary = N_PER_SEG//2 #todo: factor in overlap 
-        
-        print("Calculating frequencies:\n......", end='')
+          
+        pString = f"Calculating Fourier frequencies ({self.fileNum}/{self.totalFiles}): "
+        print(pString + "......", end='')
             
         for axis in range(6):
             # obtain and filter the data
@@ -60,7 +61,7 @@ class FourierData(SessionData):
             Sxxs = np.array(Sxxs)
             frequencies.append(Sxxs)
             
-            print('\r' + '#' * (axis+1) + '.' * (5-axis), end='' if axis < 5 else '\n')
+            print('\r' + pString + '#' * (axis+1) + '.' * (5-axis), end='' if axis < 5 else '\n')
             
             # f, t, Sxx = signal.spectrogram(dataFiltered, self.sampleRate, nperseg=N_PER_SEG, noverlap=N_OVERLAP)
             # frequencies.append(Sxx)
@@ -192,7 +193,7 @@ class FourierData(SessionData):
     
     
 if __name__ == "__main__":
-    s = FourierData.fromPath("./yawnn/data/96hz-yawns1.eimu")
+    s = FourierData.fromPath("./yawnn/data/tests/96hz/96hz-yawns1.eimu")
     s.plot(show=True)
     # s.plotFrequencies()
     

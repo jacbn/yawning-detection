@@ -6,8 +6,8 @@ import numpy as np
 TIMESTAMP_PREDICATE = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
 
 # convert a single eimu file to a tuple of (trainX, trainY), (testX, testY)
-def eimuToFourierLSTMInput(eimuPath : str, trainOnTimeAxis=False) -> commons.ModelData:
-    session = FourierData.fromPath(eimuPath)
+def eimuToFourierLSTMInput(eimuPath : str, trainOnTimeAxis=False, fileNum : int = -1, totalFiles : int = -1) -> commons.ModelData:
+    session = FourierData.fromPath(eimuPath, fileNum=fileNum, totalFiles=totalFiles)
     data, timestamps = session.getFourierData(chunkSize=commons.YAWN_TIME, chunkSeparation=commons.YAWN_TIME/4)
     
     # data format is (axes, chunks, frequencies, times (samples) per chunk).
@@ -35,5 +35,8 @@ class FourierLSTMInput(commons.ModelType):
     def __init__(self, trainOnTimeAxis=False):
         self.trainOnTimeAxis = trainOnTimeAxis
     
-    def fromPath(self, path : str) -> commons.ModelData:
-        return eimuToFourierLSTMInput(path, self.trainOnTimeAxis)
+    def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.ModelData:
+        return eimuToFourierLSTMInput(path, self.trainOnTimeAxis, fileNum, totalFiles)
+    
+    def getType(self) -> str:
+        return 'fourierLSTM'
