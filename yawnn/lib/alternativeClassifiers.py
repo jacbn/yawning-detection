@@ -33,7 +33,7 @@ def trainKNN(dataPath : str):
     data = data[indices]
     yawns = yawns[indices]
     
-    trainAmount = int(commons.TRAIN_PERCENT * len(data))
+    trainAmount = int(commons.TRAIN_SPLIT * len(data))
     
     classification = cknn.classifyMultiple(data[trainAmount:], data[:trainAmount], yawns[:trainAmount])
     # classification = cknnscipy.classifyMultiple(data[trainAmount:], data[:trainAmount], yawns[:trainAmount])

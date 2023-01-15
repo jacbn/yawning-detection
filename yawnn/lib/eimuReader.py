@@ -30,8 +30,52 @@ class Timestamp:
         self.type = ttype
 
 class SessionData:
-    """ A class representing a single session of data. """
+    """ A class representing a single session of data. 
+    
+    Attributes
+    ----------
+    rawDataset : list[SensorReading]
+        the unmodified data as read from the .eimu file this session is loaded from
+    accel : list[list[float]]
+        the acceleration data, in standard units (m/s^2)
+    gyro : list[list[float]]
+        the gyroscope data, in standard units (rad/s)
+    accelLim : float
+        maximum absolute value of the acceleration data
+    gyroLim : float
+        maximum absolute value of the gyroscope data
+    numPoints : int
+        number of points in the session
+    timestamps : list[Timestamp]
+        the timestamps for the session
+    sampleRate : int
+        sample rate of the session
+    version : int
+        version of the .eimu file this session is loaded from
+    fileNum : int
+        used exclusively for splitting a session; the split number. -1 if not used
+    totalFiles : int
+        used exclusively for splitting a session; the total number of splits. -1 if not used 
+    """
+    
     def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1):
+        """ Constructs the necessary attributes for the SessionData object.
+
+        Attributes
+        ----------
+        dataset : list[SensorReading]
+            the dataset represented as a series of (6-dimensional) SensorReadings
+        timestamps : list[Timestamp]
+            the timestamps for the session
+        sampleRate : int
+            sample rate of the session
+        version : int
+            version of the .eimu file this session is loaded from
+        fileNum : optional int
+            used exclusively for splitting a session; the split number. -1 if not used
+        totalFiles : optional int
+            used exclusively for splitting a session; the total number of splits. -1 if not used
+        """
         self.rawDataset = dataset,
         # TODO: is converting x.accel and x.gyro to standard units useful for the NN or do we only need it for graphing purposes?
         self.accel = list(map(lambda x: self.accelConversion(x.accel), dataset))
@@ -76,8 +120,7 @@ class SessionData:
         arr.resize(len(splits), commons.YAWN_TIME * self.sampleRate, 6)
         return arr, list(map(lambda x: x.timestamps, splits))
     
-    # Split a SessionData object into a list of SessionData objects,
-    # each of the same N-second length.
+
     def splitSession(self, sessionGap : int = 3):
         """Splits one SessionData into a list of smaller SessionData, each of length commons.YAWN_TIME seconds.
         sessionGap represents how many samples forward to move between each split. Minimum 1, default 3.
@@ -105,7 +148,7 @@ class SessionData:
     
     def get6DDataVector(self):
         """ Convert accel and gyro into one list of 6D vectors. """
-        return np.array(list(map(lambda x: sum(x, start=[]), zip(self.accel, self.gyro))))
+        return np.array(list(map(lambda x: sum(x, start=[]), zip(self.accel, self.gyro)))) #type: ignore
     
     def getYawnIndices(self):
         """ Return a list of 0s and 1s for each point in the session, where 1s represent the presence of a yawn timestamp at most one YAWN_TIME//2 seconds before or after the point. """

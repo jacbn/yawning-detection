@@ -17,10 +17,10 @@ class FourierData(SessionData):
         super().__init__(dataset, timestamps, sampleRate, version, sessionID, totalSessions)
         self.sumFrequencies = []
         # _filter = commons.FilterCollection([commons.LowPassFilter(self.sampleRate, 2), commons.MovingAverageFilter(5)])
-        _filter = filters.NoneFilter()
+        # _filter = filters.NoneFilter()
         # self.plotSessionData(show=False, dataFilter=_filter)
         # self.getFourierData(dataFilter=_filter)
-        #self.plotFrequencies()
+        # self.plotFrequencies()
     
     
     def getFourierData(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME, chunkSeparation : float = commons.YAWN_TIME/4):
@@ -45,10 +45,9 @@ class FourierData(SessionData):
                 raise ValueError(f"Not enough data to split into chunks of {chunkSize} seconds. Are you using the right file?")
             
             # split the data into chunks
-            Sxxs = []
-            
+            Sxxs = []            
             chunkStart = boundary
-            #todo: recheck if possible to calculate the whole spectrogram once and slice
+
             while chunkStart + trueChunkSize < len(dataFiltered) - boundary:
                 chunk = dataFiltered[chunkStart-boundary : chunkStart+trueChunkSize+boundary]
                 f, t, Sxx = signal.spectrogram(chunk, self.sampleRate, nperseg=N_PER_SEG, noverlap=N_OVERLAP)

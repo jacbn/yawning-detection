@@ -9,10 +9,11 @@ AXIS_NAMES = [['Accel X', 'Accel Y', 'Accel Z'], ['Gyro X', 'Gyro Y', 'Gyro Z']]
 AXIS_COLOURS = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 YAWN_TIME = 2 # time, in seconds, an individual yawn lasts for
-TRAIN_PERCENT = 0.8 # percentage of data to use for training
+TRAIN_SPLIT = 0.8 # default fraction of data to use for training
 
 T = TypeVar('T')
-ModelData = tuple[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]]
+AnnotatedData = tuple[np.ndarray, np.ndarray] # (data, annotations)
+ModelData = tuple[AnnotatedData, AnnotatedData] # one for training, one for testing
 
 class ModelType(ABC):
     """ An abstract class that represents an input to an LSTM model. See eimuLSTM.EimuLSTMInput for an example implementation. """
@@ -25,9 +26,13 @@ class ModelType(ABC):
         pass
     
 
-def directoryToModelData(directoryPath : str, modelType : ModelType, shuffle : bool = True, equalPositiveAndNegative : bool = True) -> ModelData:
+def directoryToModelData(directoryPath : str, modelType : ModelType, shuffle : bool = True, equalPositiveAndNegative : bool = True, trainSplit : float = TRAIN_SPLIT) -> ModelData:
     """ Convert a directory of .eimu files to a tuple of (trainX, trainY), (testX, testY) using a given LSTMInput. """
-    inputs = mapToDirectory(modelType.fromPath, directoryPath)
+    data, annotations = mapToDirectory(modelType.fromPath, directoryPath)
+    
+    trainLength = int(len(data) * trainSplit)
+    inputs = (data[:trainLength], annotations[:trainLength]), (data[trainLength:], annotations[trainLength:])
+
     # combine all the inputs. each is a tuple of (trainX, trainY), (testX, testY),
     # and the result is a combination of all the trainX, trainY, testX, testY individually
 
@@ -58,7 +63,7 @@ def shuffleAllData(combined : ModelData) -> ModelData:
     indices = np.arange(dataLength)
     np.random.shuffle(indices)
     
-    trainLength = int(dataLength * TRAIN_PERCENT)
+    trainLength = int(dataLength * TRAIN_SPLIT)
     return (data[indices][:trainLength], annotations[indices][:trainLength]), (data[indices][trainLength:], annotations[indices][trainLength:])
 
 
