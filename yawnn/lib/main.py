@@ -5,7 +5,6 @@ import filters
 from fourierLSTM import FourierLSTMInput
 from eimuLSTM import EimuLSTMInput
 from os import listdir
-import numpy as np
 
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense, LSTM
@@ -14,6 +13,19 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 print("Imports loaded.")
 
 def makeSequentialModel(layers : list):
+    """ Creates a sequential model from a list of layers.
+    
+    Attributes
+    ----------
+    layers : list
+        A list of layers to add to the model.
+        
+    Returns
+    -------
+    model : tensorflow.keras.models.Sequential
+        The sequential model.
+    
+    """
     model = Sequential()
     for layer in layers:
         model.add(layer)
@@ -22,6 +34,32 @@ def makeSequentialModel(layers : list):
 
 
 def trainModel(modelType : commons.ModelType, model, dataDirectory : str, epochs : int, batchSize : int, saveCheckpoints : bool = True, shuffle : bool = True, equalPositiveAndNegative : bool = True):
+    """ Trains a model on the data in a given directory.
+    
+    Attributes
+    ----------
+    modelType : commons.ModelType
+        The type of model to train -- eimu, Fourier, etc.
+    model : tensorflow.keras.models.X
+        The tensorflow model on which to train.
+    dataDirectory : str
+        The directory containing the data to train with.
+    epochs : int
+        The number of epochs to train for.
+    batchSize : int
+        The batch size to train with.
+    saveCheckpoints : bool
+        Whether to save checkpoints during training.
+    shuffle : bool
+        Whether to shuffle the data before training.
+    equalPositiveAndNegative : bool
+        Whether to equalize the number of positive and negative samples before training.
+        
+    Returns
+    -------
+    model : tensorflow.keras.models.X
+        The trained model.
+    """
     print(f"\nTraining {modelType.getType()}:")
     modelNum = len([f for f in listdir("./yawnn/models/") if f.startswith(modelType.getType())])
     
@@ -39,9 +77,22 @@ def trainModel(modelType : commons.ModelType, model, dataDirectory : str, epochs
     print(f"Model saved: {model.summary()}")
     
     model.evaluate(testX, testY)
+    return model
 
 
 def loadModel(modelPath : str):
+    """ Loads a pre-trained model.
+    
+    Attributes
+    ----------
+    modelPath : str
+        The path to the model to load.
+    
+    Returns
+    -------
+    model : tensorflow.keras.models.X
+        The loaded model.
+    """
     model = load_model(modelPath)
     print(f"Model loaded: {model.summary()}")
     return model
