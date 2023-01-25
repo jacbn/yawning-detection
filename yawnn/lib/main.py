@@ -104,7 +104,7 @@ def testDataOnModel(model, modelType : commons.ModelType, dataDirectory : str):
     Attributes
     ----------
     model : tensorflow.keras.models.X
-        The model to test. Load a pre-trained model with loadModel(path).
+        The tf model to test. Load a pre-trained model with loadModel(path).
     modelType : commons.ModelType
         The type of model to test.
     dataDirectory : str

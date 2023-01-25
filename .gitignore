@@ -3,3 +3,4 @@ yawnn/lib/classifiers/__pycache__*
 /tests*
 /yawnn/data/user-trials*
 /yawnn/models/checkpoints*
+/yawnn/venv*
