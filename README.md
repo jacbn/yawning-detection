@@ -57,7 +57,7 @@ Instructions for how to run each project are in the READMEs of their respective 
         │
         ├───io/                                         # IO-related code
         │       io_manager.dart                             # Saving and loading data  
-        │       sensor_data_file.dart                       # Converting whole session data to/from strings
+        │       sensor_data_file.dart                       # Converts session data to/from strings
         │
         ├───structure/                                  # Common classes
         │       sensor_data.dart                            # Individual sensor readings
