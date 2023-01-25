@@ -12,6 +12,7 @@
         "ndarray",
         "tensorflow",
         "yawnn",
+        "yawnnlib",
         "yeimu"
     ],
     "python.analysis.typeCheckingMode": "basic"
