@@ -1,6 +1,6 @@
 from yawnnlib.commons import commons, filters
 
-from eimuReader import SessionData, SensorReading, Timestamp
+from yawnnlib.readers.eimuReader import SessionData, SensorReading, Timestamp
 
 import numpy as np
 from scipy.fft import rfft, rfftfreq, ifft
