@@ -13,13 +13,13 @@ The machine-learning section of my project to detect yawns.
 1. Clone the repository.
 2. (Optional, recommended) Create a virtual environment:
 
-    > `python -m venv ./venv`
-    > `. venv/bin/activate` (Linux) or `./venv/Scripts/activate` (Windows)
-    > (To deactivate the virtual environment, run `deactivate`)
+    - `python -m venv ./venv`;
+    - `. venv/bin/activate` (Linux) or `./venv/Scripts/activate` (Windows);
+    - run `deactivate` to exit the virtual environment.
 
 3. Install the dependencies in `./requirements.txt`:
 
-    > `pip install -r requirements.txt`
+    - `pip install -r requirements.txt`
 
 ### Running
 
