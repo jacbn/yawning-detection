@@ -5,6 +5,7 @@
         "crossentropy",
         "cutoff",
         "dialog",
+        "Downsampler",
         "eimu",
         "esense",
         "keras",
