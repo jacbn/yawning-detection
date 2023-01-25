@@ -107,6 +107,12 @@ class SessionData:
                     data.append(SensorReading.fromString(lines[i]))
 
         return cls(data, timestamps, sampleRate, version, fileNum, totalFiles)
+    
+    @classmethod
+    def from6DDataVectors(cls, data : list[list[float]], timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1):
+        """ Create a SessionData object from a 6D data vector. """
+        sensorReadings = list(map(lambda x: SensorReading(x[:3], x[3:]), data))
+        return cls(sensorReadings, timestamps, sampleRate, version, fileNum, totalFiles)
         
     def getEimuData(self):
         """ Returns the data required to input to the LSTM model.

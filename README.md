@@ -23,7 +23,7 @@ Instructions for how to run each project are in the READMEs of their respective 
 │   ├───models/                                         # Saved models
 │   │               
 │   ├───tools/                                          # Tools for data processing
-│   │       eimuDownsampler.py                              # Downsampler for raw headphone data
+│   │       eimuResampler.py                              # Resampler for raw headphone data
 │   │       
 │   └───yawnnlib/                                       # Main code
 │       │   main.py                                         # Entry point; trains and tests models
