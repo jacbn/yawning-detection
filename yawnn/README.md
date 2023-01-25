@@ -15,7 +15,7 @@ The machine-learning section of my project to detect yawns.
 
     - `python -m venv ./venv`;
     - `. venv/bin/activate` (Linux) or `./venv/Scripts/activate` (Windows);
-    - run `deactivate` to exit the virtual environment.
+    - (run `deactivate` to exit the virtual environment when finished)
 
 3. Install the dependencies in `./requirements.txt`:
 
