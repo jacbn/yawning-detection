@@ -1,5 +1,6 @@
-from eimuReader import *
-import commons
+from yawnnlib.readers.eimuReader import SessionData
+from yawnnlib.commons import commons
+import numpy as np
 import classifiers.svm_sk as csvm
 import classifiers.knn as cknn
 import classifiers.knn_scipy as cknnscipy

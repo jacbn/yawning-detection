@@ -1,5 +1,5 @@
 from scipy import signal
-from yawnn.lib import commons
+from yawnnlib.commons import commons
 
 print(commons.YAWN_TIME)
 

@@ -1,9 +1,8 @@
 print("Loading imports...")
 
-import commons
-import filters
-from fourierLSTM import FourierLSTMInput
-from eimuLSTM import EimuLSTMInput
+from commons import commons, filters
+from lstm.eimuLSTM import EimuLSTMInput
+from lstm.fourierLSTM import FourierLSTMInput
 from os import listdir
 
 from tensorflow.keras.models import Sequential, load_model

@@ -1,5 +1,4 @@
-import commons
-import filters
+from yawnnlib.commons import commons, filters
 from fourierReader import FourierData
 
 import numpy as np

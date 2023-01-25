@@ -1,5 +1,5 @@
-import commons
-from eimuReader import SessionData
+from yawnnlib.commons import commons
+from yawnnlib.readers.eimuReader import SessionData
 
 import numpy as np
 
