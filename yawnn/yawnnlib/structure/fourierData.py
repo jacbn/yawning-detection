@@ -1,6 +1,7 @@
 from yawnnlib.commons import commons, filters
-
-from yawnnlib.readers.eimuReader import SessionData, SensorReading, Timestamp
+from yawnnlib.structure.sessionData import SessionData
+from yawnnlib.structure.sensorReading import SensorReading
+from yawnnlib.structure.timestamp import Timestamp
 
 import numpy as np
 from scipy.fft import rfft, rfftfreq, ifft
@@ -44,20 +45,20 @@ class FourierData(SessionData):
                 raise ValueError(f"Not enough data to split into chunks of {chunkSize} seconds. Are you using the right file?")
             
             # split the data into chunks
-            Sxxs = []            
+            SxxList = []            
             chunkStart = boundary
 
             while chunkStart + trueChunkSize < len(dataFiltered) - boundary:
                 chunk = dataFiltered[chunkStart-boundary : chunkStart+trueChunkSize+boundary]
                 f, t, Sxx = signal.spectrogram(chunk, self.sampleRate, nperseg=N_PER_SEG, noverlap=N_OVERLAP)
-                Sxxs.append(Sxx)
+                SxxList.append(Sxx)
                 # timestamps.append(int(1 in self.getYawnIndices()[range(chunkStart, chunkStart+trueChunkSize)]))
                 if axis == 0:
                     timestamps.append(self.getYawnIndices()[chunkStart+trueChunkSize//2])
                 chunkStart += trueChunkSeparation
             
-            Sxxs = np.array(Sxxs)
-            frequencies.append(Sxxs)
+            SxxList = np.array(SxxList)
+            frequencies.append(SxxList)
             
             print('\r' + pString + '#' * (axis+1) + '.' * (5-axis), end='' if axis < 5 else '\n')
             

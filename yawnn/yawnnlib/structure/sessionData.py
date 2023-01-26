@@ -1,33 +1,11 @@
 # Includes the SessionData, SensorReading and Timestamp classes.
 # Create a SessionData via SessionData.fromPath(filepath), where filepath the path to a .eimu file
 from yawnnlib.commons import commons
+from yawnnlib.structure.sensorReading import SensorReading
+from yawnnlib.structure.timestamp import Timestamp
 
 import numpy as np
 from matplotlib import pyplot as plt 
-
-class SensorReading:
-    """ A class representing a single reading from the sensor. """
-    def __init__(self, accel : list[float], gyro : list[float]):
-        self.accel = accel
-        self.gyro = gyro
-        
-    @classmethod
-    def fromString(cls, string : str):
-        nonEmptySplits = filter(lambda v: v, string.split('['))
-        accelAndGyroLists = list(map(lambda w: w.replace('[', '').replace(',', '').replace(']', ''), nonEmptySplits))
-        
-        m1 = map(float, filter(lambda v: v, accelAndGyroLists[0].split(' ')))
-        m2 = map(float, filter(lambda v: v, accelAndGyroLists[1].split(' ')))
-        
-        reading = cls(list(m1), list(m2))
-        assert len(reading.accel) == 3 and len(reading.gyro) == 3
-        return reading
-        
-class Timestamp:
-    """ A class representing a timestamp as found in a .eimu file, i.e. a single point in time. """
-    def __init__(self, time : int, ttype : str):
-        self.time = time
-        self.type = ttype
 
 class SessionData:
     """ A class representing a single session of data. 

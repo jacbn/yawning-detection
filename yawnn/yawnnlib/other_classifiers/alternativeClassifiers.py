@@ -1,4 +1,4 @@
-from yawnnlib.readers.eimuReader import SessionData
+from yawnn.yawnnlib.structure.sessionData import SessionData
 from yawnnlib.commons import commons
 import numpy as np
 import classifiers.svm_sk as csvm

@@ -1,5 +1,5 @@
 from scipy import signal
-from yawnnlib.readers.eimuReader import SessionData, Timestamp
+from yawnnlib.structure.sessionData import SessionData, Timestamp
 
 def resample(session : SessionData, newRate : int) -> SessionData:
     """Resample the session to a new rate.

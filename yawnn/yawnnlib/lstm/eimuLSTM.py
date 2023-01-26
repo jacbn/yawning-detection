@@ -1,5 +1,5 @@
 from yawnnlib.commons import commons
-from yawnnlib.readers.eimuReader import SessionData
+from yawnnlib.structure.sessionData import SessionData
 
 import numpy as np
 

@@ -1,6 +1,6 @@
 print("Loading imports...")
 
-from commons import commons, filters
+from yawnnlib.commons import commons, filters
 from lstm.eimuLSTM import EimuLSTMInput
 from lstm.fourierLSTM import FourierLSTMInput
 from os import listdir
@@ -10,6 +10,9 @@ from tensorflow.keras.layers import Dense, LSTM
 from tensorflow.keras.callbacks import ModelCheckpoint
 
 print("Imports loaded.")
+
+MODELS_PATH = "./yawnn/models"
+DATA_PATH = "./yawnn/data"
 
 def makeSequentialModel(layers : list):
     """ Creates a sequential model from a list of layers.
@@ -60,10 +63,10 @@ def trainModel(modelType : commons.ModelType, model, dataDirectory : str, epochs
         The trained model.
     """
     print(f"\nTraining {modelType.getType()}:")
-    modelNum = len([f for f in listdir("./yawnn/models/") if f.startswith(modelType.getType())])
+    modelNum = len([f for f in listdir(f"{MODELS_PATH}/") if f.startswith(modelType.getType())])
     
     cpCallback = ModelCheckpoint(
-        filepath=f"./yawnn/models/checkpoints/{modelType.getType()}_{modelNum}/" + "cp-{epoch:04d}.ckpt", 
+        filepath=f"{MODELS_PATH}/checkpoints/{modelType.getType()}_{modelNum}/" + "cp-{epoch:04d}.ckpt", 
         verbose=1, 
         save_weights_only=True,
         save_freq=5*batchSize)
@@ -72,7 +75,7 @@ def trainModel(modelType : commons.ModelType, model, dataDirectory : str, epochs
     
     model.fit(trainX, trainY, epochs=epochs, batch_size=batchSize, callbacks=[cpCallback] if saveCheckpoints else None)
     
-    model.save(f"./yawnn/models/{modelType.getType()}_{modelNum}.h5")
+    model.save(f"{MODELS_PATH}/{modelType.getType()}_{modelNum}.h5")
     print(f"Model saved: {model.summary()}")
     
     model.evaluate(testX, testY)
@@ -125,5 +128,5 @@ if __name__ == "__main__":
                    LSTM(units=128, recurrent_dropout=0.2, return_sequences=True),
                    LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
                    Dense(units=1, activation='sigmoid')]),
-               "./yawnn/data/user-trials", epochs=100, batchSize=32)
+               f"{DATA_PATH}/user-trials", epochs=100, batchSize=32)
     

@@ -1,5 +1,5 @@
 from yawnnlib.commons import commons, filters
-from yawnnlib.readers.fourierReader import FourierData
+from yawnnlib.structure.fourierData import FourierData
 
 import numpy as np
 

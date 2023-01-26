@@ -6,7 +6,7 @@ The machine-learning section of my project to detect yawns.
 
 ### Requirements
 
-- Python 3.8+
+- Python 3.9
 
 ### Installation
 
@@ -17,9 +17,15 @@ The machine-learning section of my project to detect yawns.
     - `. venv/bin/activate` (Linux) or `./venv/Scripts/activate` (Windows);
     - (run `deactivate` to exit the virtual environment when finished)
 
-3. Install the dependencies in `./requirements.txt`:
+3. Either (1) install the dependencies in `./requirements.txt`:
 
     - `pip install -r requirements.txt`
+
+   Or (2) perform a manual install:
+
+    - `pip install numpy scipy tensorflow matplotlib pyqt5`
+    - `cd yawnn/` (if not here already)
+    - `pip install -e .`
 
 ### Running
 

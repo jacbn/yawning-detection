@@ -1,7 +1,7 @@
 README.md
 setup.py
 tools/__init__.py
-tools/eimuDownsampler.py
+tools/eimuResampler.py
 yawnn.egg-info/PKG-INFO
 yawnn.egg-info/SOURCES.txt
 yawnn.egg-info/dependency_links.txt
@@ -19,6 +19,8 @@ yawnnlib/other_classifiers/alternativeClassifiers.py
 yawnnlib/other_classifiers/knn.py
 yawnnlib/other_classifiers/knn_scipy.py
 yawnnlib/other_classifiers/svm_sk.py
-yawnnlib/readers/__init__.py
-yawnnlib/readers/eimuReader.py
-yawnnlib/readers/fourierReader.py
+yawnnlib/structure/__init__.py
+yawnnlib/structure/fourierData.py
+yawnnlib/structure/sensorReading.py
+yawnnlib/structure/sessionData.py
+yawnnlib/structure/timestamp.py
