@@ -18,7 +18,7 @@ def resample(session : SessionData, newRate : int) -> SessionData:
 
     """
     # load data to session format
-    data = session.get6DDataVector()
+    data = session.get6DDataVectors()
 
     # resample
     data = list(map(list, signal.resample(data, session.numPoints * newRate // session.sampleRate)))

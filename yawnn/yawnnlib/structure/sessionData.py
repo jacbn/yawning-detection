@@ -1,6 +1,6 @@
 # Includes the SessionData, SensorReading and Timestamp classes.
 # Create a SessionData via SessionData.fromPath(filepath), where filepath the path to a .eimu file
-from yawnnlib.commons import commons
+from yawnnlib.commons import commons, filters
 from yawnnlib.structure.sensorReading import SensorReading
 from yawnnlib.structure.timestamp import Timestamp
 
@@ -92,25 +92,67 @@ class SessionData:
         sensorReadings = list(map(lambda x: SensorReading(x[:3], x[3:]), data))
         return cls(sensorReadings, timestamps, sampleRate, version, fileNum, totalFiles)
         
-    def getEimuData(self):
+    def getEimuData(self, dataFilter : filters.DataFilter = filters.NoneFilter()):
         """ Returns the data required to input to the LSTM model.
+        
+        Attributes
+        ----------
+        dataFilter : filters.DataFilter = filters.NoneFilter()
 
         Returns:
             np.ndarray: an array of arrays of shape (YAWN_TIME * sampleRate, 6), with each row a 6D vector of the accel and gyro data
             list[int]: a list of timestamps for each point in the session
         """
-        splits = self.splitSession()
-        arr = np.array(list(map(lambda x: x.get6DDataVector(), splits)))
-        arr.resize(len(splits), commons.YAWN_TIME * self.sampleRate, 6)
+        session = self
+        
+        if dataFilter.applyType == filters.ApplyType.SESSION:
+            session = self.applyFilter(self, dataFilter)
+        
+        splits = session.splitSession(sessionGap=3)
+        
+        if dataFilter.applyType == filters.ApplyType.SPLIT:
+            splits = list(map(lambda x: self.applyFilter(x, dataFilter), splits))
+            
+        arr = np.array(list(map(lambda x: x.get6DDataVectors(), splits)))
+        arr.resize(len(splits), commons.YAWN_TIME * session.sampleRate, 6)
         return arr, list(map(lambda x: x.timestamps, splits))
     
+    @staticmethod
+    def applyFilter(session : 'SessionData', dataFilter : filters.DataFilter):
+        """ Applies a filter to the session data.
 
-    def splitSession(self, sessionGap : int = 3):
-        """Splits one SessionData into a list of smaller SessionData, each of length commons.YAWN_TIME seconds.
-        sessionGap represents how many samples forward to move between each split. Minimum 1, default 3.
+        Attributes
+        ----------
+        sessionData : SessionData
+            the session data to apply the filter to
+        dataFilter : filters.DataFilter
+            the filter to apply
 
         Returns:
-            list[SessionData]: the list of smaller SessionData objects
+            SessionData: the filtered session data
+        """
+        return SessionData.from6DDataVectors(
+            dataFilter.apply(session.get6DDataVectors()).tolist(),
+            # TODO: if a timestamp is in a section that is heavily filtered, remove it
+            session.timestamps,
+            session.sampleRate,
+            session.version,
+            session.fileNum,
+            session.totalFiles
+        )
+        
+
+    def splitSession(self, sessionGap):
+        """Splits one SessionData into a list of smaller SessionData, each of length commons.YAWN_TIME seconds.
+        
+        Attributes
+        ----------
+        
+        sessionGap : int
+            How many samples forward to move between each split. Minimum 1.
+
+        Returns:
+            list[SessionData]: The list of smaller SessionData objects.
         """
         assert sessionGap > 0
         
@@ -130,7 +172,7 @@ class SessionData:
             ))
         return converted
     
-    def get6DDataVector(self):
+    def get6DDataVectors(self):
         """ Convert accel and gyro into one list of 6D vectors. """
         return np.array(list(map(lambda x: sum(x, start=[]), zip(self.accel, self.gyro)))) #type: ignore
     

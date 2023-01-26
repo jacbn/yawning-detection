@@ -8,7 +8,7 @@ import classifiers.knn_scipy as cknnscipy
 def trainSVM(path : str):
     # when training the SVM we prefer to use continuous data, not split into 64-sample chunks
     s = SessionData.fromPath(path)
-    data, yawns = s.get6DDataVector(), s.getYawnIndices()
+    data, yawns = s.get6DDataVectors(), s.getYawnIndices()
     
     clf = csvm.fitSVM(data, yawns)
     
@@ -18,7 +18,7 @@ def trainSVM(path : str):
     
 def trainKNN(dataPath : str):
     sessions = commons.mapToDirectory(SessionData.fromPath, dataPath)
-    data = np.concatenate([x.get6DDataVector() for x in sessions])
+    data = np.concatenate([x.get6DDataVectors() for x in sessions])
     yawns = np.concatenate([x.getYawnIndices() for x in sessions])
     
     # train = SessionData.fromPath(trainPaths[0])
