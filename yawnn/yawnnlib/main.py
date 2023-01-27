@@ -117,16 +117,16 @@ def testDataOnModel(model, modelType : commons.ModelType, dataDirectory : str):
 
     
 if __name__ == "__main__":
-    # trainModel(EimuLSTMInput(), 
-    #             makeSequentialModel([
-    #                LSTM(units=128, recurrent_dropout=0.2, return_sequences=True),
-    #                LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
-    #                Dense(units=1, activation='sigmoid')]),
-    #            "./yawnn/data/user-trials", epochs=100, batchSize=32)
-    trainModel(FourierLSTMInput(dataFilter=filters.MovingAverageFilter(5)), 
-               makeSequentialModel([
+    trainModel(EimuLSTMInput(dataFilter=filters.SmoothFilter(keepData=0.5)), 
+                makeSequentialModel([
                    LSTM(units=128, recurrent_dropout=0.2, return_sequences=True),
                    LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
                    Dense(units=1, activation='sigmoid')]),
                f"{DATA_PATH}/user-trials", epochs=100, batchSize=32)
+    # trainModel(FourierLSTMInput(dataFilter=filters.MovingAverageFilter(5)), 
+    #            makeSequentialModel([
+    #                LSTM(units=128, recurrent_dropout=0.2, return_sequences=True),
+    #                LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
+    #                Dense(units=1, activation='sigmoid')]),
+    #            f"{DATA_PATH}/user-trials", epochs=100, batchSize=32)
     

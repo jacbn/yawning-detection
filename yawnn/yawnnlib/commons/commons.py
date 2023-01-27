@@ -28,25 +28,24 @@ class ModelType(ABC):
 
 def directoryToModelData(directoryPath : str, modelType : ModelType, shuffle : bool = True, equalPositiveAndNegative : bool = True, trainSplit : float = TRAIN_SPLIT) -> ModelData:
     """ Convert a directory of .eimu files to a tuple of (trainX, trainY), (testX, testY) using a given LSTMInput. """
-    data, annotations = mapToDirectory(modelType.fromPath, directoryPath)
-    
-    trainLength = int(len(data) * trainSplit)
-    inputs = (data[:trainLength], annotations[:trainLength]), (data[trainLength:], annotations[trainLength:])
-
-    # combine all the inputs. each is a tuple of (trainX, trainY), (testX, testY),
-    # and the result is a combination of all the trainX, trainY, testX, testY individually
+    # build a list of tuples of (data, annotations), one tuple for each file in directoryPath
+    inputs = mapToDirectory(modelType.fromPath, directoryPath) 
 
     try:
-        combined = (np.concatenate(list(map(lambda x: x[0][0], inputs))), np.concatenate(list(map(lambda x: x[0][1], inputs)))), (np.concatenate(list(map(lambda x: x[1][0], inputs))), np.concatenate(list(map(lambda x: x[1][1], inputs))))
+        # combine all the inputs into a single tuple of (data, annotations)
+        combinedInputs = np.concatenate(list(map(lambda x: x[0], inputs))), np.concatenate(list(map(lambda x: x[1], inputs)))
+        # split the data into training and test sets (the model data); (trainSplit * 100%) of the data is used for training
+        trainLength = int(len(combinedInputs[0]) * trainSplit)
+        modelData = (combinedInputs[0][:trainLength], combinedInputs[1][:trainLength]), (combinedInputs[0][trainLength:], combinedInputs[1][trainLength:])
     except ValueError:
         raise ValueError(f"Data from directory {directoryPath} could not be combined. Ensure all files use the same sampling rate.")
     
     if equalPositiveAndNegative:
-        combined = equalizePositiveAndNegative(combined, shuffle)
+        modelData = equalizePositiveAndNegative(modelData, shuffle)
     if shuffle:
-        combined = shuffleAllData(combined)
+        modelData = shuffleAllData(modelData)
     
-    return combined
+    return modelData
 
 
 def mapToDirectory(f : Callable[[str, int, int], T], path : str) -> list[T]:

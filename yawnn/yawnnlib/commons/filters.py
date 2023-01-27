@@ -22,7 +22,7 @@ class DataFilter(ABC):
     
 class TimestampedDataFilter(DataFilter):
     @abstractmethod
-    def manageTimestamps(self, timestamps : list[Timestamp]) -> list[Timestamp]:
+    def manageTimestamps(self, data : np.ndarray, timestamps : list[Timestamp]) -> list[Timestamp]:
         pass
     
 class FilterCollection(DataFilter):
@@ -69,7 +69,7 @@ class MovingAverageFilter(DataFilter):
     
 class SmoothFilter(TimestampedDataFilter):
     """ Smooths the ends of the data using a gaussian. Used to prevent cut-off yawns from registering. """
-    def __init__(self, keepData : float = 0.5, edgeFlatness : float = 6.0) -> None:
+    def __init__(self, keepData : float = 0.5) -> None:
         """ Create a new SmoothFilter
         
         Attributes
@@ -77,30 +77,38 @@ class SmoothFilter(TimestampedDataFilter):
         
         keepData : float = 0.5
             fraction of the data to keep exactly as is 
-        edgeFlatness : float = 6.0
-            higher value gives flatter edges but sharper cutoff
         
         """
         super().__init__()
         self.keepData = keepData
-        self.edgeFlatness = edgeFlatness
     
     def apply(self, data : np.ndarray) -> np.ndarray:
+        # ---------------------------------------------------- : let this represent all the data
+        #
+        #           --------------------------------           : this data ((keepData * 100%) of the total) is kept exactly as is
+        # ----------                                ---------- : this data is smoothed according to the smoothCurve function
+        #
+        #      ------------------------------------------      : this data (halfway into the smoothed data) keeps any timestamps
+        # -----                                          ----- : this data does not keep any timestamps
         return self.smoothCurve(data)
     
-    def manageTimestamps(self, timestamps : list[Timestamp]) -> list[Timestamp]:
-        # TODO
-        pass
+    def manageTimestamps(self, data : np.ndarray, timestamps : list[Timestamp]) -> list[Timestamp]:
+        lBound = int(len(data) * (1 - self.keepData)/4)
+        return [t for t in timestamps if lBound <= t.time <= len(data) - lBound]
     
     def applyType(self) -> ApplyType:
         return ApplyType.SPLIT
 
     def smoothCurve(self, data : np.ndarray, plot : bool = False) -> np.ndarray:
-        x = np.arange(0, len(data), step = len(data)/1000)
-        y = norm.pdf(x, len(data)/2, len(data) / self.edgeFlatness)
-        y /= y[int(len(y) * (1 - self.keepData)/2)] # scale so that keep_data is >=1
-        y[y > 1] = 1                                # but cap at 1
-        # run this file to view a plot of this normal distribution
+        # run this file to view a plot of this distribution
+        x = np.arange(0, 1, step = 1/len(data))
+        # old method: cut-off gaussian. had sharp edges at cut-off boundary
+        # new method: double smoothstep. less choice over smoothness but default is good
+        f = lambda x: 3 * x**2 - 2 * x**3
+        curveLength = int(len(data) * (1 - self.keepData)/2)
+        y = np.ones(len(data))
+        y[:curveLength] = f(np.linspace(0, 1, curveLength))
+        y[-curveLength:] = f(np.linspace(1, 0, curveLength))
         
         smoothed = data * y
         

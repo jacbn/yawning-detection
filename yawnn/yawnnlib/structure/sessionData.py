@@ -101,7 +101,7 @@ class SessionData:
 
         Returns:
             np.ndarray: an array of arrays of shape (YAWN_TIME * sampleRate, 6), with each row a 6D vector of the accel and gyro data
-            list[int]: a list of timestamps for each point in the session
+            list[Timestamp]: a list of timestamps for each point in the session
         """
         session = self
         
@@ -131,10 +131,17 @@ class SessionData:
         Returns:
             SessionData: the filtered session data
         """
+        
+        data = session.get6DDataVectors()
+        
+        if isinstance(dataFilter, filters.TimestampedDataFilter):
+            timestamps = dataFilter.manageTimestamps(data, session.timestamps)
+        else:
+            timestamps = session.timestamps
+        
         return SessionData.from6DDataVectors(
-            dataFilter.apply(session.get6DDataVectors()).tolist(),
-            # TODO: if a timestamp is in a section that is heavily filtered, remove it
-            session.timestamps,
+            dataFilter.apply(data).tolist(),
+            timestamps,
             session.sampleRate,
             session.version,
             session.fileNum,
