@@ -41,9 +41,11 @@ Instructions for how to run each project are in the READMEs of their respective 
 │       │       knn.py                                      # K-Nearest Neighbours
 │       │       svm_sk.py                                   # Support Vector Machine
 │       │
-│       └───readers/                                    # Data readers
-│               eimuReader.py                               # Manager for raw headphone data
-│               fourierReader.py                            # Manager for Fourier-transformed data
+│       └───structure/                                  # Classes representing the underlying data
+│               fourierData.py                              # A Fourier-transformed dataset
+│               sensorReading.py                            # A single sensor reading
+│               sessionData.py                              # A standard dataset
+│               timestamp.py                                # A timestamp
 │
 │
 └───yeimu/
