@@ -41,7 +41,7 @@ def directoryToModelData(directoryPath : str, modelType : ModelType, shuffle : b
         raise ValueError(f"Data from directory {directoryPath} could not be combined. Ensure all files use the same sampling rate.")
     
     if equalPositiveAndNegative:
-        modelData = equalizePositiveAndNegative(modelData, shuffle)
+        modelData = equalisePositiveAndNegative(modelData, shuffle)
     if shuffle:
         modelData = shuffleAllData(modelData)
     
@@ -50,8 +50,10 @@ def directoryToModelData(directoryPath : str, modelType : ModelType, shuffle : b
 
 
 def mapToDirectory(f : Callable[[str, int, int], T], path : str) -> list[T]:
+    if path[-1] != '/':
+        path += '/'
     """ Apply a function to all files in a directory. The function should take input parameters [fileName : str, fileNum : int, totalFiles : int]. """
-    files = [join(path,file) for file in listdir(path) if isfile(join(path, file))]
+    files = [join(path, file) for file in listdir(path) if isfile(join(path, file))]
     return [f(file, i+1, len(files)) for i, file in enumerate(files)]
 
 
@@ -59,7 +61,6 @@ def shuffleAllData(combined : ModelData) -> ModelData:
     """ Shuffles all the data, across both the training and test sets. """
     data = np.concatenate((combined[0][0], combined[1][0]))
     annotations = np.concatenate((combined[0][1], combined[1][1]))
-    print(data.shape, len(data))
     indices = np.arange(len(data))
     np.random.shuffle(indices)
     
@@ -67,11 +68,16 @@ def shuffleAllData(combined : ModelData) -> ModelData:
     return (data[indices][:trainLength], annotations[indices][:trainLength]), (data[indices][trainLength:], annotations[indices][trainLength:])
 
 
-def equalizePositiveAndNegative(combined : ModelData, shuffle : bool) -> ModelData:
-    """ Equalizes the number of positive and negative examples in the training data. """
-    trainX, trainY = combined[0]
-    positiveIndices = np.where(trainY == 1)[0]
-    negativeIndices = np.where(trainY == 0)[0]
+def equalisePositiveAndNegative(combined : ModelData, shuffle : bool) -> ModelData:
+    """ Equalises the number of positive and negative examples in both the training and test sets (individually). """
+    train, test = combined
+    return _equalisePNForSingleSet(train, shuffle), _equalisePNForSingleSet(test, shuffle)
+
+
+def _equalisePNForSingleSet(annotatedData : AnnotatedData, shuffle : bool) -> AnnotatedData:
+    data, annotations = annotatedData
+    positiveIndices = np.where(annotations == 1)[0]
+    negativeIndices = np.where(annotations == 0)[0]
     
     np.random.shuffle(positiveIndices) # shuffle the indices so we don't always remove the last ones
     np.random.shuffle(negativeIndices)
@@ -85,6 +91,5 @@ def equalizePositiveAndNegative(combined : ModelData, shuffle : bool) -> ModelDa
     if not shuffle:
         # if we're not going to shuffle later, need to sort the indices back into the original order
         indices = np.sort(indices)
-        
-    return (trainX[indices], trainY[indices]), combined[1]
-
+    
+    return data[indices], annotations[indices]
