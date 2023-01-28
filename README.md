@@ -10,17 +10,20 @@ There are two main parts to the project: the mobile app, YeIMU (Flutter/Dart), u
 
 ## Project Structure
 
-Instructions for how to run each project are in the READMEs of their respective directories.
+Instructions for how to run each part are in the READMEs of their respective directories.
 
 ```text
 .
-├───yawnn/
-│   │   README.md                                       # YawNN Readme
-│   │   requirements.txt                                # Python dependencies
+├───yawnn/                                              # Yawn Analyser
+│   │   README.md                                           # YawNN Readme
+│   │   requirements.txt                                    # Python dependencies
 │   │   
 │   ├───data/                                           # Data files
 │   │
 │   ├───models/                                         # Saved models
+│   │ 
+│   ├───test/                                           # Unit tests; directory structure mirrors yawnnlib
+│   │       README.md                                       # Instructions for running tests
 │   │               
 │   ├───tools/                                          # Tools for data processing
 │   │       eimuResampler.py                              # Resampler for raw headphone data
@@ -48,8 +51,8 @@ Instructions for how to run each project are in the READMEs of their respective 
 │               timestamp.py                                # A timestamp
 │
 │
-└───yeimu/
-    │   README.md                                       # YawNN Readme
+└───yeimu/                                              # Mobile app to interface with headphones
+    │   README.md                                           # YawNN Readme
     │
     ├───{build target}/                                 # OS-specific build files
     │
