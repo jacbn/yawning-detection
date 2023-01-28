@@ -17,7 +17,7 @@ class DataFilter(ABC):
         pass
     
     @abstractmethod
-    def applyType(self) -> ApplyType:
+    def getApplyType(self) -> ApplyType:
         pass
     
 class TimestampedDataFilter(DataFilter):
@@ -46,14 +46,14 @@ class LowPassFilter(DataFilter):
         b, a = signal.butter(4, self.cutoff/(self.sampleRate/2), 'low', analog=False)
         return signal.filtfilt(b, a, data)
     
-    def applyType(self) -> ApplyType:
+    def getApplyType(self) -> ApplyType:
         return ApplyType.SESSION
 
 class NoneFilter(DataFilter):
     def apply(self, data : np.ndarray) -> np.ndarray:
         return data
     
-    def applyType(self) -> ApplyType:
+    def getApplyType(self) -> ApplyType:
         return ApplyType.SESSION
     
 class MovingAverageFilter(DataFilter):
@@ -62,10 +62,20 @@ class MovingAverageFilter(DataFilter):
         self.windowSize = windowSize
     
     def apply(self, data : np.ndarray) -> np.ndarray:
-        return np.convolve(data, np.ones(self.windowSize)/self.windowSize, mode='same')
+        return np.apply_along_axis(lambda d: self._moving_average(d, self.windowSize), 0, data)
+        # return np.cumsum(data, axis=0) / self.windowSize
+        # return np.convolve(data, np.ones(self.windowSize)/self.windowSize, mode='same')
     
-    def applyType(self) -> ApplyType:
+    def getApplyType(self) -> ApplyType:
         return ApplyType.SESSION
+    
+    @staticmethod
+    def _moving_average(data : np.ndarray, window : int) -> np.ndarray:
+        """ Applies a moving average to a 1D array. """
+        d = np.copy(data)
+        for i in range(len(data)):
+            d[i] = np.mean(data[max(0, i - window//2):min(len(data), int(np.ceil(i + window/2)))])
+        return d
     
 class SmoothFilter(TimestampedDataFilter):
     """ Smooths the ends of the data using a gaussian. Used to prevent cut-off yawns from registering. """
@@ -96,7 +106,7 @@ class SmoothFilter(TimestampedDataFilter):
         lBound = int(len(data) * (1 - self.keepData)/4)
         return [t for t in timestamps if lBound <= t.time <= len(data) - lBound]
     
-    def applyType(self) -> ApplyType:
+    def getApplyType(self) -> ApplyType:
         return ApplyType.SPLIT
 
     def smoothCurve(self, data : np.ndarray, plot : bool = False) -> np.ndarray:
@@ -110,7 +120,7 @@ class SmoothFilter(TimestampedDataFilter):
         y[:curveLength] = f(np.linspace(0, 1, curveLength))
         y[-curveLength:] = f(np.linspace(1, 0, curveLength))
         
-        smoothed = data * y
+        smoothed = np.apply_along_axis(lambda d: d*y, 0, data)
         
         if plot:
             plt.plot(x, y)

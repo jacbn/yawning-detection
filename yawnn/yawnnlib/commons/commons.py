@@ -45,6 +45,7 @@ def directoryToModelData(directoryPath : str, modelType : ModelType, shuffle : b
     if shuffle:
         modelData = shuffleAllData(modelData)
     
+    
     return modelData
 
 
@@ -56,13 +57,13 @@ def mapToDirectory(f : Callable[[str, int, int], T], path : str) -> list[T]:
 
 def shuffleAllData(combined : ModelData) -> ModelData:
     """ Shuffles all the data, across both the training and test sets. """
-    dataLength = len(combined[0][0])
     data = np.concatenate((combined[0][0], combined[1][0]))
     annotations = np.concatenate((combined[0][1], combined[1][1]))
-    indices = np.arange(dataLength)
+    print(data.shape, len(data))
+    indices = np.arange(len(data))
     np.random.shuffle(indices)
     
-    trainLength = int(dataLength * TRAIN_SPLIT)
+    trainLength = int(len(data) * TRAIN_SPLIT)
     return (data[indices][:trainLength], annotations[indices][:trainLength]), (data[indices][trainLength:], annotations[indices][trainLength:])
 
 

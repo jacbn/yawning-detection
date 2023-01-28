@@ -55,9 +55,8 @@ class SessionData:
             used exclusively for splitting a session; the total number of splits. -1 if not used
         """
         self.rawDataset = dataset,
-        # TODO: is converting x.accel and x.gyro to standard units useful for the NN or do we only need it for graphing purposes?
-        self.accel = list(map(lambda x: self.accelConversion(x.accel), dataset))
-        self.gyro = list(map(lambda x: self.gyroConversion(x.gyro), dataset))
+        self.accel = list(map(lambda x: x.accel, dataset))
+        self.gyro = list(map(lambda x: x.gyro, dataset))
         self.accelLim = max(abs(min(map(min, self.accel))), abs(max(map(max, self.accel))))
         self.gyroLim = max(abs(min(map(min, self.gyro))), abs(max(map(max, self.gyro))))
         self.numPoints = len(dataset)
@@ -92,12 +91,15 @@ class SessionData:
         sensorReadings = list(map(lambda x: SensorReading(x[:3], x[3:]), data))
         return cls(sensorReadings, timestamps, sampleRate, version, fileNum, totalFiles)
         
-    def getEimuData(self, dataFilter : filters.DataFilter = filters.NoneFilter()):
+    def getEimuData(self, dataFilter : filters.DataFilter = filters.NoneFilter(), sessionGap : int = 3):
         """ Returns the data required to input to the LSTM model.
         
         Attributes
         ----------
         dataFilter : filters.DataFilter = filters.NoneFilter()
+            the filter to apply to the data
+        sessionGap : int = 3
+            the number of samples to move forward between each split. Minimum 1.
 
         Returns:
             np.ndarray: an array of arrays of shape (YAWN_TIME * sampleRate, 6), with each row a 6D vector of the accel and gyro data
@@ -105,12 +107,12 @@ class SessionData:
         """
         session = self
         
-        if dataFilter.applyType == filters.ApplyType.SESSION:
+        if dataFilter.getApplyType() == filters.ApplyType.SESSION:
             session = self.applyFilter(self, dataFilter)
         
-        splits = session.splitSession(sessionGap=3)
+        splits = session.splitSession(sessionGap=sessionGap)
         
-        if dataFilter.applyType == filters.ApplyType.SPLIT:
+        if dataFilter.getApplyType() == filters.ApplyType.SPLIT:
             splits = list(map(lambda x: self.applyFilter(x, dataFilter), splits))
             
         arr = np.array(list(map(lambda x: x.get6DDataVectors(), splits)))
@@ -164,13 +166,12 @@ class SessionData:
         assert sessionGap > 0
         
         samplesPerGroup = commons.YAWN_TIME * self.sampleRate
-    
         if self.numPoints < samplesPerGroup:
-            print("Session too short to split. Returning original session.")
+            print("Session too short to split. Padding original session.")
             return [self]
         
         converted = []
-        for i in range(0, self.numPoints - samplesPerGroup, sessionGap):
+        for i in range(0, self.numPoints - samplesPerGroup + 1, sessionGap):
             converted.append(SessionData(
                 self._toSensorReadings(self.accel[i:i+samplesPerGroup], self.gyro[i:i+samplesPerGroup]),
                 self._getRelevantTimestamps(self.timestamps, i, i + samplesPerGroup),
