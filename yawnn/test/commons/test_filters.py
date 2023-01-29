@@ -14,7 +14,6 @@ class TestFilters(unittest.TestCase):
         # filter out the 12Hz frequency
         filteredSession = FourierData.applyFilter(session, filters.LowPassFilter(sampleRate=32, cutoff=8))
         assert isinstance(filteredSession, FourierData) # (ensure type checking)
-        filteredFreqs, _ = filteredSession.getFourierData(chunkSize=commons.YAWN_TIME, chunkSeparation=commons.YAWN_TIME/4)
         
         xf, fourierData = session._getFFTMagnitudes(session._getDataByAxis(0))
         xf2, fourierData2 = filteredSession._getFFTMagnitudes(filteredSession._getDataByAxis(0))
