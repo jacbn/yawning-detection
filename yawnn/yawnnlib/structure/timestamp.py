@@ -3,3 +3,9 @@ class Timestamp:
     def __init__(self, time : int, ttype : str):
         self.time = time
         self.type = ttype
+        
+    def __eq__(self, other : object):
+        if not isinstance(other, Timestamp):
+            return False
+        return self.time == other.time and self.type == other.type
+    

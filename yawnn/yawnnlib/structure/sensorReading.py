@@ -15,3 +15,8 @@ class SensorReading:
         reading = cls(list(m1), list(m2))
         assert len(reading.accel) == 3 and len(reading.gyro) == 3
         return reading
+    
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, SensorReading):
+            return False
+        return self.accel == __o.accel and self.gyro == __o.gyro

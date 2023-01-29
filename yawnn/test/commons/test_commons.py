@@ -33,3 +33,6 @@ class TestCommons(unittest.TestCase):
         # positive = 1, negative = 0, so sum of all should equal -sum of (all -1)
         self.assertEqual(np.sum(y1), -np.sum(y1 - 1))
         self.assertEqual(np.sum(y2), -np.sum(y2 - 1))
+        
+if __name__ == "__main__":
+    unittest.main()

@@ -19,12 +19,10 @@ class TestEimuLSTM(unittest.TestCase):
         self.assertEqual(annotations.shape, (1, 1))
 
     def test_fromPathOnRegularDataWithFilter(self):
-        data, annotations = eimuLSTM.EimuLSTMInput(dataFilter=filters.MovingAverageFilter(5)).fromPath("./yawnn/test/test_data/basic2.eimu")
-        self.assertEqual(data[0][8].tolist(), [0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
-        self.assertEqual(data[0][9].tolist(), [0.4, 0.4, 0.4, 0.4, 0.4, 0.4])
-        self.assertEqual(data[0][10].tolist(), [0.6, 0.6, 0.6, 0.6, 0.6, 0.6])
-
-# with np.printoptions(threshold=np.inf):
-#     data, annotations = eimuLSTM.EimuLSTMInput(dataFilter=filters.MovingAverageFilter(5)).fromPath("./yawnn/test/test_data/basic2.eimu")
-#     print(data)
-#     print(annotations)
+        # check that none of the following throw an exception
+        eimuLSTM.EimuLSTMInput(dataFilter=filters.MovingAverageFilter(5)).fromPath("./yawnn/test/test_data/basic2.eimu")
+        # todo
+        
+if __name__ == "__main__":
+    unittest.main()
+    

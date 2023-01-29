@@ -37,14 +37,14 @@ class FilterCollection(DataFilter):
 
 # remove high frequency noise. returns a new signal (same length as original) with the noise removed
 class LowPassFilter(DataFilter):
-    def __init__(self, sampleRate, cutoff=5) -> None:
+    def __init__(self, sampleRate : int, cutoff : int) -> None:
         super().__init__()
         self.sampleRate = sampleRate
         self.cutoff = cutoff
     
     def apply(self, data : np.ndarray) -> np.ndarray:
-        b, a = signal.butter(4, self.cutoff/(self.sampleRate/2), 'low', analog=False)
-        return signal.filtfilt(b, a, data)
+        b, a = signal.butter(10, self.cutoff/(self.sampleRate/2), 'low', analog=False)
+        return signal.filtfilt(b, a, data, axis=0)
     
     def getApplyType(self) -> ApplyType:
         return ApplyType.SESSION

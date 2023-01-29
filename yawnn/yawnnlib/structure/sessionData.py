@@ -141,7 +141,7 @@ class SessionData:
         else:
             timestamps = session.timestamps
         
-        return SessionData.from6DDataVectors(
+        return session.from6DDataVectors(
             dataFilter.apply(data).tolist(),
             timestamps,
             session.sampleRate,
@@ -199,7 +199,7 @@ class SessionData:
     
     @staticmethod
     def _getRelevantTimestamps(timestamps : list[Timestamp], start : int, end : int) -> list[Timestamp]:
-        """ Filter only those timestamps in the range, then shift their times to match. """
+        """ Filter only those timestamps in the range (inclusive, measured in number of samples), then shift their times to match. """
         return list(map(lambda x: Timestamp(x.time - start, x.type), filter(lambda t: t.time >= start and t.time <= end, timestamps)))
     
     @staticmethod
@@ -246,6 +246,11 @@ class SessionData:
         plt.suptitle("Session Data")
         if show:
             plt.show()
+            
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SessionData):
+            return False
+        return self.accel == other.accel and self.gyro == other.gyro and self.timestamps == other.timestamps and self.sampleRate == other.sampleRate and self.version == other.version
 
 if __name__ == "__main__":
     s = SessionData.fromPath("./yawnn/data/long1.eimu")
