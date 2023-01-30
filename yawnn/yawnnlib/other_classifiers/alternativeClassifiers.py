@@ -1,9 +1,10 @@
-from yawnn.yawnnlib.structure.sessionData import SessionData
+from yawnnlib.structure.sessionData import SessionData
 from yawnnlib.commons import commons
+
 import numpy as np
-import classifiers.svm_sk as csvm
-import classifiers.knn as cknn
-import classifiers.knn_scipy as cknnscipy
+import svm_sk as csvm
+import knn as cknn
+import knn_scipy as cknnscipy
 
 def trainSVM(path : str):
     # when training the SVM we prefer to use continuous data, not split into 64-sample chunks
@@ -16,28 +17,20 @@ def trainSVM(path : str):
     print(clf.score(data, yawns))
     print(clf.get_params())
     
-def trainKNN(dataPath : str):
+def trainKNN(dataPath : str, useScipy : bool = True):
     sessions = commons.mapToDirectory(SessionData.fromPath, dataPath)
     data = np.concatenate([x.get6DDataVectors() for x in sessions])
     yawns = np.concatenate([x.getYawnIndices() for x in sessions])
     
-    # train = SessionData.fromPath(trainPaths[0])
-    # trainData = train.get6DDataVector()
-    # trainYawns = train.getYawnIndices()
-    
-    # for path in trainPaths[1:]:
-    #     train = SessionData.fromPath(path)
-    #     trainData = np.concatenate((trainData, train.get6DDataVector()))
-    #     trainYawns = np.concatenate((trainYawns, train.getYawnIndices()))
-    
     indices = np.random.permutation(len(data))
     data = data[indices]
     yawns = yawns[indices]
-    
     trainAmount = int(commons.TRAIN_SPLIT * len(data))
     
-    classification = cknn.classifyMultiple(data[trainAmount:], data[:trainAmount], yawns[:trainAmount])
-    # classification = cknnscipy.classifyMultiple(data[trainAmount:], data[:trainAmount], yawns[:trainAmount])
+    if useScipy:
+        classification = cknnscipy.classifyMultiple(data[trainAmount:], data[:trainAmount], yawns[:trainAmount])
+    else:
+        classification = cknn.classifyMultiple(data[trainAmount:], data[:trainAmount], yawns[:trainAmount])
     
     score(classification, yawns[trainAmount:])
     

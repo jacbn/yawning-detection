@@ -25,9 +25,15 @@ class TestFilters(unittest.TestCase):
         if __name__ == "__main__":
             # run this file for a plot of this test
             from matplotlib import pyplot as plt
+            plt.title("Frequency Domain without Low-Pass Filter")
             plt.stem(xf, fourierData)
+            plt.xlabel("Frequency (Hz)")
+            plt.ylabel("Magnitude")
             plt.figure(2)
+            plt.title("Frequency Domain with Low-Pass Filter")
             plt.stem(xf2, fourierData2)
+            plt.xlabel("Frequency (Hz)")
+            plt.ylabel("Magnitude")
             plt.show()
         
     
