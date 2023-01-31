@@ -1,6 +1,6 @@
 print("Loading imports...")
 
-from yawnnlib.commons import commons, filters
+from yawnnlib.utils import commons, filters
 from lstm.eimuLSTM import EimuLSTMInput
 from lstm.fourierLSTM import FourierLSTMInput
 from os import listdir
@@ -11,8 +11,8 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 
 print("Imports loaded.")
 
-MODELS_PATH = "./yawnn/models"
-DATA_PATH = "./yawnn/data"
+MODELS_PATH = f"{commons.PROJECT_ROOT}/models"
+DATA_PATH = f"{commons.PROJECT_ROOT}/data"
 
 def makeSequentialModel(layers : list) -> Sequential:
     """ Creates a sequential model from a list of layers.

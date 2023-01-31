@@ -1,4 +1,4 @@
-from yawnnlib.commons import commons, filters
+from yawnnlib.utils import commons, filters
 from yawnnlib.structure.sessionData import SessionData
 from yawnnlib.structure.sensorReading import SensorReading
 from yawnnlib.structure.timestamp import Timestamp
@@ -198,8 +198,8 @@ class FourierData(SessionData):
     
     
 if __name__ == "__main__":
-    # s = FourierData.fromPath("./yawnn/data/tests/96hz/96hz-yawns1.eimu")
-    s = FourierData.fromPath("./yawnn/test/test_data/high_freq.eimu")
+    # s = FourierData.fromPath(f"{utils.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
+    s = FourierData.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/high_freq.eimu")
     s.plot(show=False, figure=1)
     s.plotSessionData(show=False, figure=2)
     s.plotFrequencies(figure=8)

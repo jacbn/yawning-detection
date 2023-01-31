@@ -1,6 +1,6 @@
 from yawnnlib.structure.sessionData import SessionData
 from yawnnlib.lstm.eimuLSTM import EimuLSTMInput
-from yawnnlib.commons import commons
+from yawnnlib.utils import commons
 
 import numpy as np
 import svm_sk as csvm
@@ -45,5 +45,5 @@ def score(result : np.ndarray, ground : np.ndarray):
     print(f"F1: {2 * sum(result.astype(int) & ground.astype(int)) / (sum(result) + sum(ground))}")
     
 if __name__ == "__main__":
-    # trainSVM("./yawnn/data/96hz-long2.eimu")
-    trainKNN("./yawnn/data/user-trials/")
+    # trainSVM(f"{utils.PROJECT_ROOT}/data/96hz-long2.eimu")
+    trainKNN(f"{commons.PROJECT_ROOT}/data/user-trials/")

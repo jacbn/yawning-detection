@@ -1,12 +1,15 @@
 from typing import TypeVar, Callable
 from abc import ABC, abstractmethod
 from os import listdir
-from os.path import isfile, join
+from os.path import isfile, join, abspath
 from matplotlib import pyplot as plt
 import numpy as np
 
 AXIS_NAMES = [['Accel X', 'Accel Y', 'Accel Z'], ['Gyro X', 'Gyro Y', 'Gyro Z']]
 AXIS_COLOURS = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+PROJECT_ROOT = abspath(join(__file__, '../../..')) # yawning-detection/yawnn/
+CACHE_DIRECTORY = f'{PROJECT_ROOT}/data/.preprocessing_cache/'
 
 YAWN_TIME = 2 # time, in seconds, an individual yawn lasts for
 TRAIN_SPLIT = 0.8 # default fraction of data to use for training
@@ -23,6 +26,14 @@ class ModelType(ABC):
     
     @abstractmethod
     def getType(self) -> str:
+        pass
+    
+    @abstractmethod
+    def toCache(self) -> None:
+        pass 
+    
+    @abstractmethod
+    def fromCache(self) -> None:
         pass
     
 
@@ -93,3 +104,10 @@ def _equalisePNForSingleSet(annotatedData : AnnotatedData, shuffle : bool) -> An
         indices = np.sort(indices)
     
     return data[indices], annotations[indices]
+
+def getCacheDirectory() -> str:
+    """ Returns the directory to use for caching. """
+    listdir(CACHE_DIRECTORY)
+    return CACHE_DIRECTORY
+
+getCacheDirectory()

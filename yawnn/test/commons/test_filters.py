@@ -1,14 +1,14 @@
 import unittest
 from yawnnlib.structure.fourierData import FourierData
 from yawnnlib.lstm import eimuLSTM, fourierLSTM
-from yawnnlib.commons import commons, filters
+from yawnnlib.utils import commons, filters
 from scipy.signal import argrelextrema
 import numpy as np
 
 class TestFilters(unittest.TestCase):
     def test_LowPassFilter(self):
         # this session is composed of a 4Hz frequency and a 12Hz frequency
-        session = FourierData.fromPath("./yawnn/test/test_data/high_freq.eimu")
+        session = FourierData.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/high_freq.eimu")
         freqs, _ = session.getFourierData(chunkSize=commons.YAWN_TIME, chunkSeparation=commons.YAWN_TIME/4)
         
         # filter out the 12Hz frequency
@@ -39,7 +39,7 @@ class TestFilters(unittest.TestCase):
     
     def test_MovingAverageFilter(self):
         model = eimuLSTM.EimuLSTMInput(dataFilter=filters.MovingAverageFilter(5))
-        data, annotations = model.fromPath("./yawnn/test/test_data/basic2.eimu")
+        data, annotations = model.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/basic2.eimu")
         self.assertEqual(data[0][8].tolist(), [0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
         self.assertEqual(data[0][9].tolist(), [0.4, 0.4, 0.4, 0.4, 0.4, 0.4])
         self.assertEqual(data[0][10].tolist(), [0.6, 0.6, 0.6, 0.6, 0.6, 0.6])

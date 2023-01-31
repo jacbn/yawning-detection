@@ -1,4 +1,4 @@
-from yawnnlib.commons import commons, filters
+from yawnnlib.utils import commons, filters
 from yawnnlib.structure.sessionData import SessionData
 
 import numpy as np
@@ -44,3 +44,9 @@ class EimuLSTMInput(commons.ModelType):
     
     def getType(self) -> str:
         return 'eimuLSTM'
+    
+    def toCache(self) -> None:
+        return super().toCache()
+    
+    def fromCache(self) -> None:
+        return super().fromCache()

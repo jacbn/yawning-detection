@@ -2,7 +2,6 @@ from scipy import spatial
 import numpy as np
 
 def classify(point, data, classifications, k=3, tree=None):
-    assert type(point) == np.ndarray
     assert type(data) == np.ndarray
     if tree is None:
         tree = spatial.KDTree(data)

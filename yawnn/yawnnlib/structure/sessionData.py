@@ -1,6 +1,6 @@
 # Includes the SessionData, SensorReading and Timestamp classes.
 # Create a SessionData via SessionData.fromPath(filepath), where filepath the path to a .eimu file
-from yawnnlib.commons import commons, filters
+from yawnnlib.utils import commons, filters
 from yawnnlib.structure.sensorReading import SensorReading
 from yawnnlib.structure.timestamp import Timestamp
 
@@ -253,6 +253,6 @@ class SessionData:
         return self.accel == other.accel and self.gyro == other.gyro and self.timestamps == other.timestamps and self.sampleRate == other.sampleRate and self.version == other.version
 
 if __name__ == "__main__":
-    s = SessionData.fromPath("./yawnn/data/long1.eimu")
+    s = SessionData.fromPath(f"{commons.PROJECT_ROOT}/data/long1.eimu")
     print(s.getEimuData()[0].shape)
     

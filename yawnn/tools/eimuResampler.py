@@ -1,4 +1,5 @@
 from scipy import signal
+from yawnnlib.utils import commons
 from yawnnlib.structure.sessionData import SessionData, Timestamp
 
 def resample(session : SessionData, newRate : int) -> SessionData:
@@ -28,7 +29,7 @@ def resample(session : SessionData, newRate : int) -> SessionData:
     return SessionData.from6DDataVectors(data, timestamps, newRate, session.version)
     
 if __name__ == "__main__":
-    session = SessionData.fromPath("./yawnn/data/tests/96hz/96hz-yawns1.eimu")
+    session = SessionData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
     session.plot(show=False)
     newSession = resample(session, 32)
     newSession.plot(figure=2)
