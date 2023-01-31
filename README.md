@@ -31,7 +31,7 @@ Instructions for how to run each part are in the READMEs of their respective dir
 │   └───yawnnlib/                                       # Main code
 │       │   main.py                                         # Entry point; trains and tests models
 │       │   
-│       ├───commons/                                    # Common code
+│       ├───utils/                                      # Utility code
 │       │       commons.py                                  # Common functions
 │       │       filters.py                                  # Data filters 
 │       │           

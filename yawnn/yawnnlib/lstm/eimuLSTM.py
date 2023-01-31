@@ -27,7 +27,6 @@ def eimuToLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, sessionGap 
     commons.AnnotatedData
         A tuple of (data, annotations)
     """
-    print(f"Converting to LSTM input: {fileNum}/{totalFiles}...")
     session = SessionData.fromPath(eimuPath, fileNum, totalFiles)
     data, timestamps = session.getEimuData(dataFilter=dataFilter, sessionGap=sessionGap)
     annotations = np.array(list(map(TIMESTAMP_PREDICATE, timestamps)))
@@ -45,9 +44,3 @@ class EimuLSTMInput(ModelType):
     
     def getType(self) -> str:
         return 'eimuLSTM'
-    
-    def _toCache(self) -> None:
-        return super()._toCache()
-    
-    def _fromCache(self) -> None:
-        return super()._fromCache()

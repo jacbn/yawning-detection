@@ -60,9 +60,4 @@ class FourierLSTMInput(ModelType):
     
     def getType(self) -> str:
         return 'fourierLSTM'
-
-    def _toCache(self) -> None:
-        return super()._toCache()
     
-    def _fromCache(self) -> None:
-        return super()._fromCache()

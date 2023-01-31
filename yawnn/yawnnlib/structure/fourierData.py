@@ -32,7 +32,7 @@ class FourierData(SessionData):
         trueChunkSeparation = int(chunkSeparation * self.sampleRate)
         boundary = N_PER_SEG//2 #todo: factor in overlap 
           
-        pString = f"Calculating Fourier frequencies ({self.fileNum}/{self.totalFiles}): "
+        pString = f"  Calculating Fourier frequencies: "
         print(pString + "......", end='')
             
         for axis in range(6):

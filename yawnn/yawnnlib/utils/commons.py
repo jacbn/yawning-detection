@@ -11,7 +11,7 @@ AXIS_NAMES = [['Accel X', 'Accel Y', 'Accel Z'], ['Gyro X', 'Gyro Y', 'Gyro Z']]
 AXIS_COLOURS = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 PROJECT_ROOT = abspath(join(__file__, '../../..')) # yawning-detection/yawnn/
-CACHE_DIRECTORY = f'{PROJECT_ROOT}/data/.preprocessing_cache/'
+CACHE_DIRECTORY = f'{PROJECT_ROOT}/data/.preprocessing_cache'
 ENABLE_CACHING = True
 
 YAWN_TIME = 2 # time, in seconds, an individual yawn lasts for
