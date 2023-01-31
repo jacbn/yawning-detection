@@ -5,8 +5,27 @@ import numpy as np
 
 TIMESTAMP_PREDICATE = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
 
-# convert a single eimu file to a tuple of (trainX, trainY), (testX, testY)
 def eimuToFourierLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, trainOnTimeAxis=False, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
+    """ Applies Fourier methods to a .eimu file to generate a tuple of (data, annotations).
+
+    Parameters
+    ----------
+    eimuPath : str
+        The path to the .eimu file.
+    dataFilter : filters.DataFilter
+        The filter to apply to the data.
+    trainOnTimeAxis : bool, optional
+        Whether to include the time axis as training data, by default False
+    fileNum : int, optional
+        The current file number, by default -1
+    totalFiles : int, optional
+        The total number of files, by default -1
+
+    Returns
+    -------
+    commons.AnnotatedData
+        A tuple of (data, annotations)
+    """
     session = FourierData.fromPath(eimuPath, fileNum=fileNum, totalFiles=totalFiles)
     data, timestamps = session.getFourierData(dataFilter=dataFilter, chunkSize=commons.YAWN_TIME, chunkSeparation=commons.YAWN_TIME/4)
     
