@@ -118,14 +118,23 @@ def testDataOnModel(model, modelType : ModelType, dataDirectory : str):
 
     
 if __name__ == "__main__":
-    trainModel(EimuLSTMInput(dataFilter=filters.SmoothFilter(keepData=0.5)), 
+    trainModel( EimuLSTMInput(
+                    dataFilter=filters.SmoothFilter(keepData=0.5),
+                    sessionGap=32,
+                ), 
                 makeSequentialModel([
-                   LSTM(units=128, recurrent_dropout=0.2, return_sequences=True),
-                   Dropout(0.2),
-                   LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
-                   Dropout(0.2),
-                   Dense(units=1, activation='sigmoid')]),
-               f"{DATA_PATH}/user-trials", epochs=100, batchSize=32)
+                    LSTM(units=128, recurrent_dropout=0.2, return_sequences=True),
+                    Dropout(0.2),
+                    LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
+                    Dropout(0.2),
+                    Dense(units=1, activation='sigmoid')]
+                ),
+                f"{DATA_PATH}/user-trials", 
+                epochs=30, 
+                batchSize=32,
+                shuffle=True,
+                equalPositiveAndNegative=True
+            )
     # trainModel(FourierLSTMInput(dataFilter=filters.MovingAverageFilter(5)), 
     #            makeSequentialModel([
     #                LSTM(units=128, recurrent_dropout=0.2, return_sequences=True),
