@@ -1,11 +1,11 @@
 class SensorReading:
     """ A class representing a single reading from the sensor. """
-    def __init__(self, accel : list[float], gyro : list[float]):
+    def __init__(self, accel : list[float], gyro : list[float]) -> None:
         self.accel = accel
         self.gyro = gyro
         
     @classmethod
-    def fromString(cls, string : str):
+    def fromString(cls, string : str) -> 'SensorReading':
         nonEmptySplits = filter(lambda v: v, string.split('['))
         accelAndGyroLists = list(map(lambda w: w.replace('[', '').replace(',', '').replace(']', ''), nonEmptySplits))
         

@@ -91,7 +91,7 @@ class SessionData:
         sensorReadings = list(map(lambda x: SensorReading(x[:3], x[3:]), data))
         return cls(sensorReadings, timestamps, sampleRate, version, fileNum, totalFiles)
         
-    def getEimuData(self, dataFilter : filters.DataFilter = filters.NoneFilter(), sessionGap : int = 3):
+    def getEimuData(self, dataFilter : filters.DataFilter = filters.NoneFilter(), sessionGap : int = 3) -> tuple[np.ndarray, list[list[Timestamp]]]:
         """ Returns the data required to input to the LSTM model.
         
         Attributes

@@ -23,7 +23,7 @@ class FourierData(SessionData):
         # self.plotFrequencies()
     
     
-    def getFourierData(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME, chunkSeparation : float = commons.YAWN_TIME/4):
+    def getFourierData(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME, chunkSeparation : float = commons.YAWN_TIME/4) -> tuple[np.ndarray, list[Timestamp]]:
         '''Returns spectrogram data for the given input data, split into chunks of chunkSize seconds, with a separation between chunks of chunkSeparation seconds.'''
         frequencies = []
         timestamps = []
@@ -72,7 +72,7 @@ class FourierData(SessionData):
     def _getDataByAxis(self, axis : int):
         return np.array(list(map(lambda x: x[axis%2][axis//2], zip(self.accel, self.gyro))))
         
-    def plotSessionData(self, show : bool = False, figure : int = 2, dataFilter : filters.DataFilter = filters.NoneFilter()):
+    def plotSessionData(self, show : bool = False, figure : int = 2, dataFilter : filters.DataFilter = filters.NoneFilter()) -> None:
         for axis in range(6):
             data = self._getDataByAxis(axis)
             dataFiltered = dataFilter.apply(data)
@@ -84,14 +84,14 @@ class FourierData(SessionData):
         if show:
             plt.show()
             
-    def _getFFTMagnitudes(self, data : np.ndarray):
+    def _getFFTMagnitudes(self, data : np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         # we use abs here as we only care about the magnitude
         fourierData = np.abs(rfft(data)) # type: ignore 
         N = len(fourierData)
         xf = rfftfreq(N*2-1, 1/self.sampleRate)
         return xf, fourierData
     
-    def _plotFFTMagnitudes(self, data : np.ndarray, axis : int, figure : int = 2, show : bool = False):
+    def _plotFFTMagnitudes(self, data : np.ndarray, axis : int, figure : int = 2, show : bool = False) -> None:
         plt.figure(figure)
         plt.suptitle("FFT Magnitudes")
         ax = plt.subplot(3,2,axis+1)
@@ -106,7 +106,7 @@ class FourierData(SessionData):
         if (show):
             plt.show()
             
-    def _plotIFFTReconstruction(self, data : np.ndarray, axis : int, figure : int = 3, show : bool = False):
+    def _plotIFFTReconstruction(self, data : np.ndarray, axis : int, figure : int = 3, show : bool = False) -> None:
         plt.figure(figure)
         plt.suptitle("Inverse FFT Reconstructions")
         ax = plt.subplot(3,2,axis+1)
@@ -128,7 +128,7 @@ class FourierData(SessionData):
         if (show):
             plt.show()
             
-    def _plotSpectrograms(self, data : np.ndarray, axis : int, figure : int = 5, show : bool = False, fmin : int = 0, fmax : int = 6, maxAmp : int = -1):
+    def _plotSpectrograms(self, data : np.ndarray, axis : int, figure : int = 5, show : bool = False, fmin : int = 0, fmax : int = 6, maxAmp : int = -1) -> None:
         plt.figure(figure)
         plt.suptitle("Axis Spectrograms")
         ax = plt.subplot(3,2,axis+1)
@@ -154,7 +154,7 @@ class FourierData(SessionData):
         if (show):
             plt.show()
     
-    def _initFrequencies(self):    
+    def _initFrequencies(self) -> None:    
         sessionData, sessionTimestamps = self.getEimuData()
         self.sumFrequencies = [[] for _ in range(6)]
         for i in range(len(sessionData)):
@@ -167,7 +167,7 @@ class FourierData(SessionData):
                 else:
                     self.sumFrequencies[axis] += fftVal
     
-    def plotFrequencies(self, start=0, end=-1, figure : int = 4):
+    def plotFrequencies(self, start=0, end=-1, figure : int = 4) -> None:
         if self.sumFrequencies == []:
             self._initFrequencies()
         plt.figure(figure)

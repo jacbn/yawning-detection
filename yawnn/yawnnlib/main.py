@@ -14,7 +14,7 @@ print("Imports loaded.")
 MODELS_PATH = "./yawnn/models"
 DATA_PATH = "./yawnn/data"
 
-def makeSequentialModel(layers : list):
+def makeSequentialModel(layers : list) -> Sequential:
     """ Creates a sequential model from a list of layers.
     
     Attributes

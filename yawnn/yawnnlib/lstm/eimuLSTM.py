@@ -16,7 +16,7 @@ def eimuToLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, sessionGap 
     return data, annotations
 
 class EimuLSTMInput(commons.ModelType):
-    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), sessionGap : int = 3):
+    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), sessionGap : int = 3) -> None:
         self.dataFilter = dataFilter
         self.sessionGap = sessionGap
     

@@ -31,7 +31,7 @@ def eimuToFourierLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, trai
     return data, annotations
 
 class FourierLSTMInput(commons.ModelType):
-    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), trainOnTimeAxis=False):
+    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), trainOnTimeAxis=False) -> None:
         self.dataFilter = dataFilter
         self.trainOnTimeAxis = trainOnTimeAxis
     
