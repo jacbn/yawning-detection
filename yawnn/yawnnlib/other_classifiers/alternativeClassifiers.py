@@ -19,9 +19,8 @@ def trainSVM(path : str):
     print(clf.get_params())
     
 def trainKNN(dataPath : str, useScipy : bool = True):
-    (trainX, trainY), (testX, testY) = commons.directoryToModelData(
+    (trainX, trainY), (testX, testY) = EimuLSTMInput().fromDirectory(
         dataPath, 
-        EimuLSTMInput(),
         shuffle=True,
         equalPositiveAndNegative=True,
         trainSplit=0.8

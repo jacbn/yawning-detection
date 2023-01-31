@@ -1,4 +1,5 @@
 from yawnnlib.utils import commons, filters
+from yawnnlib.lstm.modelType import ModelType
 from yawnnlib.structure.fourierData import FourierData
 
 import numpy as np
@@ -49,7 +50,7 @@ def eimuToFourierLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, trai
     
     return data, annotations
 
-class FourierLSTMInput(commons.ModelType):
+class FourierLSTMInput(ModelType):
     def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), trainOnTimeAxis=False) -> None:
         self.dataFilter = dataFilter
         self.trainOnTimeAxis = trainOnTimeAxis
@@ -59,3 +60,9 @@ class FourierLSTMInput(commons.ModelType):
     
     def getType(self) -> str:
         return 'fourierLSTM'
+
+    def _toCache(self) -> None:
+        return super()._toCache()
+    
+    def _fromCache(self) -> None:
+        return super()._fromCache()

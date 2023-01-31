@@ -1,4 +1,5 @@
 from yawnnlib.utils import commons, filters
+from yawnnlib.lstm.modelType import ModelType
 from yawnnlib.structure.sessionData import SessionData
 
 import numpy as np
@@ -34,7 +35,7 @@ def eimuToLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, sessionGap 
     
     return data, annotations
 
-class EimuLSTMInput(commons.ModelType):
+class EimuLSTMInput(ModelType):
     def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), sessionGap : int = 3) -> None:
         self.dataFilter = dataFilter
         self.sessionGap = sessionGap
@@ -45,8 +46,8 @@ class EimuLSTMInput(commons.ModelType):
     def getType(self) -> str:
         return 'eimuLSTM'
     
-    def toCache(self) -> None:
-        return super().toCache()
+    def _toCache(self) -> None:
+        return super()._toCache()
     
-    def fromCache(self) -> None:
-        return super().fromCache()
+    def _fromCache(self) -> None:
+        return super()._fromCache()

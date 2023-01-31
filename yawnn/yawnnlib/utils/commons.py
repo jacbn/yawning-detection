@@ -5,11 +5,14 @@ from os.path import isfile, join, abspath
 from matplotlib import pyplot as plt
 import numpy as np
 
+# todo: move user settings to a config file
+
 AXIS_NAMES = [['Accel X', 'Accel Y', 'Accel Z'], ['Gyro X', 'Gyro Y', 'Gyro Z']]
 AXIS_COLOURS = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 PROJECT_ROOT = abspath(join(__file__, '../../..')) # yawning-detection/yawnn/
 CACHE_DIRECTORY = f'{PROJECT_ROOT}/data/.preprocessing_cache/'
+ENABLE_CACHING = True
 
 YAWN_TIME = 2 # time, in seconds, an individual yawn lasts for
 TRAIN_SPLIT = 0.8 # default fraction of data to use for training
@@ -17,47 +20,6 @@ TRAIN_SPLIT = 0.8 # default fraction of data to use for training
 T = TypeVar('T')
 AnnotatedData = tuple[np.ndarray, np.ndarray] # (data, annotations)
 ModelData = tuple[AnnotatedData, AnnotatedData] # one for training, one for testing
-
-class ModelType(ABC):
-    """ An abstract class that represents an input to an LSTM model. See eimuLSTM.EimuLSTMInput for an example implementation. """
-    @abstractmethod
-    def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> ModelData:
-        pass
-    
-    @abstractmethod
-    def getType(self) -> str:
-        pass
-    
-    @abstractmethod
-    def toCache(self) -> None:
-        pass 
-    
-    @abstractmethod
-    def fromCache(self) -> None:
-        pass
-    
-
-def directoryToModelData(directoryPath : str, modelType : ModelType, shuffle : bool = True, equalPositiveAndNegative : bool = True, trainSplit : float = TRAIN_SPLIT) -> ModelData:
-    """ Convert a directory of .eimu files to a tuple of (trainX, trainY), (testX, testY) using a given LSTMInput. """
-    # build a list of tuples of (data, annotations), one tuple for each file in directoryPath
-    inputs = mapToDirectory(modelType.fromPath, directoryPath) 
-
-    try:
-        # combine all the inputs into a single tuple of (data, annotations)
-        combinedInputs = np.concatenate(list(map(lambda x: x[0], inputs))), np.concatenate(list(map(lambda x: x[1], inputs)))
-        # split the data into training and test sets (the model data); (trainSplit * 100%) of the data is used for training
-        trainLength = int(len(combinedInputs[0]) * trainSplit)
-        modelData = (combinedInputs[0][:trainLength], combinedInputs[1][:trainLength]), (combinedInputs[0][trainLength:], combinedInputs[1][trainLength:])
-    except ValueError:
-        raise ValueError(f"Data from directory {directoryPath} could not be combined. Ensure all files use the same sampling rate.")
-    
-    if equalPositiveAndNegative:
-        modelData = equalisePositiveAndNegative(modelData, shuffle)
-    if shuffle:
-        modelData = shuffleAllData(modelData)
-    
-    
-    return modelData
 
 
 def mapToDirectory(f : Callable[[str, int, int], T], path : str) -> list[T]:

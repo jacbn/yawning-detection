@@ -1,8 +1,9 @@
 print("Loading imports...")
 
 from yawnnlib.utils import commons, filters
-from lstm.eimuLSTM import EimuLSTMInput
-from lstm.fourierLSTM import FourierLSTMInput
+from yawnnlib.lstm.eimuLSTM import EimuLSTMInput
+from yawnnlib.lstm.fourierLSTM import FourierLSTMInput
+from yawnnlib.lstm.modelType import ModelType
 from os import listdir
 
 from tensorflow.keras.models import Sequential, load_model
@@ -35,7 +36,7 @@ def makeSequentialModel(layers : list) -> Sequential:
     return model
 
 
-def trainModel(modelType : commons.ModelType, model, dataDirectory : str, epochs : int, batchSize : int, saveCheckpoints : bool = True, shuffle : bool = True, equalPositiveAndNegative : bool = True):
+def trainModel(modelType : ModelType, model, dataDirectory : str, epochs : int, batchSize : int, saveCheckpoints : bool = True, shuffle : bool = True, equalPositiveAndNegative : bool = True):
     """ Trains a model on the data in a given directory.
     
     Attributes
@@ -71,7 +72,7 @@ def trainModel(modelType : commons.ModelType, model, dataDirectory : str, epochs
         save_weights_only=True,
         save_freq=5*batchSize)
     
-    (trainX, trainY), (testX, testY) = commons.directoryToModelData(dataDirectory, modelType, shuffle=shuffle, equalPositiveAndNegative=equalPositiveAndNegative)
+    (trainX, trainY), (testX, testY) = modelType.fromDirectory(dataDirectory, shuffle=shuffle, equalPositiveAndNegative=equalPositiveAndNegative)
     
     model.fit(trainX, trainY, epochs=epochs, batch_size=batchSize, callbacks=[cpCallback] if saveCheckpoints else None)
     
@@ -100,7 +101,7 @@ def loadModel(modelPath : str):
     return model
 
 
-def testDataOnModel(model, modelType : commons.ModelType, dataDirectory : str):
+def testDataOnModel(model, modelType : ModelType, dataDirectory : str):
     """ Tests the model on the data in a given directory. 
     
     Attributes
@@ -112,7 +113,7 @@ def testDataOnModel(model, modelType : commons.ModelType, dataDirectory : str):
     dataDirectory : str
         The directory containing the data to test.
     """
-    _, (X, Y) = commons.directoryToModelData(dataDirectory, modelType, shuffle=False, equalPositiveAndNegative=False, trainSplit=0.0)
+    _, (X, Y) = modelType.fromDirectory(dataDirectory, shuffle=False, equalPositiveAndNegative=False, trainSplit=0.0)
     model.evaluate(X, Y)
 
     
