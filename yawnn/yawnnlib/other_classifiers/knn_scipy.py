@@ -2,6 +2,7 @@ from scipy import spatial
 import numpy as np
 
 def classify(point, data, classifications, k=3, tree=None):
+    assert type(point) == np.ndarray
     assert type(data) == np.ndarray
     if tree is None:
         tree = spatial.KDTree(data)
@@ -16,7 +17,8 @@ def classify(point, data, classifications, k=3, tree=None):
 def classifyMultiple(points, data, classifications, k=3):
     tree = spatial.KDTree(data)
     l = []
-    for p in points:
+    for p in range(len(points)):
         l.append(classify(p, data, classifications, k=k, tree=tree))
-        print(f"Classifying points: {int(100 * len(l) / len(points))}%", end="\r" if len(l) != len(points) else "\n")
+        if p % 100 == 0:
+            print(f"Classifying points: {int(100 * len(l) / len(points))}%", end="\r" if len(l) != len(points) else "\n")
     return np.array(l)

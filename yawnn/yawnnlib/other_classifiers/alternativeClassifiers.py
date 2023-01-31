@@ -1,4 +1,5 @@
 from yawnnlib.structure.sessionData import SessionData
+from yawnnlib.lstm.eimuLSTM import EimuLSTMInput
 from yawnnlib.commons import commons
 
 import numpy as np
@@ -18,21 +19,24 @@ def trainSVM(path : str):
     print(clf.get_params())
     
 def trainKNN(dataPath : str, useScipy : bool = True):
-    sessions = commons.mapToDirectory(SessionData.fromPath, dataPath)
-    data = np.concatenate([x.get6DDataVectors() for x in sessions])
-    yawns = np.concatenate([x.getYawnIndices() for x in sessions])
-    
-    indices = np.random.permutation(len(data))
-    data = data[indices]
-    yawns = yawns[indices]
-    trainAmount = int(commons.TRAIN_SPLIT * len(data))
+    (trainX, trainY), (testX, testY) = commons.directoryToModelData(
+        dataPath, 
+        EimuLSTMInput(),
+        shuffle=True,
+        equalPositiveAndNegative=True,
+        trainSplit=0.8
+    )
+    trainY = np.repeat(trainY, trainX.shape[1])
+    testY = np.repeat(testY, testX.shape[1])
+    trainX = trainX.reshape(-1, 6)
+    testX = testX.reshape(-1, 6)
     
     if useScipy:
-        classification = cknnscipy.classifyMultiple(data[trainAmount:], data[:trainAmount], yawns[:trainAmount])
+        classification = cknnscipy.classifyMultiple(testX, trainX, trainY)
     else:
-        classification = cknn.classifyMultiple(data[trainAmount:], data[:trainAmount], yawns[:trainAmount])
+        classification = cknn.classifyMultiple(testX, trainX, trainY)
     
-    score(classification, yawns[trainAmount:])
+    score(classification, testY)
     
 def score(result : np.ndarray, ground : np.ndarray):
     print(f"Accuracy: {sum(result == ground) / len(result)}")
