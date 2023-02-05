@@ -7,7 +7,7 @@ from yawnnlib.lstm.modelType import ModelType
 from os import listdir
 
 from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import Dense, LSTM
+from tensorflow.keras.layers import Dense, LSTM, Conv2D, MaxPooling2D, TimeDistributed, Flatten, Dropout
 from tensorflow.keras.callbacks import ModelCheckpoint
 
 print("Imports loaded.")
@@ -121,7 +121,7 @@ def testDataOnModel(model, modelType : ModelType, dataDirectory : str):
 
 
 
-MODEL = 2
+MODEL = 1
 
 if __name__ == "__main__":
     if MODEL == 1:
@@ -140,6 +140,34 @@ if __name__ == "__main__":
                 equalPositiveAndNegative=True
         )
     elif MODEL == 2:
+        commons.ENABLE_CACHING = False
+        modelType = FourierLSTMInput(
+            dataFilter=filters.MovingAverageFilter(windowSize=5),
+            trainAsCNN=True,
+            chunkSize=commons.YAWN_TIME*1.5,
+            chunkSeparation=commons.YAWN_TIME/4,    
+        )
+        trainModel(
+                modelType, 
+                makeSequentialModel([
+                    Conv2D(filters=32, kernel_size=(3, 3), activation='relu'),
+                    MaxPooling2D(pool_size=(2, 2)),
+                    Conv2D(filters=64, kernel_size=(3, 3), activation='relu'),
+                    MaxPooling2D(pool_size=(2, 2)),
+                    Conv2D(filters=128, kernel_size=(3, 3), activation='relu'),
+                    MaxPooling2D(pool_size=(2, 2)),
+                    TimeDistributed(Flatten()),
+                    LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
+                    LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
+                    Dense(units=1, activation='sigmoid')]
+                ),
+                modelType.fromDirectory(f"{DATA_PATH}/user-trials"),
+                epochs=30, 
+                batchSize=16,
+                shuffle=True,
+                equalPositiveAndNegative=True
+        )
+    elif MODEL == 3:
         commons.ENABLE_CACHING = False
         modelType = FourierLSTMInput(dataFilter=filters.LowPassFilter(96, 5))
         trainModel(

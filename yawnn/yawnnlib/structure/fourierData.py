@@ -9,7 +9,7 @@ from scipy import signal
 from matplotlib import pyplot as plt
 
 SIGNIFICANT_FREQ = 0
-N_PER_SEG = 256          # number of samples per segment. ~256 is ideal, but has high runtime length and data size
+N_PER_SEG = 128          # number of samples per segment. ~256 is ideal, but has high runtime length and data size
 N_OVERLAP = N_PER_SEG-1 # greater n_overlap generally preferable. will miss the start/end of recording but much higher time resolution
 
 class FourierData(SessionData):
@@ -23,14 +23,14 @@ class FourierData(SessionData):
         # self.plotFrequencies()
     
     
-    def getFourierData(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME, chunkSeparation : float = commons.YAWN_TIME/2) -> tuple[np.ndarray, list[Timestamp]]:
+    def getFourierData(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> tuple[np.ndarray, list[Timestamp]]:
         '''Returns spectrogram data for the given input data, split into chunks of chunkSize seconds, with a separation between chunks of chunkSeparation seconds.'''
         frequencies = []
         timestamps = []
         
         trueChunkSize = int(chunkSize * self.sampleRate)
         trueChunkSeparation = int(chunkSeparation * self.sampleRate)
-        boundary = N_PER_SEG//2 #todo: factor in overlap 
+        boundary = N_PER_SEG//2
           
         pString = f"  Calculating Fourier frequencies: "
         print(pString + "......", end='')

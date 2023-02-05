@@ -66,11 +66,6 @@ class SessionData:
         self.fileNum = fileNum
         self.totalFiles = totalFiles
         
-        # todo: analyse effectiveness of this offset
-        # apply an offset to account for the delay between the detectable section of a yawn and the button press
-        additionalOffset = -self.sampleRate // 2
-        self.timestamps = list(map(lambda x: Timestamp(x.time + additionalOffset, x.type), self.timestamps))
-        
     @classmethod
     def fromPath(cls, filepath : str, fileNum : int = -1, totalFiles : int = -1):
         """ Create a SessionData object from a .eimu file. """
