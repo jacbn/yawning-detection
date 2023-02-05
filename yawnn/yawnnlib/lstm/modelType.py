@@ -33,19 +33,20 @@ class ModelType(ABC):
     def getType(self) -> str:
         pass
     
-    def fromDirectory(self, directoryPath : str, shuffle : bool = True, equalPositiveAndNegative : bool = True, trainSplit : float = commons.TRAIN_SPLIT) -> commons.ModelData:
-        """ Convert a directory of .eimu files to a tuple of (trainX, trainY), (testX, testY) using this ModelType. """
-        # build a list of tuples of (data, annotations), one tuple for each file in directoryPath
-        inputs = commons.mapToDirectory(self.fromPathOrCache, directoryPath) 
-
+    def fromDirectory(self, directoryPath : str) -> list[commons.AnnotatedData]:
+        """ Pull all .eimu files from one directory into a list of pairs of (data, annotations).
+        Pass result into fromAnnotatedDataList to get a ModelData object. """
+        return commons.mapToDirectory(self.fromPathOrCache, directoryPath) 
+        
+    def fromAnnotatedDataList(self, annotatedDataList : list[commons.AnnotatedData], shuffle : bool = True, equalPositiveAndNegative : bool = True, trainSplit : float = commons.TRAIN_SPLIT) -> commons.ModelData:
         try:
             # combine all the inputs into a single tuple of (data, annotations)
-            combinedInputs = np.concatenate(list(map(lambda x: x[0], inputs))), np.concatenate(list(map(lambda x: x[1], inputs)))
+            combinedInputs = np.concatenate(list(map(lambda x: x[0], annotatedDataList))), np.concatenate(list(map(lambda x: x[1], annotatedDataList)))
             # split the data into training and test sets (the model data); (trainSplit * 100%) of the data is used for training
             trainLength = int(len(combinedInputs[0]) * trainSplit)
             modelData = (combinedInputs[0][:trainLength], combinedInputs[1][:trainLength]), (combinedInputs[0][trainLength:], combinedInputs[1][trainLength:])
         except ValueError:
-            raise ValueError(f"Data from directory {directoryPath} could not be combined. Ensure all files use the same sampling rate.")
+            raise ValueError(f"Data could not be combined. Ensure all files use the same sampling rate.")
         
         if equalPositiveAndNegative:
             modelData = commons.equalisePositiveAndNegative(modelData, shuffle)

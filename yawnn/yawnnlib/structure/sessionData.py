@@ -66,6 +66,11 @@ class SessionData:
         self.fileNum = fileNum
         self.totalFiles = totalFiles
         
+        # todo: analyse effectiveness of this offset
+        # apply an offset to account for the delay between the detectable section of a yawn and the button press
+        additionalOffset = -self.sampleRate // 2
+        self.timestamps = list(map(lambda x: Timestamp(x.time + additionalOffset, x.type), self.timestamps))
+        
     @classmethod
     def fromPath(cls, filepath : str, fileNum : int = -1, totalFiles : int = -1):
         """ Create a SessionData object from a .eimu file. """
@@ -186,7 +191,18 @@ class SessionData:
     
     def getYawnIndices(self):
         """ Return a list of 0s and 1s for each point in the session, where 1s represent the presence of a yawn timestamp at most one YAWN_TIME//2 seconds before or after the point. """
-        yawnTimes = sum(list(map(lambda x: list(range(max(0, x.time-self.sampleRate*commons.YAWN_TIME//2), min(self.numPoints, x.time+self.sampleRate*commons.YAWN_TIME//2+1))), list(filter(lambda x: x.type == "yawn", self.timestamps)))), start=[])
+
+        # get the timestamps of when the yawn button was pressed
+        yawns = list(filter(lambda x: x.type == "yawn", self.timestamps))
+        
+        # define functions for obtaining the indices of points within YAWN_TIME//2 seconds of a yawn
+        rangeMin = lambda x: max(0, x.time-self.sampleRate*commons.YAWN_TIME//2)
+        rangeMax = lambda x: min(self.numPoints, x.time+self.sampleRate*commons.YAWN_TIME//2+1)
+        
+        # apply these to each yawn timestamp, then flatten the list of lists into a single list
+        yawnTimes = sum(list(map(lambda x: list(range(rangeMin(x), rangeMax(x))), yawns)), start=[])
+        
+        # create a numpy array of 0s and 1s, where 1s represent the presence of a yawn nearby
         t = np.zeros(self.numPoints)
         t[yawnTimes] = 1
         return t

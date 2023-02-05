@@ -9,7 +9,7 @@ from scipy import signal
 from matplotlib import pyplot as plt
 
 SIGNIFICANT_FREQ = 0
-N_PER_SEG = 256
+N_PER_SEG = 256          # number of samples per segment. ~256 is ideal, but has high runtime length and data size
 N_OVERLAP = N_PER_SEG-1 # greater n_overlap generally preferable. will miss the start/end of recording but much higher time resolution
 
 class FourierData(SessionData):
@@ -23,7 +23,7 @@ class FourierData(SessionData):
         # self.plotFrequencies()
     
     
-    def getFourierData(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME, chunkSeparation : float = commons.YAWN_TIME/4) -> tuple[np.ndarray, list[Timestamp]]:
+    def getFourierData(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME, chunkSeparation : float = commons.YAWN_TIME/2) -> tuple[np.ndarray, list[Timestamp]]:
         '''Returns spectrogram data for the given input data, split into chunks of chunkSize seconds, with a separation between chunks of chunkSeparation seconds.'''
         frequencies = []
         timestamps = []
@@ -52,7 +52,6 @@ class FourierData(SessionData):
                 chunk = dataFiltered[chunkStart-boundary : chunkStart+trueChunkSize+boundary]
                 f, t, Sxx = signal.spectrogram(chunk, self.sampleRate, nperseg=N_PER_SEG, noverlap=N_OVERLAP)
                 SxxList.append(Sxx)
-                # timestamps.append(int(1 in self.getYawnIndices()[range(chunkStart, chunkStart+trueChunkSize)]))
                 if axis == 0:
                     timestamps.append(self.getYawnIndices()[chunkStart+trueChunkSize//2])
                 chunkStart += trueChunkSeparation
@@ -61,12 +60,6 @@ class FourierData(SessionData):
             
             print('\r' + pString + '#' * (axis+1) + '.' * (5-axis), end='' if axis < 5 else '\n')
             
-            # f, t, Sxx = signal.spectrogram(dataFiltered, self.sampleRate, nperseg=N_PER_SEG, noverlap=N_OVERLAP)
-            # frequencies.append(Sxx)
-            # print(len(f), len(t), Sxx.shape)
-            # print((t[-1]+t[0]) * self.sampleRate, len(dataFiltered))
-        
-        # print(frequencies)
         return np.array(frequencies), timestamps
     
     def _getDataByAxis(self, axis : int):
@@ -198,9 +191,9 @@ class FourierData(SessionData):
     
     
 if __name__ == "__main__":
-    # s = FourierData.fromPath(f"{utils.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
-    s = FourierData.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/high_freq.eimu")
+    s = FourierData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
     s.plot(show=False, figure=1)
-    s.plotSessionData(show=False, figure=2)
-    s.plotFrequencies(figure=8)
+    s.plotSessionData(show=False, figure=2, dataFilter=filters.LowPassFilter(96, 5))
+    # s.plotFrequencies(figure=8)
+    plt.show()
     

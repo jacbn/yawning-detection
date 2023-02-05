@@ -7,7 +7,7 @@ from yawnnlib.lstm.modelType import ModelType
 from os import listdir
 
 from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import Dense, LSTM, Dropout
+from tensorflow.keras.layers import Dense, LSTM
 from tensorflow.keras.callbacks import ModelCheckpoint
 
 print("Imports loaded.")
@@ -36,7 +36,7 @@ def makeSequentialModel(layers : list) -> Sequential:
     return model
 
 
-def trainModel(modelType : ModelType, model, dataDirectory : str, epochs : int, batchSize : int, saveCheckpoints : bool = True, shuffle : bool = True, equalPositiveAndNegative : bool = True):
+def trainModel(modelType : ModelType, model, annotatedData : list[commons.AnnotatedData], epochs : int, batchSize : int, saveCheckpoints : bool = True, shuffle : bool = True, equalPositiveAndNegative : bool = True):
     """ Trains a model on the data in a given directory.
     
     Attributes
@@ -45,8 +45,8 @@ def trainModel(modelType : ModelType, model, dataDirectory : str, epochs : int, 
         The type of model to train -- eimu, Fourier, etc.
     model : tensorflow.keras.models.X
         The tensorflow model on which to train.
-    dataDirectory : str
-        The directory containing the data to train with.
+    annotatedData : list[commons.AnnotatedData]
+        The annotated data to train on.
     epochs : int
         The number of epochs to train for.
     batchSize : int
@@ -72,7 +72,7 @@ def trainModel(modelType : ModelType, model, dataDirectory : str, epochs : int, 
         save_weights_only=True,
         save_freq=5*batchSize)
     
-    (trainX, trainY), (testX, testY) = modelType.fromDirectory(dataDirectory, shuffle=shuffle, equalPositiveAndNegative=equalPositiveAndNegative)
+    (trainX, trainY), (testX, testY) = modelType.fromAnnotatedDataList(annotatedData, shuffle=shuffle, equalPositiveAndNegative=equalPositiveAndNegative)
     
     model.fit(trainX, trainY, epochs=epochs, batch_size=batchSize, callbacks=[cpCallback] if saveCheckpoints else None)
     
@@ -113,34 +113,46 @@ def testDataOnModel(model, modelType : ModelType, dataDirectory : str):
     dataDirectory : str
         The directory containing the data to test.
     """
-    _, (X, Y) = modelType.fromDirectory(dataDirectory, shuffle=False, equalPositiveAndNegative=False, trainSplit=0.0)
+    annotatedData = modelType.fromDirectory(dataDirectory)
+    _, (X, Y) = modelType.fromAnnotatedDataList(annotatedData, shuffle=False, equalPositiveAndNegative=False, trainSplit=0.0)
     model.evaluate(X, Y)
 
-    
+
+
+
+
+MODEL = 2
+
 if __name__ == "__main__":
-    trainModel( EimuLSTMInput(
-                    dataFilter=filters.SmoothFilter(keepData=0.5),
-                    sessionGap=32,
-                ), 
+    if MODEL == 1:
+        modelType = EimuLSTMInput(dataFilter=filters.SmoothFilter(keepData=0.5), sessionGap=32)
+        trainModel(
+                modelType, 
                 makeSequentialModel([
                     LSTM(units=128, recurrent_dropout=0.2, return_sequences=True),
-                    Dropout(0.2),
                     LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
-                    Dropout(0.2),
                     Dense(units=1, activation='sigmoid')]
                 ),
-                f"{DATA_PATH}/user-trials", 
+                modelType.fromDirectory(f"{DATA_PATH}/user-trials"),
                 epochs=30, 
                 batchSize=32,
                 shuffle=True,
                 equalPositiveAndNegative=True
-            )
-    # trainModel(FourierLSTMInput(dataFilter=filters.MovingAverageFilter(5)), 
-    #            makeSequentialModel([
-    #                LSTM(units=128, recurrent_dropout=0.2, return_sequences=True),
-    #                Dropout(0.2),
-    #                LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
-    #                Dropout(0.2),
-    #                Dense(units=1, activation='sigmoid')]),
-    #            f"{DATA_PATH}/user-trials", epochs=100, batchSize=32)
+        )
+    elif MODEL == 2:
+        commons.ENABLE_CACHING = False
+        modelType = FourierLSTMInput(dataFilter=filters.LowPassFilter(96, 5))
+        trainModel(
+                modelType, 
+                makeSequentialModel([
+                    LSTM(units=128, recurrent_dropout=0.2, return_sequences=True),
+                    LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
+                    Dense(units=1, activation='sigmoid')]
+                ),
+                modelType.fromDirectory(f"{DATA_PATH}/user-trials"),
+                epochs=30, 
+                batchSize=32,
+                shuffle=True,
+                equalPositiveAndNegative=True
+        )
     
