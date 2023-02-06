@@ -32,12 +32,13 @@ def eimuToFourierLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, trai
     
     # data format is (axes, chunks, frequencies, times (samples) per chunk).
     ax, ch, fs, ts = data.shape
+    assert len(timestamps) == ch
     # the number of chunks is variable based on input data, the others depend on constants.
     # we can either train on (times, frequencies, axes) tuples via a CNN, or (frequency, axes) tuples via an LSTM.
     # the former will need significantly more data.
     
-    # for first method, we reshape the data to (chunks, times, frequencies, axes), iterating through will give the tuples.
-    # for the second, we reshape the data to (chunks, times, frequencies, axes), then squash the first two axes.
+    # for the CNN method, we reshape the data to (chunks, times, frequencies, axes); iterating through will give the tuples.
+    # for the LSTM method, we reshape the data to (chunks * times, frequencies, axes), effectively squashing the first two axes.
     
     if trainAsCNN:
         data = np.reshape(data, (ch, ts, fs, ax))

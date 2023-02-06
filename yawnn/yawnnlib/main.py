@@ -4,6 +4,7 @@ from yawnnlib.utils import commons, filters
 from yawnnlib.lstm.eimuLSTM import EimuLSTMInput
 from yawnnlib.lstm.fourierLSTM import FourierLSTMInput
 from yawnnlib.lstm.modelType import ModelType
+import tools.eimuResampler as eimuResampler
 from os import listdir
 
 from tensorflow.keras.models import Sequential, load_model
@@ -125,7 +126,8 @@ MODEL = 1
 
 if __name__ == "__main__":
     if MODEL == 1:
-        modelType = EimuLSTMInput(dataFilter=filters.SmoothFilter(keepData=0.5), sessionGap=32)
+        # Main EimuLSTM on all data @ 96Hz
+        modelType = EimuLSTMInput(dataFilter=filters.SmoothFilter(keepData=0.8), sessionGap=32)
         trainModel(
                 modelType, 
                 makeSequentialModel([
@@ -134,15 +136,16 @@ if __name__ == "__main__":
                     Dense(units=1, activation='sigmoid')]
                 ),
                 modelType.fromDirectory(f"{DATA_PATH}/user-trials"),
-                epochs=30, 
+                epochs=15, 
                 batchSize=32,
                 shuffle=True,
                 equalPositiveAndNegative=True
         )
     elif MODEL == 2:
+        # Main FourierLSTM with CNN on all data @ 96Hz
         commons.ENABLE_CACHING = False
         modelType = FourierLSTMInput(
-            dataFilter=filters.MovingAverageFilter(windowSize=5),
+            dataFilter= filters.LowPassFilter(96, 5), # filters.MovingAverageFilter(windowSize=5),
             trainAsCNN=True,
             chunkSize=commons.YAWN_TIME*1.5,
             chunkSeparation=commons.YAWN_TIME/4,    
@@ -150,11 +153,9 @@ if __name__ == "__main__":
         trainModel(
                 modelType, 
                 makeSequentialModel([
-                    Conv2D(filters=32, kernel_size=(3, 3), activation='relu'),
-                    MaxPooling2D(pool_size=(2, 2)),
-                    Conv2D(filters=64, kernel_size=(3, 3), activation='relu'),
-                    MaxPooling2D(pool_size=(2, 2)),
                     Conv2D(filters=128, kernel_size=(3, 3), activation='relu'),
+                    MaxPooling2D(pool_size=(2, 2)),
+                    Conv2D(filters=256, kernel_size=(3, 3), activation='relu'),
                     MaxPooling2D(pool_size=(2, 2)),
                     TimeDistributed(Flatten()),
                     LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
@@ -168,6 +169,7 @@ if __name__ == "__main__":
                 equalPositiveAndNegative=True
         )
     elif MODEL == 3:
+        # FourierLSTM (no CNN), 96Hz
         commons.ENABLE_CACHING = False
         modelType = FourierLSTMInput(dataFilter=filters.LowPassFilter(96, 5))
         trainModel(
@@ -183,4 +185,19 @@ if __name__ == "__main__":
                 shuffle=True,
                 equalPositiveAndNegative=True
         )
-    
+    elif MODEL == 4:
+        commons.ENABLE_CACHING = False
+        modelType = EimuLSTMInput(dataFilter=filters.SmoothFilter(keepData=0.8), sessionGap=32)
+        trainModel(
+                modelType, 
+                makeSequentialModel([
+                    LSTM(units=128, recurrent_dropout=0.2, return_sequences=True),
+                    LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
+                    Dense(units=1, activation='sigmoid')]
+                ),
+                list(map(lambda x: eimuResampler.resampleAnnotatedData(x, 96, 32), modelType.fromDirectory(f"{DATA_PATH}/user-trials"))),
+                epochs=15, 
+                batchSize=32,
+                shuffle=True,
+                equalPositiveAndNegative=True
+        )
