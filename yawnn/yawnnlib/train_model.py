@@ -8,12 +8,13 @@ from yawnnlib.neural.modelType import ModelType
 import tools.eimuResampler as eimuResampler
 from os import listdir
 
-from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM, Conv2D, MaxPooling2D, TimeDistributed, Flatten, Dropout
 from tensorflow.keras.callbacks import ModelCheckpoint
 
 print("Imports loaded.")
 
+#todo: move to config
 MODELS_PATH = f"{commons.PROJECT_ROOT}/models"
 DATA_PATH = f"{commons.PROJECT_ROOT}/data"
 
@@ -85,49 +86,13 @@ def trainModel(modelType : ModelType, model, annotatedData : list[commons.Annota
     return model
 
 
-def loadModel(modelPath : str):
-    """ Loads a pre-trained model.
-    
-    Attributes
-    ----------
-    modelPath : str
-        The path to the model to load.
-    
-    Returns
-    -------
-    model : tensorflow.keras.models.X
-        The loaded model.
-    """
-    model = load_model(modelPath)
-    print(f"Model loaded: {model.summary()}")
-    return model
 
-
-def testDataOnModel(model, modelType : ModelType, dataDirectory : str):
-    """ Tests the model on the data in a given directory. 
-    
-    Attributes
-    ----------
-    model : tensorflow.keras.models.X
-        The tf model to test. Load a pre-trained model with loadModel(path).
-    modelType : commons.ModelType
-        The type of model to test.
-    dataDirectory : str
-        The directory containing the data to test.
-    """
-    annotatedData = modelType.fromDirectory(dataDirectory)
-    _, (X, Y) = modelType.fromAnnotatedDataList(annotatedData, shuffle=False, equalPositiveAndNegative=False, trainSplit=0.0)
-    model.evaluate(X, Y)
-
-
-
-
-
-MODEL = 1
+MODEL = 2
 
 if __name__ == "__main__":
     if MODEL == 1:
         # Main EimuLSTM on all data @ 96Hz
+        commons.ENABLE_CACHING = False
         modelType = EimuLSTMInput(dataFilter=filters.SmoothFilter(keepData=0.8), sessionGap=32)
         trainModel(
                 modelType, 
@@ -137,7 +102,7 @@ if __name__ == "__main__":
                     Dense(units=1, activation='sigmoid')]
                 ),
                 modelType.fromDirectory(f"{DATA_PATH}/user-trials"),
-                epochs=15, 
+                epochs=5, 
                 batchSize=32,
                 shuffle=True,
                 equalPositiveAndNegative=True

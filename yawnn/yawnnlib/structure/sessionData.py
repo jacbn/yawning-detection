@@ -68,7 +68,8 @@ class SessionData:
         
     @classmethod
     def fromPath(cls, filepath : str, fileNum : int = -1, totalFiles : int = -1):
-        """ Create a SessionData object from a .eimu file. """
+        """ Create a SessionData object from a .eimu file. 
+        Note that this will apply a correction to the yawn times. """
         data = []
         with open(filepath, "r") as f:
             lines = f.read().splitlines()
@@ -78,7 +79,8 @@ class SessionData:
             numTimestamps = int(lines[3])
             for i in range(4, 4 + numTimestamps):
                 split = lines[i].split(' ')
-                timestamps.append(Timestamp(int(split[0]), split[1]))
+                correction = round(commons.YAWN_CORRECTION * sampleRate)
+                timestamps.append(Timestamp(max(0, int(split[0]) + correction), split[1]))
             for i in range(4 + numTimestamps, len(lines)):
                 if lines[i]:
                     data.append(SensorReading.fromString(lines[i]))
@@ -87,7 +89,8 @@ class SessionData:
     
     @classmethod
     def from6DDataVectors(cls, data : list[list[float]], timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1):
-        """ Create a SessionData object from a 6D data vector. """
+        """ Create a SessionData object from a 6D data vector. 
+        Note that this will not apply a correction to the yawn times. """
         sensorReadings = list(map(lambda x: SensorReading(x[:3], x[3:]), data))
         return cls(sensorReadings, timestamps, sampleRate, version, fileNum, totalFiles)
         
@@ -116,7 +119,7 @@ class SessionData:
             splits = list(map(lambda x: self.applyFilter(x, dataFilter), splits))
             
         arr = np.array(list(map(lambda x: x.get6DDataVectors(), splits)))
-        arr.resize(len(splits), commons.YAWN_TIME * session.sampleRate, 6)
+        arr.resize(len(splits), int(commons.YAWN_TIME * session.sampleRate), 6)
         return arr, list(map(lambda x: x.timestamps, splits))
     
     @staticmethod
@@ -151,6 +154,7 @@ class SessionData:
         )
         
 
+    #todo: make size an input param
     def splitSession(self, sessionGap):
         """Splits one SessionData into a list of smaller SessionData, each of length commons.YAWN_TIME seconds.
         
@@ -165,7 +169,7 @@ class SessionData:
         """
         assert sessionGap > 0
         
-        samplesPerGroup = commons.YAWN_TIME * self.sampleRate
+        samplesPerGroup = round(commons.YAWN_TIME * 1.5 * self.sampleRate)
         if self.numPoints < samplesPerGroup:
             print("Session too short to split. Padding original session.")
             return [self]
@@ -189,7 +193,7 @@ class SessionData:
 
         # get the timestamps of when the yawn button was pressed
         yawns = list(filter(lambda x: x.type == "yawn", self.timestamps))
-        
+                
         # define functions for obtaining the indices of points within YAWN_TIME//2 seconds of a yawn
         rangeMin = lambda x: max(0, x.time-self.sampleRate*commons.YAWN_TIME//2)
         rangeMax = lambda x: min(self.numPoints, x.time+self.sampleRate*commons.YAWN_TIME//2+1)
@@ -264,6 +268,7 @@ class SessionData:
         return self.accel == other.accel and self.gyro == other.gyro and self.timestamps == other.timestamps and self.sampleRate == other.sampleRate and self.version == other.version
 
 if __name__ == "__main__":
-    s = SessionData.fromPath(f"{commons.PROJECT_ROOT}/data/long1.eimu")
+    s = SessionData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
     print(s.getEimuData()[0].shape)
+    s.plot(show=True)
     

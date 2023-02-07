@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from scipy import signal
-from scipy.stats import norm
 from enum import Enum
 from yawnnlib.structure.timestamp import Timestamp
 import numpy as np
