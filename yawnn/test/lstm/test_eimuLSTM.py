@@ -1,5 +1,5 @@
 import unittest
-from yawnnlib.lstm import eimuLSTM
+from yawnnlib.neural import eimuLSTM
 from yawnnlib.utils import commons, filters
 import numpy as np
 

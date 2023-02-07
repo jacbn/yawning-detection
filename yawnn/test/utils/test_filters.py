@@ -1,6 +1,6 @@
 import unittest
 from yawnnlib.structure.fourierData import FourierData
-from yawnnlib.lstm import eimuLSTM, fourierLSTM
+from yawnnlib.neural import eimuLSTM, fourierLSTM
 from yawnnlib.utils import commons, filters
 from scipy.signal import argrelextrema
 import numpy as np

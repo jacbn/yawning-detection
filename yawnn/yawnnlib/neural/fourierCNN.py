@@ -1,12 +1,12 @@
 from yawnnlib.utils import commons, filters
-from yawnnlib.lstm.modelType import ModelType
+from yawnnlib.neural.modelType import ModelType
 from yawnnlib.structure.fourierData import FourierData
 
 import numpy as np
 
 TIMESTAMP_PREDICATE = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
 
-def eimuToFourierLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, trainAsCNN : bool, chunkSize : float, chunkSeparation : float, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
+def eimuToFourierCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunkSize : float, chunkSeparation : float, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
     """ Applies Fourier methods to a .eimu file to generate a tuple of (data, annotations).
 
     Parameters
@@ -37,29 +37,22 @@ def eimuToFourierLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, trai
     # we can either train on (times, frequencies, axes) tuples via a CNN, or (frequency, axes) tuples via an LSTM.
     # the former will need significantly more data.
     
-    # for the CNN method, we reshape the data to (chunks, times, frequencies, axes); iterating through will give the tuples.
-    # for the LSTM method, we reshape the data to (chunks * times, frequencies, axes), effectively squashing the first two axes.
+    # for this CNN method, we reshape the data to (chunks, times, frequencies, axes); iterating through will give the tuples.
     
-    if trainAsCNN:
-        data = np.reshape(data, (ch, ts, fs, ax))
-        annotations = np.array(timestamps)
-        annotations.resize(annotations.shape[0], 1)
-    else:
-        data = np.reshape(data, (ch * ts, fs, ax))
-        annotations = np.array([timestamps[chunk] for chunk in range(ch) for _ in range(ts)])
-        annotations.resize(annotations.shape[0], 1)
-    
+    data = np.reshape(data, (ch, ts, fs, ax))
+    annotations = np.array(timestamps)
+    annotations.resize(annotations.shape[0], 1)
+
     return data, annotations
 
-class FourierLSTMInput(ModelType):
+class FourierCNNInput(ModelType):
     def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), trainAsCNN : bool = False, chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> None:
         self.dataFilter = dataFilter
-        self.trainAsCNN = trainAsCNN
         self.chunkSize = chunkSize
         self.chunkSeparation = chunkSeparation
     
     def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
-        return eimuToFourierLSTMInput(path, self.dataFilter, self.trainAsCNN, self.chunkSize, self.chunkSeparation, fileNum, totalFiles)
+        return eimuToFourierCNNInput(path, self.dataFilter, self.chunkSize, self.chunkSeparation, fileNum, totalFiles)
     
     def getType(self) -> str:
         return 'fourierLSTM'

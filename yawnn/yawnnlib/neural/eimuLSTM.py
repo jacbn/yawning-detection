@@ -1,5 +1,5 @@
 from yawnnlib.utils import commons, filters
-from yawnnlib.lstm.modelType import ModelType
+from yawnnlib.neural.modelType import ModelType
 from yawnnlib.structure.sessionData import SessionData
 
 import numpy as np

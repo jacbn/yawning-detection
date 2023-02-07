@@ -1,9 +1,10 @@
 print("Loading imports...")
 
 from yawnnlib.utils import commons, filters
-from yawnnlib.lstm.eimuLSTM import EimuLSTMInput
-from yawnnlib.lstm.fourierLSTM import FourierLSTMInput
-from yawnnlib.lstm.modelType import ModelType
+from yawnnlib.neural.eimuLSTM import EimuLSTMInput
+from yawnnlib.neural.fourierLSTM import FourierLSTMInput
+from yawnnlib.neural.fourierCNN import FourierCNNInput
+from yawnnlib.neural.modelType import ModelType
 import tools.eimuResampler as eimuResampler
 from os import listdir
 
@@ -142,11 +143,11 @@ if __name__ == "__main__":
                 equalPositiveAndNegative=True
         )
     elif MODEL == 2:
-        # Main FourierLSTM with CNN on all data @ 96Hz
+        # Main FourierCNN on all data @ 96Hz
+        # (2 CNN layers, 2 LSTM layers, 1 dense)
         commons.ENABLE_CACHING = False
-        modelType = FourierLSTMInput(
+        modelType = FourierCNNInput(
             dataFilter= filters.LowPassFilter(96, 5), # filters.MovingAverageFilter(windowSize=5),
-            trainAsCNN=True,
             chunkSize=commons.YAWN_TIME*1.5,
             chunkSeparation=commons.YAWN_TIME/4,    
         )
@@ -169,7 +170,7 @@ if __name__ == "__main__":
                 equalPositiveAndNegative=True
         )
     elif MODEL == 3:
-        # FourierLSTM (no CNN), 96Hz
+        # Main FourierLSTM, 96Hz
         commons.ENABLE_CACHING = False
         modelType = FourierLSTMInput(dataFilter=filters.LowPassFilter(96, 5))
         trainModel(
@@ -199,7 +200,7 @@ if __name__ == "__main__":
                 ),
                 list(map(lambda x: eimuResampler.resampleAnnotatedData(x, 96, newSampleRate), modelType.fromDirectory(f"{DATA_PATH}/user-trials"))),
                 epochs=15, 
-                batchSize=newSampleRate//3,
+                batchSize=8+newSampleRate//4,
                 shuffle=True,
                 equalPositiveAndNegative=True
         )
