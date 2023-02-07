@@ -46,6 +46,6 @@ def testDataOnModel(model, modelType : ModelType, dataDirectory : str):
 
 if __name__ == "__main__":
     # Main EimuLSTM on all data @ 96Hz
-    modelType = EimuLSTMInput(dataFilter=filters.SmoothFilter(keepData=0.8), sessionGap=32)
-    model = loadModel(f"{MODELS_PATH}/eimuLSTM_3.h5")
+    modelType = EimuLSTMInput(sessionWidth=commons.YAWN_TIME*1.5, sessionGap=commons.YAWN_TIME/2, dataFilter=filters.SmoothFilter(keepData=0.8),)
+    model = loadModel(f"{MODELS_PATH}/eimuLSTM_0.h5")
     testDataOnModel(model, modelType, f"{DATA_PATH}/tests/96hz/")

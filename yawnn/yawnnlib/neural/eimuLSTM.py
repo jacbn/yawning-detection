@@ -6,7 +6,7 @@ import numpy as np
 
 TIMESTAMP_PREDICATE = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
 
-def eimuToLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, sessionGap : int = 3, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
+def eimuToLSTMInput(eimuPath : str, sessionWidth : float, sessionGap : float, dataFilter : filters.DataFilter, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
     """ Converts a single .eimu file to a tuple of (data, annotations)
 
     Parameters
@@ -15,8 +15,10 @@ def eimuToLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, sessionGap 
         The path to the .eimu file
     dataFilter : filters.DataFilter
         The filter to apply to the data
-    sessionGap : int, optional
-        The gap (measured in number of samples) between each split, by default 3
+    sessionWidth : float
+        The width (in seconds) of each split
+    sessionGap : float
+        The gap (in seconds) between each split
     fileNum : int, optional
         The current file number, by default -1
     totalFiles : int, optional
@@ -28,19 +30,20 @@ def eimuToLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, sessionGap 
         A tuple of (data, annotations)
     """
     session = SessionData.fromPath(eimuPath, fileNum, totalFiles)
-    data, timestamps = session.getEimuData(dataFilter=dataFilter, sessionGap=sessionGap)
+    data, timestamps = session.getEimuData(sessionWidth=sessionWidth, sessionGap=sessionGap, dataFilter=dataFilter)
     annotations = np.array(list(map(TIMESTAMP_PREDICATE, timestamps)))
     annotations.resize(annotations.shape[0], 1)
     
     return data, annotations
 
 class EimuLSTMInput(ModelType):
-    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), sessionGap : int = 3) -> None:
-        self.dataFilter = dataFilter
+    def __init__(self, sessionWidth : float, sessionGap : float, dataFilter : filters.DataFilter = filters.NoneFilter()) -> None:
+        self.sessionWidth = sessionWidth
         self.sessionGap = sessionGap
+        self.dataFilter = dataFilter
     
     def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
-        return eimuToLSTMInput(path, self.dataFilter, self.sessionGap, fileNum, totalFiles)
+        return eimuToLSTMInput(path, self.sessionWidth, self.sessionGap, self.dataFilter, fileNum, totalFiles)
     
     def getType(self) -> str:
         return 'eimuLSTM'

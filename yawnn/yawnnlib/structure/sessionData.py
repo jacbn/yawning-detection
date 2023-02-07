@@ -94,32 +94,41 @@ class SessionData:
         sensorReadings = list(map(lambda x: SensorReading(x[:3], x[3:]), data))
         return cls(sensorReadings, timestamps, sampleRate, version, fileNum, totalFiles)
         
-    def getEimuData(self, dataFilter : filters.DataFilter = filters.NoneFilter(), sessionGap : int = 3) -> tuple[np.ndarray, list[list[Timestamp]]]:
+    def getEimuData(self, sessionWidth : float, sessionGap : float, dataFilter : filters.DataFilter = filters.NoneFilter()) -> tuple[np.ndarray, list[list[Timestamp]]]:
         """ Returns the data required to input to the LSTM model.
         
         Attributes
         ----------
         dataFilter : filters.DataFilter = filters.NoneFilter()
             the filter to apply to the data
-        sessionGap : int = 3
-            the number of samples to move forward between each split. Minimum 1.
+        sessionWidth : float
+            the number of seconds in each split.
+        sessionGap : float
+            the number of seconds between each split.
 
         Returns:
-            np.ndarray: an array of arrays of shape (YAWN_TIME * sampleRate, 6), with each row a 6D vector of the accel and gyro data
+            np.ndarray: an array of arrays of shape (sessionWidth, 6), with each row a 6D vector of the accel and gyro data
             list[Timestamp]: a list of timestamps for each point in the session
         """
+        
+        trueSessionWidth = int(sessionWidth * self.sampleRate)
+        trueSessionGap = int(sessionGap * self.sampleRate)
+        
         session = self
         
         if dataFilter.getApplyType() == filters.ApplyType.SESSION:
             session = self.applyFilter(self, dataFilter)
         
-        splits = session.splitSession(sessionGap=sessionGap)
+        splits = session.splitSession(sessionWidth=trueSessionWidth, sessionGap=trueSessionGap)
         
         if dataFilter.getApplyType() == filters.ApplyType.SPLIT:
             splits = list(map(lambda x: self.applyFilter(x, dataFilter), splits))
             
         arr = np.array(list(map(lambda x: x.get6DDataVectors(), splits)))
-        arr.resize(len(splits), int(commons.YAWN_TIME * session.sampleRate), 6)
+
+        # resize arr if the split's length is less than the expected session width
+        arr = np.resize(arr, (len(splits), trueSessionWidth, 6))
+        
         return arr, list(map(lambda x: x.timestamps, splits))
     
     @staticmethod
@@ -153,32 +162,34 @@ class SessionData:
             session.totalFiles
         )
         
-
-    #todo: make size an input param
-    def splitSession(self, sessionGap):
+        
+    def splitSession(self, sessionWidth : int, sessionGap : int):
         """Splits one SessionData into a list of smaller SessionData, each of length commons.YAWN_TIME seconds.
         
         Attributes
         ----------
         
         sessionGap : int
-            How many samples forward to move between each split. Minimum 1.
+            The number of samples forward to move between each split. Minimum 1.
+        sessionWidth : int
+            The number of samples in each split. Minimum 1.
 
-        Returns:
+        Returns
+        -------
             list[SessionData]: The list of smaller SessionData objects.
         """
+        assert sessionWidth > 0
         assert sessionGap > 0
         
-        samplesPerGroup = round(commons.YAWN_TIME * 1.5 * self.sampleRate)
-        if self.numPoints < samplesPerGroup:
+        if self.numPoints < sessionWidth:
             print("Session too short to split. Padding original session.")
             return [self]
         
         converted = []
-        for i in range(0, self.numPoints - samplesPerGroup + 1, sessionGap):
+        for i in range(0, self.numPoints - sessionWidth + 1, sessionGap):
             converted.append(SessionData(
-                self._toSensorReadings(self.accel[i:i+samplesPerGroup], self.gyro[i:i+samplesPerGroup]),
-                self._getRelevantTimestamps(self.timestamps, i, i + samplesPerGroup),
+                self._toSensorReadings(self.accel[i:i+sessionWidth], self.gyro[i:i+sessionWidth]),
+                self._getRelevantTimestamps(self.timestamps, i, i + sessionWidth),
                 self.sampleRate,
                 self.version
             ))
@@ -195,8 +206,8 @@ class SessionData:
         yawns = list(filter(lambda x: x.type == "yawn", self.timestamps))
                 
         # define functions for obtaining the indices of points within YAWN_TIME//2 seconds of a yawn
-        rangeMin = lambda x: max(0, x.time-self.sampleRate*commons.YAWN_TIME//2)
-        rangeMax = lambda x: min(self.numPoints, x.time+self.sampleRate*commons.YAWN_TIME//2+1)
+        rangeMin = lambda x: max(0, int(x.time-self.sampleRate*commons.YAWN_TIME//2))
+        rangeMax = lambda x: min(self.numPoints, int(x.time+self.sampleRate*commons.YAWN_TIME//2+1))
         
         # apply these to each yawn timestamp, then flatten the list of lists into a single list
         yawnTimes = sum(list(map(lambda x: list(range(rangeMin(x), rangeMax(x))), yawns)), start=[])
@@ -269,6 +280,6 @@ class SessionData:
 
 if __name__ == "__main__":
     s = SessionData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
-    print(s.getEimuData()[0].shape)
+    print(s.getEimuData(commons.YAWN_TIME//2, commons.YAWN_TIME//4)[0].shape)
     s.plot(show=True)
     

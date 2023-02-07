@@ -87,13 +87,13 @@ def trainModel(modelType : ModelType, model, annotatedData : list[commons.Annota
 
 
 
-MODEL = 2
+MODEL = 1
 
 if __name__ == "__main__":
     if MODEL == 1:
         # Main EimuLSTM on all data @ 96Hz
         commons.ENABLE_CACHING = False
-        modelType = EimuLSTMInput(dataFilter=filters.SmoothFilter(keepData=0.8), sessionGap=32)
+        modelType = EimuLSTMInput(sessionWidth=commons.YAWN_TIME*1.5, sessionGap=commons.YAWN_TIME/8, dataFilter=filters.SmoothFilter(keepData=0.8))
         trainModel(
                 modelType, 
                 makeSequentialModel([
@@ -103,7 +103,7 @@ if __name__ == "__main__":
                 ),
                 modelType.fromDirectory(f"{DATA_PATH}/user-trials"),
                 epochs=5, 
-                batchSize=32,
+                batchSize=16,
                 shuffle=True,
                 equalPositiveAndNegative=True
         )
@@ -155,7 +155,7 @@ if __name__ == "__main__":
         # EimuLSTM, variable sample rate
         newSampleRate = 48
         commons.ENABLE_CACHING = True
-        modelType = EimuLSTMInput(dataFilter=filters.SmoothFilter(keepData=0.8), sessionGap=newSampleRate//3)
+        modelType = EimuLSTMInput(sessionWidth=commons.YAWN_TIME*1.5, sessionGap=commons.YAWN_TIME/2, dataFilter=filters.SmoothFilter(keepData=0.8))
         trainModel(
                 modelType, 
                 makeSequentialModel([

@@ -14,8 +14,8 @@ PROJECT_ROOT = abspath(join(__file__, '../../..')) # yawning-detection/yawnn/
 CACHE_DIRECTORY = f'{PROJECT_ROOT}/data/.preprocessing_cache'
 ENABLE_CACHING = True
 
-YAWN_TIME = 1.5 # time, in seconds, an individual yawn lasts for
-YAWN_CORRECTION = -1 # account for the delay between the recognisable part of a yawn and pressing it
+YAWN_TIME = 4 # time, in seconds, an individual yawn lasts for
+YAWN_CORRECTION = 0 # account for the delay between the recognisable part of a yawn and pressing it
 TRAIN_SPLIT = 0.8 # default fraction of data to use for training
 
 T = TypeVar('T')
@@ -35,6 +35,7 @@ def shuffleAllData(combined : ModelData) -> ModelData:
     """ Shuffles all the data, across both the training and test sets. """
     data = np.concatenate((combined[0][0], combined[1][0]))
     annotations = np.concatenate((combined[0][1], combined[1][1]))
+    assert len(data) == len(annotations)
     indices = np.arange(len(data))
     np.random.shuffle(indices)
     

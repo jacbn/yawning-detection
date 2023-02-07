@@ -42,11 +42,12 @@ class ModelType(ABC):
         try:
             # combine all the inputs into a single tuple of (data, annotations)
             combinedInputs = np.concatenate(list(map(lambda x: x[0], annotatedDataList))), np.concatenate(list(map(lambda x: x[1], annotatedDataList)))
+            assert len(combinedInputs[0]) == len(combinedInputs[1] == 1)
             # split the data into training and test sets (the model data); (trainSplit * 100%) of the data is used for training
             trainLength = int(len(combinedInputs[0]) * trainSplit)
             modelData = (combinedInputs[0][:trainLength], combinedInputs[1][:trainLength]), (combinedInputs[0][trainLength:], combinedInputs[1][trainLength:])
-        except ValueError:
-            raise ValueError(f"Data could not be combined. Ensure all files use the same sampling rate.")
+        except ValueError as e:
+            raise ValueError(f"Data could not be combined. Ensure all files use the same sampling rate.", e)
         
         if equalPositiveAndNegative:
             modelData = commons.equalisePositiveAndNegative(modelData, shuffle)

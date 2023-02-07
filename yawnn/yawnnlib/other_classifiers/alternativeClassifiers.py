@@ -19,8 +19,10 @@ def trainSVM(path : str):
     print(clf.get_params())
     
 def trainKNN(dataPath : str, useScipy : bool = True):
-    (trainX, trainY), (testX, testY) = EimuLSTMInput().fromDirectory(
-        dataPath, 
+    modelType = EimuLSTMInput(sessionWidth=commons.YAWN_TIME*1.5, sessionGap=commons.YAWN_TIME/2)
+    annotatedData = modelType.fromDirectory(dataPath)
+    (trainX, trainY), (testX, testY) = modelType.fromAnnotatedDataList(
+        annotatedData,
         shuffle=True,
         equalPositiveAndNegative=True,
         trainSplit=0.8
