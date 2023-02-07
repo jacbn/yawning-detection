@@ -186,8 +186,10 @@ if __name__ == "__main__":
                 equalPositiveAndNegative=True
         )
     elif MODEL == 4:
-        commons.ENABLE_CACHING = False
-        modelType = EimuLSTMInput(dataFilter=filters.SmoothFilter(keepData=0.8), sessionGap=32)
+        # EimuLSTM, variable sample rate
+        newSampleRate = 48
+        commons.ENABLE_CACHING = True
+        modelType = EimuLSTMInput(dataFilter=filters.SmoothFilter(keepData=0.8), sessionGap=newSampleRate//3)
         trainModel(
                 modelType, 
                 makeSequentialModel([
@@ -195,9 +197,9 @@ if __name__ == "__main__":
                     LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
                     Dense(units=1, activation='sigmoid')]
                 ),
-                list(map(lambda x: eimuResampler.resampleAnnotatedData(x, 96, 32), modelType.fromDirectory(f"{DATA_PATH}/user-trials"))),
+                list(map(lambda x: eimuResampler.resampleAnnotatedData(x, 96, newSampleRate), modelType.fromDirectory(f"{DATA_PATH}/user-trials"))),
                 epochs=15, 
-                batchSize=32,
+                batchSize=newSampleRate//3,
                 shuffle=True,
                 equalPositiveAndNegative=True
         )

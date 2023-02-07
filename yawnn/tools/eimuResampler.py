@@ -3,16 +3,39 @@ from scipy import signal
 from yawnnlib.utils import commons
 from yawnnlib.structure.sessionData import SessionData, Timestamp
 
-def _resample(data : np.ndarray, timestamps : list[Timestamp], timestampsAreObjs : bool, oldRate : int, newRate : int, numPoints : int) -> commons.AnnotatedData:
+def _resample(data : np.ndarray, timestamps : list, timestampsAreObjs : bool, oldRate : int, newRate : int, numPoints : int) -> commons.AnnotatedData:
+    """ Internal resampling function.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        The data to be resampled.
+    timestamps : list[commons.Timestamp] | list[int]
+        The timestamps in the data. These can be either Timestamp objects (e.g. from a SessionData) or ints (e.g. from an AnnotatedData)
+    timestampsAreObjs : bool
+        Differentiate between the two types of timestamps.
+    oldRate : int
+        The old sample rate.
+    newRate : int
+        The new sample rate.
+    numPoints : int
+        The number of points to generate at the new sample rate.
+
+    Returns
+    -------
+    commons.AnnotatedData
+        The resampled data and timestamps.
+    """
     newData = list(map(list, signal.resample(data.tolist(), numPoints * newRate // oldRate)))
     if timestampsAreObjs:
-        newTimestamps = list(map(lambda x: Timestamp(x.time * newRate // oldRate, x.type), timestamps))
+        newTimestamps = np.array(map(lambda x: Timestamp(x.time * newRate // oldRate, x.type), timestamps))
     else:
         newTimestamps = []
         for i in range(len(newData)):
             newTimestamps.append(timestamps[i * oldRate // newRate])
-    print(len(newData), len(newTimestamps))
-    return np.array(newData), np.array(newTimestamps)
+        newTimestamps = np.array(newTimestamps).reshape(-1, 1)
+
+    return np.array(newData), newTimestamps
 
 def resampleSession(session : SessionData, newRate : int) -> SessionData:
     """Resample the session to a new rate.
@@ -36,7 +59,6 @@ def resampleSession(session : SessionData, newRate : int) -> SessionData:
 
 def resampleAnnotatedData(annotatedData : commons.AnnotatedData, oldRate : int, newRate : int) -> commons.AnnotatedData:
     data, annotations = annotatedData
-    
     return _resample(data, annotations.T.tolist()[0], False, oldRate, newRate, data.shape[0])
 
 if __name__ == "__main__":
