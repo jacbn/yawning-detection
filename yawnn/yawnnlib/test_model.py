@@ -4,6 +4,7 @@ from yawnnlib.neural.fourierLSTM import FourierLSTMInput
 from yawnnlib.neural.fourierCNN import FourierCNNInput
 from yawnnlib.neural.modelType import ModelType
 
+import visualkeras
 from tensorflow.keras.models import load_model
 
 #todo: move to config
@@ -25,6 +26,7 @@ def loadModel(modelPath : str):
     """
     model = load_model(modelPath)
     model.summary()
+    visualkeras.layered_view(model, spacing=200, max_xy=800, draw_volume=False, to_file='./lstm1.png').show() # type: ignore
     return model
 
 
@@ -47,5 +49,5 @@ def testDataOnModel(model, modelType : ModelType, dataDirectory : str):
 if __name__ == "__main__":
     # Main EimuLSTM on all data @ 96Hz
     modelType = EimuLSTMInput(sessionWidth=commons.YAWN_TIME*1.5, sessionGap=commons.YAWN_TIME/2, dataFilter=filters.SmoothFilter(keepData=0.8),)
-    model = loadModel(f"{MODELS_PATH}/eimuLSTM_0.h5")
-    testDataOnModel(model, modelType, f"{DATA_PATH}/tests/96hz/")
+    model = loadModel(f"{MODELS_PATH}/final_models/eimuLSTM_3L_96hz_80pc.h5")
+    testDataOnModel(model, modelType, f"{DATA_PATH}/user-trials/")

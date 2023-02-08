@@ -11,6 +11,7 @@ from os import listdir
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM, Conv2D, MaxPooling2D, TimeDistributed, Flatten, Dropout
 from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.metrics import Precision, Recall
 
 print("Imports loaded.")
 
@@ -35,7 +36,7 @@ def makeSequentialModel(layers : list) -> Sequential:
     model = Sequential()
     for layer in layers:
         model.add(layer)
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy', Precision(), Recall()])
     return model
 
 
@@ -88,16 +89,19 @@ def trainModel(modelType : ModelType, model, annotatedData : list[commons.Annota
 
 
 MODEL = 1
+#todo: check the Precision() / Recall() metrics work
+#todo: fix FourierCNN
 
 if __name__ == "__main__":
     if MODEL == 1:
         # Main EimuLSTM on all data @ 96Hz
         commons.ENABLE_CACHING = False
-        modelType = EimuLSTMInput(sessionWidth=commons.YAWN_TIME*1.5, sessionGap=commons.YAWN_TIME/8, dataFilter=filters.SmoothFilter(keepData=0.8))
+        modelType = EimuLSTMInput(sessionWidth=commons.YAWN_TIME*1.5, sessionGap=commons.YAWN_TIME/8, dataFilter=filters.SmoothFilter(keepData=0.7))
         trainModel(
                 modelType, 
                 makeSequentialModel([
-                    LSTM(units=128, recurrent_dropout=0.2, return_sequences=True),
+                    LSTM(units=256, recurrent_dropout=0.5, return_sequences=True),
+                    LSTM(units=128, recurrent_dropout=0.3, return_sequences=True),
                     LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
                     Dense(units=1, activation='sigmoid')]
                 ),

@@ -9,7 +9,6 @@ class TestFilters(unittest.TestCase):
     def test_LowPassFilter(self):
         # this session is composed of a 4Hz frequency and a 12Hz frequency
         session = FourierData.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/high_freq.eimu")
-        freqs, _ = session.getFourierData(chunkSize=commons.YAWN_TIME, chunkSeparation=commons.YAWN_TIME/4)
         
         # filter out the 12Hz frequency
         filteredSession = FourierData.applyFilter(session, filters.LowPassFilter(sampleRate=32, cutoff=8))

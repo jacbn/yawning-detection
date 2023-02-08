@@ -12,7 +12,7 @@ AXIS_COLOURS = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 PROJECT_ROOT = abspath(join(__file__, '../../..')) # yawning-detection/yawnn/
 CACHE_DIRECTORY = f'{PROJECT_ROOT}/data/.preprocessing_cache'
-ENABLE_CACHING = True
+ENABLE_CACHING = False
 
 YAWN_TIME = 4 # time, in seconds, an individual yawn lasts for
 YAWN_CORRECTION = 0 # account for the delay between the recognisable part of a yawn and pressing it

@@ -279,7 +279,19 @@ class SessionData:
         return self.accel == other.accel and self.gyro == other.gyro and self.timestamps == other.timestamps and self.sampleRate == other.sampleRate and self.version == other.version
 
 if __name__ == "__main__":
+    # s = SessionData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
+    # print(s.getEimuData(commons.YAWN_TIME//2, commons.YAWN_TIME//4)[0].shape)
+    # s.plot(show=True)
+    
+    # below shows a great example of how the smooth filter works
     s = SessionData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
-    print(s.getEimuData(commons.YAWN_TIME//2, commons.YAWN_TIME//4)[0].shape)
-    s.plot(show=True)
+    s.plot(show=False, figure=3)
+    w = s.sampleRate * commons.YAWN_TIME * 1.5
+    g = s.sampleRate * commons.YAWN_TIME / 5.3
+    splits = s.splitSession(sessionWidth=int(w), sessionGap=int(g))
+    
+    fSplit = SessionData.applyFilter(splits[2], dataFilter = filters.SmoothFilter(0.7))
+    
+    splits[2].plot(show=False)
+    fSplit.plot(show=True, figure=2)
     
