@@ -77,14 +77,14 @@ class MovingAverageFilter(DataFilter):
         return d
     
 class SmoothFilter(TimestampedDataFilter):
-    """ Smooths the ends of the data using a gaussian. Used to prevent cut-off yawns from registering. """
-    def __init__(self, keepData : float = 0.5) -> None:
-        """ Create a new SmoothFilter
+    """ Smooths the ends of the data using a Gaussian. Used to prevent cut-off yawns from registering. """
+    def __init__(self, keepData) -> None:
+        """ Create a new SmoothFilter. Data at the start and end of the dataset will be smoothed towards the dataset's average value using a Gaussian.
         
         Attributes
         ----------
         
-        keepData : float = 0.5
+        keepData : float
             fraction of the data to keep exactly as is 
         
         """
@@ -119,7 +119,7 @@ class SmoothFilter(TimestampedDataFilter):
         y[:curveLength] = f(np.linspace(0, 1, curveLength))
         y[-curveLength:] = f(np.linspace(1, 0, curveLength))
         
-        smoothed = np.apply_along_axis(lambda d: d*y, 0, data)
+        smoothed = np.apply_along_axis(lambda d: np.mean(d) + (d - np.mean(d)) * y, 0, data)
         
         if plot:
             plt.plot(x, y)
@@ -138,6 +138,6 @@ if __name__ == "__main__":
     
     x = np.arange(0, data_length, step = data_length/1000)
     y = np.sin(x) # sample data
-    f = SmoothFilter()
+    f = SmoothFilter(0.7)
     f.smoothCurve(y, plot=True)
         
