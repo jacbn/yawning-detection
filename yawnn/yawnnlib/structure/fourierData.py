@@ -148,7 +148,7 @@ class FourierData(SessionData):
             plt.show()
     
     def _initFrequencies(self) -> None:    
-        sessionData, sessionTimestamps = self.getEimuData()
+        sessionData, sessionTimestamps = self.getEimuData(commons.YAWN_TIME//2, commons.YAWN_TIME//4)
         self.sumFrequencies = [[] for _ in range(6)]
         for i in range(len(sessionData)):
             for axis in range(6):
@@ -192,8 +192,10 @@ class FourierData(SessionData):
     
 if __name__ == "__main__":
     s = FourierData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
-    s.plot(show=False, figure=1)
-    s.plotSessionData(show=False, figure=2, dataFilter=filters.LowPassFilter(96, 5))
+    s2 = FourierData.applyFilter(s, filters.LowPassFilter(96, 5))
+    assert isinstance(s2, FourierData)
+    s2.plot(show=False, figure=1)
+    s2.plotSessionData(show=False, figure=2, dataFilter=filters.LowPassFilter(96, 5))
     # s.plotFrequencies(figure=8)
     plt.show()
     

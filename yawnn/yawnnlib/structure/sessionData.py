@@ -250,7 +250,7 @@ class SessionData:
         ax1.set_title("Accelerometer", fontsize=8)
         ax1.set_ylabel("Acceleration (m/s^2)")
         for i, axis in enumerate('xyz'):
-            plt.plot(range(0, self.numPoints), list(map(lambda x: x[i], self.accel)), label=axis)
+            plt.plot(range(0, self.numPoints), list(map(lambda x: self.accelConversion(x)[i], self.accel)), label=axis)
         for timestamp in self.timestamps:
             ax1.axvline(timestamp.time, color='black')
         plt.grid()
@@ -260,7 +260,7 @@ class SessionData:
         ax2 = plt.subplot(212, sharex=ax1)
         ax2.set_title("Gyroscope", fontsize=8)
         for i, axis in enumerate('xyz'):
-            plt.plot(range(0, self.numPoints), list(map(lambda x: x[i], self.gyro)), label=axis)
+            plt.plot(range(0, self.numPoints), list(map(lambda x: self.gyroConversion(x)[i], self.gyro)), label=axis)
         for timestamp in self.timestamps:
             ax2.axvline(timestamp.time, color='black')
         ax2.set_xlabel(f"Samples ({self.sampleRate} = 1 sec)")

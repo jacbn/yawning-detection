@@ -133,6 +133,9 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
     data_length = 200
     
+    plt.xlabel("Fraction of data")
+    plt.ylabel("Multiplier")
+    
     x = np.arange(0, data_length, step = data_length/1000)
     y = np.sin(x) # sample data
     f = SmoothFilter()
