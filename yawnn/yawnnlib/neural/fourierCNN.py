@@ -30,16 +30,12 @@ def eimuToFourierCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunk
     session = FourierData.fromPath(eimuPath, fileNum=fileNum, totalFiles=totalFiles)
     data, timestamps = session.getFourierData(dataFilter=dataFilter, chunkSize=chunkSize, chunkSeparation=chunkSeparation)
     
-    # data format is (axes, chunks, frequencies, times (samples) per chunk).
-    ax, ch, fs, ts = data.shape
-    assert len(timestamps) == ch
     # the number of chunks is variable based on input data, the others depend on constants.
     # we can either train on (times, frequencies, axes) tuples via a CNN, or (frequency, axes) tuples via an LSTM.
     # the former will need significantly more data.
     
-    # for this CNN method, we reshape the data to (chunks, times, frequencies, axes); iterating through will give the tuples.
+    # for this CNN method, we keep the data in the format (chunks, times, frequencies, axes); iterating through will give the tuples.
     
-    data = np.reshape(data, (ch, ts, fs, ax))
     annotations = np.array(timestamps)
     annotations.resize(annotations.shape[0], 1)
 
