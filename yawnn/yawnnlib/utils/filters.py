@@ -9,6 +9,7 @@ class ApplyType(Enum):
     # but some apply to the chunks of data used to train with
     SESSION = 1
     SPLIT = 2
+    MULTIPLE = 3
 
 class DataFilter(ABC):
     @abstractmethod
@@ -33,6 +34,16 @@ class FilterCollection(DataFilter):
         for f in self.filters:
             data = f.apply(data)
         return data
+    
+    def getApplyType(self) -> ApplyType:
+        return ApplyType.MULTIPLE
+    
+    def applyByType(self, data, applyType : ApplyType) -> np.ndarray:
+        temp = self.filters
+        self.filters = list(filter(lambda f: f.getApplyType() == applyType, self.filters))
+        ret = self.apply(data)
+        self.filters = temp 
+        return ret
 
 # remove high frequency noise. returns a new signal (same length as original) with the noise removed
 class LowPassFilter(DataFilter):
@@ -43,6 +54,19 @@ class LowPassFilter(DataFilter):
     
     def apply(self, data : np.ndarray) -> np.ndarray:
         b, a = signal.butter(10, self.cutoff/(self.sampleRate/2), 'low', analog=False)
+        return signal.filtfilt(b, a, data, axis=0)
+    
+    def getApplyType(self) -> ApplyType:
+        return ApplyType.SESSION
+    
+class HighPassFilter(DataFilter):
+    def __init__(self, sampleRate : int, cutoff : int) -> None:
+        super().__init__()
+        self.sampleRate = sampleRate
+        self.cutoff = cutoff
+    
+    def apply(self, data : np.ndarray) -> np.ndarray:
+        b, a = signal.butter(10, self.cutoff/(self.sampleRate/2), 'high', analog=False)
         return signal.filtfilt(b, a, data, axis=0)
     
     def getApplyType(self) -> ApplyType:

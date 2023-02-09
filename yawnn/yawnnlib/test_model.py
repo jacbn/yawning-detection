@@ -1,13 +1,11 @@
 from yawnnlib.utils import commons, filters, evaluation
 from yawnnlib.neural.eimuLSTM import EimuLSTMInput
-from yawnnlib.neural.fourierLSTM import FourierLSTMInput
-from yawnnlib.neural.fourierCNN import FourierCNNInput
 from yawnnlib.neural.modelType import ModelType
 
 import visualkeras
 import numpy as np
 from tensorflow.keras.models import load_model
-from sklearn.metrics import classification_report
+from tensorflow.keras.layers import Dropout
 
 #todo: move to config
 MODELS_PATH = f"{commons.PROJECT_ROOT}/models"
@@ -28,7 +26,7 @@ def loadModel(modelPath : str):
     """
     model = load_model(modelPath)
     model.summary()
-    visualkeras.layered_view(model, spacing=200, max_xy=800, draw_volume=False).show() # type: ignore
+    visualkeras.layered_view(model, spacing=50, max_xy=800, draw_volume=True, to_file="model.png").show() # type: ignore
     return model
 
 
@@ -53,5 +51,6 @@ def testDataOnModel(model, modelType : ModelType, dataDirectory : str):
 if __name__ == "__main__":
     # Main EimuLSTM on all data @ 96Hz
     modelType = EimuLSTMInput(sessionWidth=commons.YAWN_TIME*1.5, sessionGap=commons.YAWN_TIME/2, dataFilter=filters.SmoothFilter(keepData=0.8),)
-    model = loadModel(f"{MODELS_PATH}/eimuLSTM_0.h5")
+    model = loadModel(f"{MODELS_PATH}/not_quite_final_models/fourierCNN_76pc.h5")
     testDataOnModel(model, modelType, f"{DATA_PATH}/user-trials/")
+    

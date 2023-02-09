@@ -9,9 +9,8 @@ import tools.eimuResampler as eimuResampler
 from os import listdir
 
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LSTM, Conv2D, MaxPooling2D, TimeDistributed, Flatten, Dropout
+from tensorflow.keras.layers import Dense, LSTM, Conv2D, MaxPooling2D, TimeDistributed, Flatten, Dropout, ConvLSTM2D
 from tensorflow.keras.callbacks import ModelCheckpoint
-from tensorflow.keras.metrics import Precision, Recall
 
 print("Imports loaded.")
 
@@ -19,7 +18,7 @@ print("Imports loaded.")
 MODELS_PATH = f"{commons.PROJECT_ROOT}/models"
 DATA_PATH = f"{commons.PROJECT_ROOT}/data"
 
-def makeSequentialModel(layers : list) -> Sequential:
+def makeSequentialModel(layers : list, compile_ : bool = True) -> Sequential:
     """ Creates a sequential model from a list of layers.
     
     Attributes
@@ -36,7 +35,8 @@ def makeSequentialModel(layers : list) -> Sequential:
     model = Sequential()
     for layer in layers:
         model.add(layer)
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    if compile_:
+        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
 
@@ -78,6 +78,9 @@ def trainModel(modelType : ModelType, model, annotatedData : list[commons.Annota
     
     (trainX, trainY), (testX, testY) = modelType.fromAnnotatedDataList(annotatedData, shuffle=shuffle, equalPositiveAndNegative=equalPositiveAndNegative)
     
+    print(trainX.shape)
+    print(trainX[0].shape)
+    
     model.fit(trainX, trainY, epochs=epochs, batch_size=batchSize, callbacks=[cpCallback] if saveCheckpoints else None)
     
     model.save(f"{MODELS_PATH}/{modelType.getType()}_{modelNum}.h5")
@@ -88,9 +91,7 @@ def trainModel(modelType : ModelType, model, annotatedData : list[commons.Annota
 
 
 
-MODEL = 1
-#todo: check the Precision() / Recall() metrics work
-#todo: fix FourierCNN
+MODEL = 2
 
 if __name__ == "__main__":
     if MODEL == 1:
@@ -103,6 +104,7 @@ if __name__ == "__main__":
                     LSTM(units=256, recurrent_dropout=0.5, return_sequences=True),
                     LSTM(units=128, recurrent_dropout=0.3, return_sequences=True),
                     LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
+                    Flatten(),
                     Dense(units=1, activation='sigmoid')]
                 ),
                 modelType.fromDirectory(f"{DATA_PATH}/user-trials"),
@@ -116,24 +118,37 @@ if __name__ == "__main__":
         # (2 CNN layers, 2 LSTM layers, 1 dense)
         commons.ENABLE_CACHING = False
         modelType = FourierCNNInput(
-            dataFilter= filters.LowPassFilter(96, 5), # filters.MovingAverageFilter(windowSize=5),
+            # dataFilter= filters.FilterCollection([filters.HighPassFilter(96, 0.1), filters.LowPassFilter(96, 4)]), #type: ignore  
+            # dataFilter=filters.MovingAverageFilter(windowSize=5),
+            dataFilter=filters.LowPassFilter(96, 5),
             chunkSize=commons.YAWN_TIME*1.5,
-            chunkSeparation=commons.YAWN_TIME/4,    
+            chunkSeparation=commons.YAWN_TIME/8,    
         )
         trainModel(
                 modelType, 
                 makeSequentialModel([
-                    Conv2D(filters=128, kernel_size=(3, 3), activation='relu'),
-                    MaxPooling2D(pool_size=(2, 2)),
-                    Conv2D(filters=256, kernel_size=(3, 3), activation='relu'),
-                    MaxPooling2D(pool_size=(2, 2)),
-                    TimeDistributed(Flatten()),
-                    LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
-                    LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
-                    Dense(units=1, activation='sigmoid')]
+                    TimeDistributed(Conv2D(filters=32, kernel_size=(3, 3), activation='relu')),
+                    TimeDistributed(MaxPooling2D(pool_size=(2, 2))),
+                    TimeDistributed(Conv2D(filters=64, kernel_size=(3, 3), activation='relu')),
+                    TimeDistributed(MaxPooling2D(pool_size=(2, 2))),
+                    # TimeDistributed(Conv2D(filters=128, kernel_size=(3, 3), activation='relu')),
+                    # TimeDistributed(MaxPooling2D(pool_size=(2, 2))),
+                    Dropout(0.2),
+                    Flatten(),
+                    # LSTM(units=32, recurrent_dropout=0.3, return_sequences=True),
+                    # LSTM(units=32, recurrent_dropout=0.2, return_sequences=True),
+                    # Dense(16),
+                    Dense(units=1, activation='sigmoid', input_shape=(None, 1))]
                 ),
+                # makeSequentialModel([
+                #    ConvLSTM2D(filters=32, kernel_size=(3, 3), activation='relu', return_sequences=True),
+                #    ConvLSTM2D(filters=64, kernel_size=(3, 3), activation='relu', return_sequences=True),
+                #    ConvLSTM2D(filters=128, kernel_size=(3, 3), activation='relu', return_sequences=True),
+                #    Flatten(),
+                #    Dense(units=1, activation='sigmoid', input_shape=(None, 1))
+                # ]),
                 modelType.fromDirectory(f"{DATA_PATH}/user-trials"),
-                epochs=30, 
+                epochs=5, 
                 batchSize=16,
                 shuffle=True,
                 equalPositiveAndNegative=True
@@ -147,6 +162,7 @@ if __name__ == "__main__":
                 makeSequentialModel([
                     LSTM(units=128, recurrent_dropout=0.2, return_sequences=True),
                     LSTM(units=64, recurrent_dropout=0.2, return_sequences=True),
+                    Flatten(),
                     Dense(units=1, activation='sigmoid')]
                 ),
                 modelType.fromDirectory(f"{DATA_PATH}/user-trials"),

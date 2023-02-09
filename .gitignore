@@ -6,3 +6,4 @@ yawnn/lib/classifiers/__pycache__*
 /yawnn/models/*
 .venv*
 *__pycache__*
+model.png

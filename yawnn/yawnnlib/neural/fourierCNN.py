@@ -38,11 +38,24 @@ def eimuToFourierCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunk
     
     annotations = np.array(timestamps)
     annotations.resize(annotations.shape[0], 1)
+    
+    originalLength = data.shape[0]
+    
+    C = 5
+    
+    data = np.resize(data, (originalLength - originalLength%C, data.shape[1], data.shape[2], data.shape[3]))
+    data = np.reshape(data, (originalLength//C, C, data.shape[1], data.shape[2], data.shape[3]))
+    
+    annotations = np.resize(annotations, (originalLength - originalLength%C, 1))
+    annotations = np.reshape(annotations, (originalLength//C, C,  1))
+    
+    annotations = annotations[:, C//2, :]
+    annotations.reshape(annotations.shape[0], 1)
 
     return data, annotations
 
 class FourierCNNInput(ModelType):
-    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), trainAsCNN : bool = False, chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> None:
+    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> None:
         self.dataFilter = dataFilter
         self.chunkSize = chunkSize
         self.chunkSeparation = chunkSeparation

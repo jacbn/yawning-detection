@@ -116,13 +116,13 @@ class SessionData:
         
         session = self
         
-        if dataFilter.getApplyType() == filters.ApplyType.SESSION:
-            session = self.applyFilter(self, dataFilter)
+        if dataFilter.getApplyType() in [filters.ApplyType.SESSION, filters.ApplyType.MULTIPLE]:
+            session = self.applyFilter(self, dataFilter, filters.ApplyType.SESSION)
         
         splits = session.splitSession(sessionWidth=trueSessionWidth, sessionGap=trueSessionGap)
         
-        if dataFilter.getApplyType() == filters.ApplyType.SPLIT:
-            splits = list(map(lambda x: self.applyFilter(x, dataFilter), splits))
+        if dataFilter.getApplyType() in [filters.ApplyType.SPLIT, filters.ApplyType.MULTIPLE]:
+            splits = list(map(lambda x: self.applyFilter(x, dataFilter, filters.ApplyType.SPLIT), splits))
             
         arr = np.array(list(map(lambda x: x.get6DDataVectors(), splits)))
 
@@ -132,7 +132,7 @@ class SessionData:
         return arr, list(map(lambda x: x.timestamps, splits))
     
     @staticmethod
-    def applyFilter(session : 'SessionData', dataFilter : filters.DataFilter):
+    def applyFilter(session : 'SessionData', dataFilter : filters.DataFilter, filterType : filters.ApplyType):
         """ Applies a filter to the session data.
 
         Attributes
@@ -153,8 +153,13 @@ class SessionData:
         else:
             timestamps = session.timestamps
         
+        if isinstance(dataFilter, filters.FilterCollection):
+            applied = dataFilter.applyByType(data, filterType).tolist()
+        else:
+            applied = dataFilter.apply(data).tolist()
+        
         return session.from6DDataVectors(
-            dataFilter.apply(data).tolist(),
+            applied,
             timestamps,
             session.sampleRate,
             session.version,
@@ -290,7 +295,7 @@ if __name__ == "__main__":
     g = s.sampleRate * commons.YAWN_TIME / 5.3
     splits = s.splitSession(sessionWidth=int(w), sessionGap=int(g))
     
-    fSplit = SessionData.applyFilter(splits[2], dataFilter = filters.SmoothFilter(0.7))
+    fSplit = SessionData.applyFilter(splits[2], dataFilter = filters.SmoothFilter(0.7), filterType=filters.ApplyType.SPLIT)
     
     splits[2].plot(show=False)
     fSplit.plot(show=True, figure=2)

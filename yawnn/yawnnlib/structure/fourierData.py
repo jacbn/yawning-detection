@@ -34,6 +34,8 @@ class FourierData(SessionData):
           
         pString = f"  Calculating Fourier frequencies: "
         print(pString + "......", end='')
+        
+        yawnIndices = self.getYawnIndices()
             
         for axis in range(6):
             # obtain and filter the data
@@ -53,14 +55,15 @@ class FourierData(SessionData):
                 f, t, Sxx = signal.spectrogram(chunk, self.sampleRate, nperseg=N_PER_SEG, noverlap=N_OVERLAP)
                 SxxList.append(Sxx)
                 if axis == 0:
-                    timestamps.append(self.getYawnIndices()[chunkStart+trueChunkSize//2])
+                    # timestamps.append(yawnIndices[chunkStart+trueChunkSize//2])
+                    timestamps.append(np.sum(yawnIndices[chunkStart : chunkStart+trueChunkSize]) > trueChunkSize//10)
                 chunkStart += trueChunkSeparation
             
-            frequencies.append(np.array(SxxList))
+            frequencies.append(np.array(SxxList, dtype=np.float64))
             
             print('\r' + pString + '#' * (axis+1) + '.' * (5-axis), end='' if axis < 5 else '\n')
         
-        data = np.array(frequencies)
+        data = np.array(frequencies, dtype=np.float64)
         ax, ch, fs, ts = data.shape
         assert len(timestamps) == ch
         data = np.reshape(data, (ch, ts, fs, ax))
@@ -198,7 +201,7 @@ class FourierData(SessionData):
     
 if __name__ == "__main__":
     s = FourierData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
-    s2 = FourierData.applyFilter(s, filters.LowPassFilter(96, 5))
+    s2 = FourierData.applyFilter(s, filters.LowPassFilter(96, 5), filters.ApplyType.SESSION)
     assert isinstance(s2, FourierData)
     s2.plot(show=False, figure=1)
     s2.plotSessionData(show=False, figure=2, dataFilter=filters.LowPassFilter(96, 5))
