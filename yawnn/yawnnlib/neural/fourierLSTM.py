@@ -41,7 +41,7 @@ def eimuToFourierLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, chun
     
     data = np.reshape(data, (ch * ts, fs, ax))
     annotations = np.array([timestamps[chunk] for chunk in range(ch) for _ in range(ts)])
-    annotations.resize(annotations.shape[0], 1)
+    annotations = np.reshape(annotations, (-1, 1))
     
     return data, annotations
 
