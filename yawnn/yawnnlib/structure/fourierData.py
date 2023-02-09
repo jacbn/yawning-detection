@@ -59,8 +59,14 @@ class FourierData(SessionData):
             frequencies.append(np.array(SxxList))
             
             print('\r' + pString + '#' * (axis+1) + '.' * (5-axis), end='' if axis < 5 else '\n')
-            
-        return np.array(frequencies), timestamps
+        
+        data = np.array(frequencies)
+        ax, ch, fs, ts = data.shape
+        assert len(timestamps) == ch
+        data = np.reshape(data, (ch, ts, fs, ax))
+        
+        # data format is (chunks, times (samples) per chunk, frequencies, axes)
+        return data, timestamps
     
     def _getDataByAxis(self, axis : int):
         return np.array(list(map(lambda x: x[axis%2][axis//2], zip(self.accel, self.gyro))))

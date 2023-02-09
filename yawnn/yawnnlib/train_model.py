@@ -36,7 +36,7 @@ def makeSequentialModel(layers : list) -> Sequential:
     model = Sequential()
     for layer in layers:
         model.add(layer)
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy', Precision(), Recall()])
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
 
