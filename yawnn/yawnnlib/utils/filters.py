@@ -6,7 +6,8 @@ import numpy as np
 
 class ApplyType(Enum):
     # most filters apply to the entire signal,
-    # but some apply to the chunks of data used to train with
+    # but some apply to the chunks of data used to train with;
+    # multiple is reserved for the filter collection, where entries may be either
     SESSION = 1
     SPLIT = 2
     MULTIPLE = 3
@@ -47,27 +48,29 @@ class FilterCollection(DataFilter):
 
 # remove high frequency noise. returns a new signal (same length as original) with the noise removed
 class LowPassFilter(DataFilter):
-    def __init__(self, sampleRate : int, cutoff : int) -> None:
+    def __init__(self, sampleRate : int, cutoff : int, order : int = 10) -> None:
         super().__init__()
         self.sampleRate = sampleRate
         self.cutoff = cutoff
+        self.order = order
     
     def apply(self, data : np.ndarray) -> np.ndarray:
-        b, a = signal.butter(10, self.cutoff/(self.sampleRate/2), 'low', analog=False)
-        return signal.filtfilt(b, a, data, axis=0)
+        sos = signal.butter(self.order, self.cutoff/(self.sampleRate/2), 'low', analog=False, output='sos')
+        return signal.sosfiltfilt(sos, data, axis=0)
     
     def getApplyType(self) -> ApplyType:
         return ApplyType.SESSION
     
 class HighPassFilter(DataFilter):
-    def __init__(self, sampleRate : int, cutoff : int) -> None:
+    def __init__(self, sampleRate : int, cutoff : float, order : int = 10) -> None:
         super().__init__()
         self.sampleRate = sampleRate
         self.cutoff = cutoff
+        self.order = order
     
     def apply(self, data : np.ndarray) -> np.ndarray:
-        b, a = signal.butter(10, self.cutoff/(self.sampleRate/2), 'high', analog=False)
-        return signal.filtfilt(b, a, data, axis=0)
+        sos = signal.butter(self.order, self.cutoff/(self.sampleRate/2), 'high', analog=False, output='sos')
+        return signal.sosfiltfilt(sos, data, axis=0)
     
     def getApplyType(self) -> ApplyType:
         return ApplyType.SESSION
@@ -152,6 +155,16 @@ class SmoothFilter(TimestampedDataFilter):
             plt.show()
             
         return smoothed
+    
+class NormalisationFilter(DataFilter):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def apply(self, data : np.ndarray) -> np.ndarray:
+        return np.apply_along_axis(lambda d: d / np.max(np.abs(d)), 0, data)
+    
+    def getApplyType(self) -> ApplyType:
+        return ApplyType.SESSION
 
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
