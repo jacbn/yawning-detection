@@ -37,6 +37,6 @@ The machine-learning section of my project to detect yawns.
 
 ### Running
 
-Main code can be found in `./yawnnlib/`. `./yawnnlib/main.py` contains the highest-level functions for training on a given dataset.
+Main code can be found in `./yawnnlib/`. Run `./yawnnlib/main.py` directly or with command-line arguments equal to the inputs it would otherwise ask for to train a model. `./yawnnlib/training/models.py` contains the highest-level overview of these models.
 
 `./tools/` contains some scripts for preprocessing data.
