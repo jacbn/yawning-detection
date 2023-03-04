@@ -24,7 +24,7 @@ The machine-learning section of my project to detect yawns.
    Or (2) perform a manual install:
 
     - `pip install` the following modules:
-    - required: `numpy scipy tensorflow`
+    - required: `numpy scipy tensorflow pyyaml`
     - (for plots) `matplotlib pyqt5 visualkeras`
     - (for testing and alternative classifiers) `scikit-learn`
     - `cd yawnn/` (if not here already)

@@ -6,7 +6,7 @@ import numpy as np
 
 TIMESTAMP_PREDICATE = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
 
-def eimuToFourierCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunkSize : float, chunkSeparation : float, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
+def eimuToTimeDistributedFourierCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunkSize : float, chunkSeparation : float, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
     """ Applies Fourier methods to a .eimu file to generate a tuple of (data, annotations).
 
     Parameters
@@ -28,7 +28,7 @@ def eimuToFourierCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunk
         A tuple of (data, annotations)
     """
     session = FourierData.fromPath(eimuPath, fileNum=fileNum, totalFiles=totalFiles)
-    data, timestamps = session.getFourierData(dataFilter=dataFilter, chunkSize=chunkSize, chunkSeparation=chunkSeparation)
+    data, timestamps = session.getSpectrogramData(dataFilter=dataFilter, chunkSize=chunkSize, chunkSeparation=chunkSeparation)
     
     # the number of chunks is variable based on input data, the others depend on constants.
     # we can either train on (times, frequencies, axes) tuples via a CNN, or (frequency, axes) tuples via an LSTM.
@@ -41,28 +41,29 @@ def eimuToFourierCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunk
     
     originalLength = data.shape[0]
     
-    C = 5
+    #todo: make this a parameter
+    timeDistributionLength = 5
     
-    data = np.resize(data, (originalLength - originalLength%C, data.shape[1], data.shape[2], data.shape[3]))
-    data = np.reshape(data, (originalLength//C, C, data.shape[1], data.shape[2], data.shape[3]))
+    data = np.resize(data, (originalLength - originalLength%timeDistributionLength, data.shape[1], data.shape[2], data.shape[3]))
+    data = np.reshape(data, (originalLength//timeDistributionLength, timeDistributionLength, data.shape[1], data.shape[2], data.shape[3]))
     
-    annotations = np.resize(annotations, (originalLength - originalLength%C, 1))
-    annotations = np.reshape(annotations, (originalLength//C, C,  1))
+    annotations = np.resize(annotations, (originalLength - originalLength%timeDistributionLength, 1))
+    annotations = np.reshape(annotations, (originalLength//timeDistributionLength, timeDistributionLength,  1))
     
-    annotations = annotations[:, C//2, :]
+    annotations = annotations[:, timeDistributionLength//2, :]
     annotations.reshape(annotations.shape[0], 1)
 
     return data, annotations
 
-class FourierCNNInput(ModelType):
+class FourierTimeDistributedCNNInput(ModelType):
     def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> None:
         self.dataFilter = dataFilter
         self.chunkSize = chunkSize
         self.chunkSeparation = chunkSeparation
     
     def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
-        return eimuToFourierCNNInput(path, self.dataFilter, self.chunkSize, self.chunkSeparation, fileNum, totalFiles)
+        return eimuToTimeDistributedFourierCNNInput(path, self.dataFilter, self.chunkSize, self.chunkSeparation, fileNum, totalFiles)
     
     def getType(self) -> str:
-        return 'fourierLSTM'
+        return 'fourierTDCNN'
     

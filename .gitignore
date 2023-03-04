@@ -1,9 +1,9 @@
 yawnn/lib/__pycache__*
 yawnn/lib/classifiers/__pycache__*
 /tests*
-/yawnn/data/user-trials*
+/yawnn/data/user_trials*
 /yawnn/data/.preprocessing_cache/*
-/yawnn/models/*
+/yawnn/trained_models/*
 .venv*
 *__pycache__*
 model.png

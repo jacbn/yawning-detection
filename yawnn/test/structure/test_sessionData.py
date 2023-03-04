@@ -2,6 +2,8 @@ import unittest
 from yawnnlib.structure import sessionData, timestamp
 from yawnnlib.utils import commons
 
+commons.ENABLE_CACHING = False
+
 class TestSessionData(unittest.TestCase):
     def test_fromPath(self):
         session = sessionData.SessionData.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/basic2.eimu")
@@ -11,7 +13,7 @@ class TestSessionData(unittest.TestCase):
         
     def test_splitSession(self):
         commons.YAWN_TIME = 2
-        commons.ENABLE_CACHING = False
+        
         session = sessionData.SessionData.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/basic1.eimu")
         self.assertEqual(len(session.splitSession(sessionWidth = session.sampleRate * commons.YAWN_TIME, sessionGap=1)), 10)
         self.assertEqual(len(session.splitSession(sessionWidth = session.sampleRate * commons.YAWN_TIME, sessionGap=3)), 4)

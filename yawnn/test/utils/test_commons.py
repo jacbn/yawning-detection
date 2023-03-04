@@ -4,10 +4,12 @@ from yawnnlib.neural import eimuLSTM
 
 import numpy as np
 
+commons.ENABLE_CACHING = False
+
 class TestCommons(unittest.TestCase):
     def test_directoryToModelData(self):
         commons.YAWN_TIME = 2
-        commons.ENABLE_CACHING = False
+        
         model = eimuLSTM.EimuLSTMInput(sessionWidth=commons.YAWN_TIME, sessionGap=1/32)
         annotatedData = model.fromDirectory(f"{commons.PROJECT_ROOT}/test/test_data/directory_test")
         (x1, y1), (x2, y2) = model.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=False)
@@ -24,7 +26,6 @@ class TestCommons(unittest.TestCase):
 
     def test_mapToDirectory(self):
         commons.YAWN_TIME = 2
-        commons.ENABLE_CACHING = False
         f = lambda x, y, z: x
         fileNames = commons.mapToDirectory(f, f"{commons.PROJECT_ROOT}/test/test_data/directory_test")
         
@@ -36,7 +37,6 @@ class TestCommons(unittest.TestCase):
         
     def test_equalizePositiveAndNegative(self):
         commons.YAWN_TIME = 2
-        commons.ENABLE_CACHING = False
         model = eimuLSTM.EimuLSTMInput(sessionWidth=commons.YAWN_TIME*32, sessionGap=3/32)
         annotatedData = model.fromDirectory(f"{commons.PROJECT_ROOT}/test/test_data/directory_test")
         (_, y1), (_, y2) = model.fromAnnotatedDataList(annotatedData, equalPositiveAndNegative=True)

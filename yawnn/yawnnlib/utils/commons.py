@@ -1,3 +1,5 @@
+from yawnnlib.utils import config
+
 from typing import TypeVar, Callable
 from abc import ABC, abstractmethod
 from os import listdir
@@ -5,18 +7,16 @@ from os.path import isfile, join, abspath
 from matplotlib import pyplot as plt
 import numpy as np
 
-# todo: move user settings to a config file
-
 AXIS_NAMES = [['Accel X', 'Accel Y', 'Accel Z'], ['Gyro X', 'Gyro Y', 'Gyro Z']]
 AXIS_COLOURS = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-PROJECT_ROOT = abspath(join(__file__, '../../..')) # yawning-detection/yawnn/
-CACHE_DIRECTORY = f'{PROJECT_ROOT}/data/.preprocessing_cache'
-ENABLE_CACHING = False
+# while the user-defined values for these are in the config, we need to be able to modify them for testing purposes,
+# so uses in non-entry-point code will refer to these instead of the config values
+ENABLE_CACHING = config.get("ENABLE_CACHING")
+PROJECT_ROOT = config.PROJECT_ROOT
+YAWN_TIME = config.get("YAWN_TIME")
+YAWN_CORRECTION = config.get("YAWN_CORRECTION")
 
-YAWN_TIME = 4 # time, in seconds, an individual yawn lasts for
-YAWN_CORRECTION = 0 # account for the delay between the recognisable part of a yawn and pressing it
-TRAIN_SPLIT = 0.8 # default fraction of data to use for training
 
 T = TypeVar('T')
 AnnotatedData = tuple[np.ndarray, np.ndarray] # (data, annotations)
@@ -39,7 +39,7 @@ def shuffleAllData(combined : ModelData) -> ModelData:
     indices = np.arange(len(data))
     np.random.shuffle(indices)
     
-    trainLength = int(len(data) * TRAIN_SPLIT)
+    trainLength = int(len(data) * config.get("TRAIN_SPLIT"))
     return (data[indices][:trainLength], annotations[indices][:trainLength]), (data[indices][trainLength:], annotations[indices][trainLength:])
 
 
@@ -68,10 +68,3 @@ def _equalisePNForSingleSet(annotatedData : AnnotatedData, shuffle : bool) -> An
         indices = np.sort(indices)
     
     return data[indices], annotations[indices]
-
-def getCacheDirectory() -> str:
-    """ Returns the directory to use for caching. """
-    listdir(CACHE_DIRECTORY)
-    return CACHE_DIRECTORY
-
-getCacheDirectory()

@@ -47,4 +47,4 @@ def score(result : np.ndarray, ground : np.ndarray):
     
 if __name__ == "__main__":
     # trainSVM(f"{utils.PROJECT_ROOT}/data/96hz-long2.eimu")
-    trainKNN(f"{commons.PROJECT_ROOT}/data/user-trials/")
+    trainKNN(f"{commons.PROJECT_ROOT}/data/user_trials/")

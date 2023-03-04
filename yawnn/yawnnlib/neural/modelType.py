@@ -1,8 +1,9 @@
+from yawnnlib.utils import commons, config
+
 from abc import ABC, abstractmethod
 import numpy as np
 from os import mkdir
 from os.path import exists, basename, normpath
-from yawnnlib.utils import commons
 
 class ModelType(ABC):
     """ An abstract class that represents an input to an LSTM model. See eimuLSTM.EimuLSTMInput for an example implementation. """
@@ -38,7 +39,7 @@ class ModelType(ABC):
         Pass result into fromAnnotatedDataList to get a ModelData object. """
         return commons.mapToDirectory(self.fromPathOrCache, directoryPath) 
         
-    def fromAnnotatedDataList(self, annotatedDataList : list[commons.AnnotatedData], shuffle : bool = True, equalPositiveAndNegative : bool = True, trainSplit : float = commons.TRAIN_SPLIT) -> commons.ModelData:
+    def fromAnnotatedDataList(self, annotatedDataList : list[commons.AnnotatedData], shuffle : bool = True, equalPositiveAndNegative : bool = True, trainSplit : float = config.get("TRAIN_SPLIT")) -> commons.ModelData:
         try:
             # combine all the inputs into a single tuple of (data, annotations)
             #todo: clean up
@@ -63,7 +64,8 @@ class ModelType(ABC):
         return modelData
     
     def _getCachePathForFile(self, fileName : str) -> str:
-        parent = f"{commons.CACHE_DIRECTORY}/{self.getType()}"
+        cacheDirectory = config.get("CACHE_DIRECTORY")
+        parent = f"{cacheDirectory}/{self.getType()}"
         if not exists(parent):
             mkdir(parent)
         return f"{parent}/{fileName}"
