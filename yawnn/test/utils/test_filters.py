@@ -1,8 +1,7 @@
 import unittest
 from yawnnlib.structure.fourierData import FourierData
-from yawnnlib.neural import eimuLSTM, fourierLSTM
+from yawnnlib.neural import eimuLSTM
 from yawnnlib.utils import commons, filters
-from scipy.signal import argrelextrema
 import numpy as np
 
 class TestFilters(unittest.TestCase):
@@ -11,7 +10,11 @@ class TestFilters(unittest.TestCase):
         session = FourierData.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/high_freq.eimu")
         
         # filter out the 12Hz frequency
-        filteredSession = FourierData.applyFilter(session, filters.LowPassFilter(sampleRate=32, cutoff=8))
+        filteredSession = FourierData.applyFilter(
+            session, 
+            filters.LowPassFilter(sampleRate=32, cutoff=8),
+            filters.ApplyType.SESSION
+        )
         assert isinstance(filteredSession, FourierData) # (ensure type checking)
         
         xf, fourierData = session._getFFTMagnitudes(session._getDataByAxis(0))

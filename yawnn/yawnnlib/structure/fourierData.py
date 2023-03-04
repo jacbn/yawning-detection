@@ -7,66 +7,192 @@ import numpy as np
 from scipy.fft import rfft, rfftfreq, ifft
 from scipy import signal
 from matplotlib import pyplot as plt
-
-SIGNIFICANT_FREQ = 0
-N_PER_SEG = 128          # number of samples per segment. ~256 is ideal, but has high runtime length and data size
-N_OVERLAP = N_PER_SEG-1 # greater n_overlap generally preferable. will miss the start/end of recording but much higher time resolution
+from typing import Callable
 
 class FourierData(SessionData):
-    def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int, sessionID : int = -1, totalSessions : int = -1):
+    def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int, sessionID : int = -1, totalSessions : int = -1, nPerSeg : int = 128, nOverlap : int = 96):
+        """ Initializes a FourierData object.
+
+        Parameters
+        ----------
+        dataset : list[SensorReading]
+            The data to be processed.
+        timestamps : list[Timestamp]
+            The timestamps for the data.
+        sampleRate : int
+            The sample rate of the data.
+        version : int
+            The version of the data.
+        sessionID : int, optional
+            The ID of a session when split, by default -1
+        totalSessions : int, optional
+            The total number of sessions in the split, by default -1
+        nPerSeg : int, optional
+            FFT parameter, used to determine width of FFT windows. ~256 is optimal, but has high runtime length and data size. By default 128
+        nOverlap : int, optional
+            FFT parameter, used to determine separation of windows. nPerSeg-1 is optimal, but at a significant runtime cost. By default 96
+        """
         super().__init__(dataset, timestamps, sampleRate, version, sessionID, totalSessions)
-        self.sumFrequencies = []
-        # _filter = commons.FilterCollection([commons.LowPassFilter(self.sampleRate, 2), commons.MovingAverageFilter(5)])
-        # _filter = filters.NoneFilter()
-        # self.plotSessionData(show=False, dataFilter=_filter)
-        # self.getFourierData(dataFilter=_filter)
-        # self.plotFrequencies()
+        self.nPerSeg = nPerSeg
+        self.nOverlap = nOverlap
     
+    @classmethod
+    def fromPath(cls, path : str, fileNum : int = -1, totalFiles : int = -1, nPerSeg : int = 128, nOverlap : int = 96):
+        """ Creates a FourierData object from a .eimu file.
+
+        Parameters
+        ----------
+        path : str
+            The path to the .eimu file.
+        fileNum : int, optional
+            The current file number, by default -1
+        totalFiles : int, optional
+            The total number of files, by default -1
+        nPerSeg : int, optional
+            FFT parameter, used to determine width of FFT windows. ~256 is optimal, but has high runtime length and data size. By default 128
+        nOverlap : int, optional
+            FFT parameter, used to determine separation of windows. nPerSeg-1 is optimal, but at a significant runtime cost. By default 96
+
+        Returns
+        -------
+        FourierData
+            The FourierData object.
+        """
+        session = super().fromPath(path, fileNum, totalFiles)
+        session.__class__ = cls
+        session.nPerSeg = nPerSeg
+        session.nOverlap = nOverlap
+        return session
     
-    def getFourierData(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> tuple[np.ndarray, list[Timestamp]]:
-        '''Returns spectrogram data for the given input data, split into chunks of chunkSize seconds, with a separation between chunks of chunkSeparation seconds.'''
-        frequencies = []
+    def _applyToChunks(self, applyFunction : Callable[..., np.ndarray], dataFilter : filters.DataFilter = filters.NormalisationFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> tuple[np.ndarray, list[Timestamp]]:
+        """ Splits the class data (self.accel, self.gyro) into chunks, applies a given function to each, then returns a matrix of the results.
+
+        Parameters
+        ----------
+        applyFunction : Callable[..., np.ndarray]
+            The function to apply to each chunk.
+        dataFilter : filters.DataFilter, optional
+            The filter to apply to the data. All uses of this are for FFT so by default filters.NormalisationFilter()
+        chunkSize : float, optional
+            The size of the chunks to split the data into, by default commons.YAWN_TIME*2
+        chunkSeparation : float, optional
+            The separation between chunks, by default commons.YAWN_TIME/2
+
+        Returns
+        -------
+        tuple[np.ndarray, list[Timestamp]]
+            A pair of (data, timestamps). The data has the shape (axes, chunks, {function result}).
+
+        Raises
+        ------
+        ValueError
+            If the data cannot be split into chunks of the given size.
+        """
+        axisResults = []
         timestamps = []
         
         trueChunkSize = int(chunkSize * self.sampleRate)
         trueChunkSeparation = int(chunkSeparation * self.sampleRate)
-        boundary = N_PER_SEG//2
+        boundary = self.nPerSeg//2
           
         pString = f"  Calculating Fourier frequencies: "
         print(pString + "......", end='')
-        
-        yawnIndices = self.getYawnIndices()
             
         for axis in range(6):
             # obtain and filter the data
-            data = np.array(list(map(lambda x: x[axis%2][axis//2], zip(self.accel, self.gyro))))
+            data = self._getDataByAxis(axis)
             dataFiltered = dataFilter.apply(data)
             
             # there won't be any spectrogram data outside of dataFiltered[boundary:-boundary] as this is the boundary required to calculate the fft
             if trueChunkSize > len(dataFiltered[boundary:-boundary]):
-                raise ValueError(f"Not enough data to split into chunks of {chunkSize} seconds. Are you using the right file?")
+                raise ValueError(f"Not enough data to split into chunks of {chunkSize} seconds. Try lowering the chunk size, or using larger files.")
             
             # split the data into chunks
-            SxxList = []            
+            chunkResults = []            
             chunkStart = boundary
 
             while chunkStart + trueChunkSize < len(dataFiltered) - boundary:
                 chunk = dataFiltered[chunkStart-boundary : chunkStart+trueChunkSize+boundary]
-                f, t, Sxx = signal.spectrogram(chunk, self.sampleRate, nperseg=N_PER_SEG, noverlap=N_OVERLAP)
-                SxxList.append(Sxx)
+                
+                chunkResult = applyFunction(chunk)
+
+                chunkResults.append(chunkResult)
                 if axis == 0:
-                    # timestamps.append(yawnIndices[chunkStart+trueChunkSize//2])
-                    timestamps.append(np.sum(yawnIndices[chunkStart : chunkStart+trueChunkSize]) > trueChunkSize//10)
+                    # we add a positive timestamp for the spectrogram if the chunk contains the precise time of a yawn
+                    # todo: control leeway as a hyperparameter
+                    timestamps.append(len(self._getRelevantTimestamps(self.timestamps, chunkStart, chunkStart+trueChunkSize)) > 0)
+                    
                 chunkStart += trueChunkSeparation
             
-            frequencies.append(np.array(SxxList, dtype=np.float64))
+            axisResults.append(chunkResults)
             
             print('\r' + pString + '#' * (axis+1) + '.' * (5-axis), end='' if axis < 5 else '\n')
         
-        data = np.array(frequencies, dtype=np.float64)
+        data = np.array(axisResults, dtype=np.float64)
+        return data, timestamps
+    
+    def getFFTData(self, dataFilter : filters.DataFilter = filters.NormalisationFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> tuple[np.ndarray, list[Timestamp]]:
+        """ Returns the magnitudes of the FFTs of the data split into chunks. Note that the data **must** be normalised (i.e. use filters.NormalisationFilter()) before being processed.
+
+        Parameters
+        ----------
+        dataFilter : filters.DataFilter, optional
+            The filter to apply to the data, by default filters.NormalisationFilter()
+        chunkSize : float, optional
+            The size of the chunks to split the data into, by default commons.YAWN_TIME*2
+        chunkSeparation : float, optional
+            The separation between chunks, by default commons.YAWN_TIME/2
+
+        Returns
+        -------
+        tuple[np.ndarray, list[Timestamp]]
+            _description_
+        """
+        assert isinstance(dataFilter, filters.NormalisationFilter) or (isinstance(dataFilter, filters.FilterCollection) and any([map(lambda x: isinstance(x, filters.NormalisationFilter), dataFilter.filters)])), "Fourier data must be normalised before being processed. Use a NormalisationFilter or a FilterCollection containing a NormalisationFilter."
+
+        # for each axis and chunk, calculate the FFT
+        func = lambda x: self._getFFTMagnitudes(x)[1]                                        # gets the magnitudes of the FFT
+        data, timestamps = self._applyToChunks(func, dataFilter, chunkSize, chunkSeparation) # apply this to each chunk
+        
+        ax, ch, fs = data.shape
+        assert len(timestamps) == ch
+        data = np.transpose(data, (1, 2, 0))
+    
+        # data format is (chunks, frequencies, axes)
+        return data, timestamps
+
+    def getSpectrogramData(self, dataFilter : filters.DataFilter = filters.NormalisationFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> tuple[np.ndarray, list[Timestamp]]:
+        """ Returns spectrogram data for the given input data.
+
+        Parameters
+        ----------
+        dataFilter : filters.DataFilter, optional
+            The filter to apply to the data (BEFORE applying FFT), by default filters.NoneFilter()
+        chunkSize : float, optional
+            The chunk size in seconds, by default commons.YAWN_TIME*2
+        chunkSeparation : float, optional
+            The separation between chunks in seconds, by default commons.YAWN_TIME/2
+
+        Returns
+        -------
+        tuple[np.ndarray, list[Timestamp]]
+            The data and timestamps for the chunks.
+
+        Raises
+        ------
+        ValueError
+            If the data is too small to be split into chunks of chunkSize seconds.
+        """
+        
+        assert isinstance(dataFilter, filters.NormalisationFilter) or (isinstance(dataFilter, filters.FilterCollection) and any([map(lambda x: isinstance(x, filters.NormalisationFilter), dataFilter.filters)])), "Fourier data must be normalised before being processed. Use a NormalisationFilter or a FilterCollection containing a NormalisationFilter."
+        
+        # for each axis and chunk, calculate the spectrogram
+        func = lambda x: self._getSpectrogram(x)[2]                                          # gets the Sxx data from _getSpectrogram
+        data, timestamps = self._applyToChunks(func, dataFilter, chunkSize, chunkSeparation) # apply this to each chunk
+        
         ax, ch, fs, ts = data.shape
         assert len(timestamps) == ch
-        data = np.reshape(data, (ch, ts, fs, ax))
+        data = np.transpose(data, (1, 3, 2, 0))
         
         # data format is (chunks, times (samples) per chunk, frequencies, axes)
         return data, timestamps
@@ -74,24 +200,29 @@ class FourierData(SessionData):
     def _getDataByAxis(self, axis : int):
         return np.array(list(map(lambda x: x[axis%2][axis//2], zip(self.accel, self.gyro))))
         
-    def plotSessionData(self, show : bool = False, figure : int = 2, dataFilter : filters.DataFilter = filters.NoneFilter()) -> None:
+    def plotSessionData(self, show : bool = False, figure : int = 1, dataFilter : filters.DataFilter = filters.NoneFilter()) -> None:
         for axis in range(6):
             data = self._getDataByAxis(axis)
             dataFiltered = dataFilter.apply(data)
             
+            self.plot(show=False, figure=figure, unitConversion=False)
             self._plotFFTMagnitudes(dataFiltered, axis, figure, False)
             self._plotIFFTReconstruction(dataFiltered, axis, figure+1, False)
             self._plotSpectrograms(dataFiltered, axis, figure+2, False, fmin=0, fmax=6, maxAmp=-1)           
         
         if show:
             plt.show()
-            
+                    
     def _getFFTMagnitudes(self, data : np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         # we use abs here as we only care about the magnitude
-        fourierData = np.abs(rfft(data)) # type: ignore 
+        fourierData = np.abs(rfft(data, norm='ortho')) # type: ignore 
         N = len(fourierData)
         xf = rfftfreq(N*2-1, 1/self.sampleRate)
         return xf, fourierData
+    
+    def _getSpectrogram(self, data : np.ndarray):
+        f, t, Sxx = signal.spectrogram(data, self.sampleRate, nperseg=self.nPerSeg, noverlap=self.nOverlap)
+        return f, t, Sxx
     
     def _plotFFTMagnitudes(self, data : np.ndarray, axis : int, figure : int = 2, show : bool = False) -> None:
         plt.figure(figure)
@@ -100,11 +231,9 @@ class FourierData(SessionData):
         ax.set_title(commons.AXIS_NAMES[axis%2][axis//2])
         
         xf, fourierData = self._getFFTMagnitudes(data)
-        
-        ax.stem(xf, fourierData, 'r', markerfmt=' ') # plots the magnitude of all frequencies in red
-        fourierData = np.where(fourierData > SIGNIFICANT_FREQ, fourierData, 0)  
-        ax.stem(xf, fourierData, commons.AXIS_COLOURS[axis//2], markerfmt=' ') # plots the magnitude of all frequencies greater than SIGNIFICANT_FREQ in blue
-
+    
+        # plots the magnitude of all frequencies
+        ax.stem(xf, fourierData, 'r', markerfmt=' ')
         if (show):
             plt.show()
             
@@ -114,10 +243,14 @@ class FourierData(SessionData):
         ax = plt.subplot(3,2,axis+1)
         ax.set_title(commons.AXIS_NAMES[axis%2][axis//2], loc='left')
         
-        fourierData = rfft(data)
-        reconstructedData = ifft(fourierData) # here we do care about the sign, so we don't use abs
+        # here we do care about the sign, so we don't use abs
+        fourierData = rfft(data, norm='ortho')
+        reconstructedData = np.array(ifft(fourierData, norm='ortho'))
         
-        # plots the reconstruction of the frequencies greater than SIGNIFICANT_FREQ
+        # renormalise the data
+        reconstructedData = filters.NormalisationFilter().apply(reconstructedData)
+                
+        # plots the reconstruction of the frequencies
         ax.plot(np.arange(len(reconstructedData))*2, reconstructedData, color=commons.AXIS_COLOURS[axis//2]) 
         
         ax.set_title(commons.AXIS_NAMES[axis%2][axis//2], loc='left')
@@ -134,8 +267,9 @@ class FourierData(SessionData):
         plt.figure(figure)
         plt.suptitle("Axis Spectrograms")
         ax = plt.subplot(3,2,axis+1)
-        f, t, Sxx = signal.spectrogram(data, self.sampleRate, nperseg=N_PER_SEG, noverlap=N_OVERLAP)
+        f, t, Sxx = signal.spectrogram(data, self.sampleRate, nperseg=self.nPerSeg, noverlap=self.nOverlap)
         
+        # plot only the frequencies in the given range
         freq_slice = np.where((f >= fmin) & (f <= fmax))
         f = f[freq_slice]
         Sxx = Sxx[freq_slice,:][0] # type: ignore
@@ -156,55 +290,15 @@ class FourierData(SessionData):
         if (show):
             plt.show()
     
-    def _initFrequencies(self) -> None:    
-        sessionData, sessionTimestamps = self.getEimuData(commons.YAWN_TIME//2, commons.YAWN_TIME//4)
-        self.sumFrequencies = [[] for _ in range(6)]
-        for i in range(len(sessionData)):
-            for axis in range(6):
-                fftVal = rfft(sessionData[i][:,axis])#[:sessionData.shape[1]//2] # type: ignore
-                fftVal = 2/len(sessionData) * np.abs(fftVal) # type: ignore
-                
-                if len(self.sumFrequencies[axis]) == 0:
-                    self.sumFrequencies[axis] = fftVal
-                else:
-                    self.sumFrequencies[axis] += fftVal
-    
-    def plotFrequencies(self, start=0, end=-1, figure : int = 4) -> None:
-        if self.sumFrequencies == []:
-            self._initFrequencies()
-        plt.figure(figure)
-        
-        N = len(self.sumFrequencies[0])
-        T = 1 / self.sampleRate
-        xf = rfftfreq(N*2 - (1 if N%2==1 else 0), T)
-        # xf = np.arange(0, 1/SAMPLE_RATE, 1/(SAMPLE_RATE*N))
-        
-        for i in range(6):
-            yf = self.sumFrequencies[i]
-            
-            if i == 2:
-                print("--------------------------------------")
-                print(yf)
-                
-            
-            # significant = list(map(lambda y: xf[y[0]], filter(lambda x: x[1] > SIGNIFICANT_FREQ, enumerate(posF))))
-            # print(significant)
-        
-            # plt.plot(xf, yf) 
-            plt.stem(xf, yf) #[:N//2]
-    
-            
-        plt.grid()
-        plt.legend(["ax", "ay", "az", "gx", "gy", "gz"], loc="upper right")
-        plt.show()
-    
     
 if __name__ == "__main__":
-    s = FourierData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
-    s2 = FourierData.applyFilter(s, filters.LowPassFilter(96, 5), filters.ApplyType.SESSION)
-    assert isinstance(s2, FourierData)
-    s2.plot(show=False, figure=1)
-    s2.plotSessionData(show=False, figure=2, dataFilter=filters.LowPassFilter(96, 5))
-    # s.plotFrequencies(figure=8)
+    s = FourierData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns2.eimu")
+    
+    s.plot(show=False, figure=1, unitConversion=True)
+    s = FourierData.applyFilter(s, filters.HighPassFilter(96, 0.1), filters.ApplyType.SESSION)
+    s = FourierData.applyFilter(s, filters.LowPassFilter(96, 8, order=3), filters.ApplyType.SESSION)
+    s = FourierData.applyFilter(s, filters.NormalisationFilter(), filters.ApplyType.SESSION)
+    assert isinstance(s, FourierData)
+    s.plotSessionData(show=False, figure=2)
     plt.show()
     
