@@ -248,14 +248,14 @@ class SessionData:
         # todo
         pass
     
-    def plot(self, show=True, figure : int = 1):
+    def plot(self, show=True, figure : int = 1, unitConversion : bool = True):
         """ Plot the accel and gyro data for this session. """
         plt.figure(figure)
         ax1 = plt.subplot(211)
         ax1.set_title("Accelerometer", fontsize=8)
-        ax1.set_ylabel("Acceleration (m/s^2)")
+        ax1.set_ylabel(f"Acceleration ({'m/s^2' if unitConversion else 'normalised'})")
         for i, axis in enumerate('xyz'):
-            plt.plot(range(0, self.numPoints), list(map(lambda x: self.accelConversion(x)[i], self.accel)), label=axis)
+            plt.plot(range(0, self.numPoints), list(map(lambda x: (self.accelConversion(x) if unitConversion else x)[i], self.accel)), label=axis)
         for timestamp in self.timestamps:
             ax1.axvline(timestamp.time, color='black')
         plt.grid()
@@ -265,11 +265,11 @@ class SessionData:
         ax2 = plt.subplot(212, sharex=ax1)
         ax2.set_title("Gyroscope", fontsize=8)
         for i, axis in enumerate('xyz'):
-            plt.plot(range(0, self.numPoints), list(map(lambda x: self.gyroConversion(x)[i], self.gyro)), label=axis)
+            plt.plot(range(0, self.numPoints), list(map(lambda x: (self.gyroConversion(x) if unitConversion else x)[i], self.gyro)), label=axis)
         for timestamp in self.timestamps:
             ax2.axvline(timestamp.time, color='black')
         ax2.set_xlabel(f"Samples ({self.sampleRate} = 1 sec)")
-        ax2.set_ylabel("Gyro (deg/s)")
+        ax2.set_ylabel(f"Gyro ({'deg/s' if unitConversion else 'normalised'})")
         
         tick = pow(2, np.ceil(np.log(self.numPoints)/np.log(2)))/16
         plt.xticks(np.arange(0, self.numPoints, tick))
