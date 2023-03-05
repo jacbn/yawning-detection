@@ -11,16 +11,18 @@ def evaluate(ground : np.ndarray, prediction : np.ndarray):
 
 def calcPrecision(ground : np.ndarray, prediction : np.ndarray) -> float:
     """ Calculate precision, TP/(TP+FP). """
-    if len(prediction) == 0:
+    if np.sum(prediction) == 0:
         return 0.0
     return float(np.sum(ground & prediction) / np.sum(prediction))
 
 def calcRecall(ground : np.ndarray, prediction : np.ndarray) -> float:
     """ Calculate recall, TP/(TP+FN) """
-    if len(ground) == 0:
+    if np.sum(ground) == 0:
         return 0.0
     return float(np.sum(ground & prediction) / np.sum(ground))
 
 def calcF1(recall : float, precision : float) -> float:
     """ Calculate F1, the harmonic mean of precision and recall. """
+    if precision + recall == 0:
+        return 0.0
     return 2 * (precision * recall) / (precision + recall)
