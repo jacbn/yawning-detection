@@ -42,14 +42,8 @@ class ModelInput(ABC):
     def fromAnnotatedDataList(self, annotatedDataList : list[commons.AnnotatedData], shuffle : bool = True, equalPositiveAndNegative : bool = True, trainSplit : float = config.get("TRAIN_SPLIT")) -> commons.ModelData:
         try:
             # combine all the inputs into a single tuple of (data, annotations)
-            #todo: clean up
-            if annotatedDataList[0][0].ndim == 3:
-                combinedInputs = np.concatenate(list(map(lambda x: x[0], annotatedDataList))), np.concatenate(list(map(lambda x: x[1], annotatedDataList)))
-                assert len(combinedInputs[0]) == len(combinedInputs[1] == 1)
-            else:
-                print(annotatedDataList[0][0].shape, annotatedDataList[0][1].shape, annotatedDataList[1][0].shape, annotatedDataList[1][1].shape)
-                combinedInputs = np.concatenate(list(map(lambda x: x[0], annotatedDataList)), axis=0), np.concatenate(list(map(lambda x: x[1], annotatedDataList)), axis=0)
-                print(combinedInputs[0].shape, combinedInputs[1].shape)
+            combinedInputs = np.concatenate(list(map(lambda x: x[0], annotatedDataList))), np.concatenate(list(map(lambda x: x[1], annotatedDataList)))
+
             # split the data into training and test sets (the model data); (trainSplit * 100%) of the data is used for training
             trainLength = int(len(combinedInputs[0]) * trainSplit)
             modelData = (combinedInputs[0][:trainLength], combinedInputs[1][:trainLength]), (combinedInputs[0][trainLength:], combinedInputs[1][trainLength:])
