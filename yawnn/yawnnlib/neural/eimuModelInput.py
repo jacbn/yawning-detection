@@ -1,12 +1,12 @@
 from yawnnlib.utils import commons, filters
-from yawnnlib.neural.modelType import ModelType
+from yawnnlib.neural.modelInput import ModelInput
 from yawnnlib.structure.sessionData import SessionData
 
 import numpy as np
 
 TIMESTAMP_PREDICATE = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
 
-def eimuToLSTMInput(eimuPath : str, sessionWidth : float, sessionGap : float, dataFilter : filters.DataFilter, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
+def getEimuModelData(eimuPath : str, sessionWidth : float, sessionGap : float, dataFilter : filters.DataFilter, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
     """ Converts a single .eimu file to a tuple of (data, annotations)
 
     Parameters
@@ -36,14 +36,15 @@ def eimuToLSTMInput(eimuPath : str, sessionWidth : float, sessionGap : float, da
     
     return data, annotations
 
-class EimuLSTMInput(ModelType):
-    def __init__(self, sessionWidth : float, sessionGap : float, dataFilter : filters.DataFilter = filters.NoneFilter()) -> None:
+class EimuModelInput(ModelInput):
+    def __init__(self, sessionWidth : float, sessionGap : float, dataFilter : filters.DataFilter = filters.NoneFilter(), name : str = "eimuNN") -> None:
         self.sessionWidth = sessionWidth
         self.sessionGap = sessionGap
         self.dataFilter = dataFilter
+        self.name = name
     
     def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
-        return eimuToLSTMInput(path, self.sessionWidth, self.sessionGap, self.dataFilter, fileNum, totalFiles)
+        return getEimuModelData(path, self.sessionWidth, self.sessionGap, self.dataFilter, fileNum, totalFiles)
     
     def getType(self) -> str:
-        return 'eimuLSTM'
+        return self.name

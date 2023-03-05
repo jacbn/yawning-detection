@@ -1,8 +1,8 @@
 README.md
 setup.py
 test/__init__.py
-test/lstm/__init__.py
-test/lstm/test_eimuLSTM.py
+test/neural/__init__.py
+test/neural/test_eimuModelInput.py
 test/other_classifiers/__init__.py
 test/other_classifiers/test_knn.py
 test/other_classifiers/test_knnscipy.py
@@ -19,13 +19,3 @@ yawnn.egg-info/PKG-INFO
 yawnn.egg-info/SOURCES.txt
 yawnn.egg-info/dependency_links.txt
 yawnn.egg-info/top_level.txt
-yawnnlib/other_classifiers/__init__.py
-yawnnlib/other_classifiers/alternativeClassifiers.py
-yawnnlib/other_classifiers/knn.py
-yawnnlib/other_classifiers/knn_scipy.py
-yawnnlib/other_classifiers/svm_sk.py
-yawnnlib/structure/__init__.py
-yawnnlib/structure/fourierData.py
-yawnnlib/structure/sensorReading.py
-yawnnlib/structure/sessionData.py
-yawnnlib/structure/timestamp.py

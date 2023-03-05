@@ -95,7 +95,7 @@ class SessionData:
         return cls(sensorReadings, timestamps, sampleRate, version, fileNum, totalFiles)
         
     def getEimuData(self, sessionWidth : float, sessionGap : float, dataFilter : filters.DataFilter = filters.NoneFilter()) -> tuple[np.ndarray, list[list[Timestamp]]]:
-        """ Returns the data required to input to the LSTM model.
+        """ Returns the data to input to the model.
         
         Attributes
         ----------
@@ -127,7 +127,8 @@ class SessionData:
         arr = np.array(list(map(lambda x: x.get6DDataVectors(), splits)))
 
         # resize arr if the split's length is less than the expected session width
-        arr = np.resize(arr, (len(splits), trueSessionWidth, 6))
+        if arr.shape[1] < trueSessionWidth:
+            arr.resize((len(splits), trueSessionWidth, 6))
         
         return arr, list(map(lambda x: x.timestamps, splits))
     

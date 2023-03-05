@@ -35,11 +35,11 @@ Instructions for how to run each part are in the READMEs of their respective dir
 │       │       metrics.py                                  # Definitions of the metrics used
 │       │       test_model.py                               # Tests a model on a dataset
 │       │   
-│       ├───neural/                                       # Helper classes encapsulating the data for NNs
-│       │       eimuLSTM.py                                 # LSTM for raw headphone data
-│       │       fftCNN.py                                   # CNN for FFT data
-│       │       modelType.py                                # Abstract parent class for helpers
-│       │       spectrogramCNN.py                           # CNN for spectrogram data      
+│       ├───neural/                                     # Classes encapsulating the input to a NN
+│       │       eimuModelInput.py                           # Raw .eimu headphone data
+│       │       fftModelInput.py                            # FFT of headphone data
+│       │       modelInput.py                               # Abstract parent class
+│       │       spectrogramModelInput.py                    # Spectrogram of headphone data
 │       │           
 │       ├───other_classifiers/                          # Non-NN classifiers
 │       │       alternativeClassifiers.py                   # Manager for non-NN classifiers

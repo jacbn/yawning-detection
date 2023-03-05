@@ -5,14 +5,14 @@ import numpy as np
 from os import mkdir
 from os.path import exists, basename, normpath
 
-class ModelType(ABC):
-    """ An abstract class that represents an input to an LSTM model. See eimuLSTM.EimuLSTMInput for an example implementation. """
+class ModelInput(ABC):
+    """ An abstract class that represents an input to a NN model. """
     @abstractmethod
     def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
         pass
     
     def fromPathOrCache(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
-        print(f"Converting to LSTM input: {fileNum}/{totalFiles}...", end='\r')
+        print(f"Processing data: {fileNum}/{totalFiles}...", end='\r')
         if (commons.ENABLE_CACHING):
             fileName = basename(normpath(path))
             
@@ -20,7 +20,7 @@ class ModelType(ABC):
             
             if (exists(f"{directory}_data.npy") and exists(f"{directory}_anno.npy")):
                 # check both in case something went wrong saving
-                print(f"Converting to LSTM input: {fileNum}/{totalFiles} (read from cache)")
+                print(f"Processing data: {fileNum}/{totalFiles} (read from cache)")
                 return self._fromCache(directory)
             else:
                 print()

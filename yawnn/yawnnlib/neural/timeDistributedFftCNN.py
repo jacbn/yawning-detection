@@ -1,5 +1,5 @@
 from yawnnlib.utils import commons, filters
-from yawnnlib.neural.modelType import ModelType
+from yawnnlib.neural.modelInput import ModelInput
 from yawnnlib.structure.fourierData import FourierData
 
 import numpy as np
@@ -55,7 +55,7 @@ def eimuToTimeDistributedFftCNNInput(eimuPath : str, dataFilter : filters.DataFi
 
     return data, annotations
 
-class TimeDistributedFftCNNInput(ModelType):
+class TimeDistributedFftCNNInput(ModelInput):
     def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> None:
         self.dataFilter = dataFilter
         self.chunkSize = chunkSize

@@ -1,12 +1,12 @@
 from yawnnlib.utils import commons, filters
-from yawnnlib.neural.modelType import ModelType
+from yawnnlib.neural.modelInput import ModelInput
 from yawnnlib.structure.fourierData import FourierData
 
 import numpy as np
 
 TIMESTAMP_PREDICATE = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
 
-def eimuToFftCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunkSize : float, chunkSeparation : float, fileNum : int, totalFiles : int, nOverlap : int, nPerSeg : int) -> commons.AnnotatedData:
+def getFFTModelData(eimuPath : str, dataFilter : filters.DataFilter, chunkSize : float, chunkSeparation : float, fileNum : int, totalFiles : int, nOverlap : int, nPerSeg : int) -> commons.AnnotatedData:
     """ Applies Fourier methods to a .eimu file to generate a tuple of (data, annotations).
 
     Parameters
@@ -30,12 +30,12 @@ def eimuToFftCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunkSize
     session = FourierData.fromPath(eimuPath, fileNum=fileNum, totalFiles=totalFiles, nOverlap=nOverlap, nPerSeg=nPerSeg)
     data, timestamps = session.getFFTData(dataFilter=dataFilter, chunkSize=chunkSize, chunkSeparation=chunkSeparation)
     
+    # the number of chunks is variable based on input data, the others depend on constants.
+    # we can either train on (times, frequencies, axes) tuples from the chunks' spectrograms (c.f. spectrogramModelInput.py), 
+    # or (frequency, axes) tuples from the FFTs over each chunk (this file).
+    
     # data format is (chunks, frequencies, axes).
     ch, fs, ax = data.shape
-    
-    # the number of chunks is variable based on input data, the others depend on constants.
-    # we can either train on (times, frequencies, axes) tuples via a CNN (c.f. fourierCNN), or (frequency, axes) tuples via an LSTM.
-    # the former will need significantly more data.
     
     annotations = np.array([timestamps[chunk] for chunk in range(ch)])
     annotations = np.reshape(annotations, (-1, 1))
@@ -44,19 +44,20 @@ def eimuToFftCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunkSize
     
     return data, annotations
 
-class FftCNNInput(ModelType):
-    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2, nPerSeg : int = 128, nOverlap : int = 96) -> None:
+class FFTModelInput(ModelInput):
+    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2, nPerSeg : int = 128, nOverlap : int = 96, name : str = "fftNN") -> None:
         self.dataFilter = dataFilter
         self.chunkSize = chunkSize
         self.chunkSeparation = chunkSeparation
         self.nOverlap = nOverlap
         self.nPerSeg = nPerSeg
+        self.name = name
     
     def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
-        return eimuToFftCNNInput(path, self.dataFilter, self.chunkSize, self.chunkSeparation, fileNum, totalFiles, self.nOverlap, self.nPerSeg)
+        return getFFTModelData(path, self.dataFilter, self.chunkSize, self.chunkSeparation, fileNum, totalFiles, self.nOverlap, self.nPerSeg)
     
     def getType(self) -> str:
-        return 'fftCNN'
+        return self.name
 
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     nPerSeg = 128
     filt = filters.FilterCollection([filters.LowPassFilter(96, 5), filters.HighPassFilter(96, 0.1), filters.NormalisationFilter()])
     
-    data, annotations = FftCNNInput(
+    data, annotations = FFTModelInput(
         chunkSize=chunkSize,
         chunkSeparation=chunkSeparation,
         nPerSeg=nPerSeg,

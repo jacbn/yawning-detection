@@ -1,5 +1,5 @@
 from yawnnlib.structure.sessionData import SessionData
-from yawnnlib.neural.eimuLSTM import EimuLSTMInput
+from yawnnlib.neural.eimuModelInput import EimuModelInput
 from yawnnlib.utils import commons
 
 import numpy as np
@@ -19,7 +19,7 @@ def trainSVM(path : str):
     print(clf.get_params())
     
 def trainKNN(dataPath : str, useScipy : bool = True):
-    modelType = EimuLSTMInput(sessionWidth=commons.YAWN_TIME*1.5, sessionGap=commons.YAWN_TIME/2)
+    modelType = EimuModelInput(sessionWidth=commons.YAWN_TIME*1.5, sessionGap=commons.YAWN_TIME/2)
     annotatedData = modelType.fromDirectory(dataPath)
     (trainX, trainY), (testX, testY) = modelType.fromAnnotatedDataList(
         annotatedData,

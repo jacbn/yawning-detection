@@ -1,12 +1,12 @@
 from yawnnlib.utils import commons, filters
-from yawnnlib.neural.modelType import ModelType
+from yawnnlib.neural.modelInput import ModelInput
 from yawnnlib.structure.fourierData import FourierData
 
 import numpy as np
 
 TIMESTAMP_PREDICATE = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
 
-def eimuToSpectrogramCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunkSize : float, chunkSeparation : float, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
+def getSpectrogramModelData(eimuPath : str, dataFilter : filters.DataFilter, chunkSize : float, chunkSeparation : float, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
     """ Applies Fourier methods to a .eimu file to generate a tuple of (data, annotations).
 
     Parameters
@@ -31,25 +31,26 @@ def eimuToSpectrogramCNNInput(eimuPath : str, dataFilter : filters.DataFilter, c
     data, timestamps = session.getSpectrogramData(dataFilter=dataFilter, chunkSize=chunkSize, chunkSeparation=chunkSeparation)
     
     # the number of chunks is variable based on input data, the others depend on constants.
-    # we can either train on (times, frequencies, axes) tuples via a CNN, or (frequency, axes) tuples via an LSTM.
-    # the former will need significantly more data.
+    # we can either train on (times, frequencies, axes) tuples from the chunks' spectrograms (this file), 
+    # or (frequency, axes) tuples from the FFTs over each chunk (c.f. fftModelInput.py).
     
-    # for this CNN method, we keep the data in the format (chunks, times, frequencies, axes); iterating through will give the tuples.
+    # for this method, we keep the data in the format (chunks, times, frequencies, axes); iterating through will give the tuples.
     
     annotations = np.array(timestamps)
-    annotations = np.resize(annotations, (data.shape[0], 1))
+    annotations = np.reshape(annotations, (data.shape[0], 1))
 
     return data, annotations
 
-class SpectrogramCNNInput(ModelType):
-    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> None:
+class SpectrogramModelInput(ModelInput):
+    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2, name : str = "spectrogramNN") -> None:
         self.dataFilter = dataFilter
         self.chunkSize = chunkSize
         self.chunkSeparation = chunkSeparation
+        self.name = name
     
     def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
-        return eimuToSpectrogramCNNInput(path, self.dataFilter, self.chunkSize, self.chunkSeparation, fileNum, totalFiles)
+        return getSpectrogramModelData(path, self.dataFilter, self.chunkSize, self.chunkSeparation, fileNum, totalFiles)
     
     def getType(self) -> str:
-        return 'spectrogramCNN'
+        return self.name
     

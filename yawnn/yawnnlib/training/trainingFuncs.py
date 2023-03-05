@@ -1,7 +1,7 @@
 print("Loading imports...")
 
 from yawnnlib.utils import commons, config
-from yawnnlib.neural.modelType import ModelType
+from yawnnlib.neural.modelInput import ModelInput
 import tools.eimuResampler as eimuResampler
 
 from os import listdir
@@ -33,13 +33,13 @@ def makeSequentialModel(layers : list, compile_ : bool = True, learningRate : fl
         model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
-def getTrainTestData(modelType : ModelType, annotatedData : list[commons.AnnotatedData], shuffle : bool = True, equalPositiveAndNegative : bool = True) -> commons.ModelData:
+def getTrainTestData(modelType : ModelInput, annotatedData : list[commons.AnnotatedData], shuffle : bool = True, equalPositiveAndNegative : bool = True) -> commons.ModelData:
     """ Gets the training and test data from a list of annotated data.
 
     Parameters
     ----------
     modelType : commons.ModelType
-        The type of model to train -- eimu, Fourier, etc.
+        The type of model to train.
     annotatedData : list[commons.AnnotatedData]
         The annotated data to use.
     shuffle : bool
@@ -54,13 +54,13 @@ def getTrainTestData(modelType : ModelType, annotatedData : list[commons.Annotat
     """
     return modelType.fromAnnotatedDataList(annotatedData, shuffle=shuffle, equalPositiveAndNegative=equalPositiveAndNegative)
 
-def trainModel(modelType : ModelType, model : tf.keras.models.Sequential, data : commons.ModelData, epochs : int, batchSize : int, fracVal : float = 0.1, saveCheckpoints : bool = True, resampleFrequency : int = -1):
+def trainModel(modelType : ModelInput, model : tf.keras.models.Sequential, data : commons.ModelData, epochs : int, batchSize : int, fracVal : float = 0.1, saveCheckpoints : bool = True, resampleFrequency : int = -1):
     """ Trains a model on the data in a given directory.
     
     Attributes
     ----------
     modelType : commons.ModelType
-        The type of model to train -- eimu, Fourier, etc.
+        The type of model to train.
     model : tensorflow.keras.models.Sequential
         The tensorflow model on which to train.
     data : commons.ModelData

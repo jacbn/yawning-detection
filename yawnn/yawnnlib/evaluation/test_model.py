@@ -1,10 +1,10 @@
 from yawnnlib.evaluation import metrics
 from yawnnlib.utils import commons, filters, config
-from yawnnlib.neural.fftCNN import FftCNNInput
-from yawnnlib.neural.eimuLSTM import EimuLSTMInput
+from yawnnlib.neural.fftModelInput import FFTModelInput
+from yawnnlib.neural.eimuModelInput import EimuModelInput
 from yawnnlib.training.models import MODEL_INPUTS
 
-from yawnnlib.neural.modelType import ModelType
+from yawnnlib.neural.modelInput import ModelInput
 
 import visualkeras as vk
 import numpy as np
@@ -35,7 +35,7 @@ def loadModel(modelPath : str) -> tf.keras.models.Model:
 def visualizeModel(model : tf.keras.models.Model) -> None:
     vk.layered_view(model, spacing=50, max_xy=800, draw_volume=True, to_file="model.png").show() # type: ignore
 
-def testDataOnModel(model, modelType : ModelType, dataDirectory : str) -> None:
+def testDataOnModel(model, modelType : ModelInput, dataDirectory : str) -> None:
     """ Tests the model on the data in a given directory. 
     
     Attributes
