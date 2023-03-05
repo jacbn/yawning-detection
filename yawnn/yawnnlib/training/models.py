@@ -2,7 +2,6 @@ from yawnnlib.utils import filters, config
 from yawnnlib.neural.eimuModelInput import EimuModelInput
 from yawnnlib.neural.fftModelInput import FFTModelInput
 from yawnnlib.neural.spectrogramModelInput import SpectrogramModelInput
-from yawnnlib.neural.timeDistributedFftCNN import TimeDistributedFftCNNInput
 from yawnnlib.training.trainingFuncs import getTrainTestData, trainModel, makeSequentialModel
 
 import tensorflow as tf
@@ -45,7 +44,19 @@ MODEL_INPUTS = {
                         filters.NormalisationFilter()
                     ]),
                     name='specCNN'
-                )
+                ),
+    'tdFftCNN': FFTModelInput(
+                    chunkSize=YAWN_TIME*1.5, 
+                    chunkSeparation=YAWN_TIME/4, 
+                    dataFilter=filters.FilterCollection([
+                        filters.HighPassFilter(96, 0.1), 
+                        filters.LowPassFilter(96, 8, 3), 
+                        filters.NormalisationFilter()
+                    ]),
+                    nPerSeg=128,
+                    nOverlap=96,
+                    name='tdFftCNN'
+                ),
 }
 
 # Model 1: EimuLSTM, 3xLSTM + Dense @ variable Hz. ~95% accurate at 96Hz
@@ -205,46 +216,4 @@ def trainFftCNN():
             fracVal=0.1,
             epochs=30,
             batchSize=64
-    )
-
-# Model 6: TimeDistributedFourierCNN
-def trainTimeDistributedFftCNN():
-    #todo: remove this input type and reshape with C=1 in the model itself?
-    modelType = TimeDistributedFftCNNInput(
-        # dataFilter= filters.FilterCollection([filters.HighPassFilter(96, 0.1), filters.LowPassFilter(96, 4)]), #type: ignore  
-        # dataFilter=filters.MovingAverageFilter(windowSize=5),
-        dataFilter=filters.LowPassFilter(96, 5),
-        chunkSize=YAWN_TIME*1.5,
-        chunkSeparation=YAWN_TIME/8,    
-    )
-
-    ((trainX, trainY), (testX, testY)) = getTrainTestData(
-        modelType,
-        modelType.fromDirectory(DATA_PATH),
-        shuffle=True, 
-        equalPositiveAndNegative=True
-    )
-
-    return trainModel(
-            modelType, 
-            makeSequentialModel([
-                tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(filters=32, kernel_size=(3, 3), activation='relu')),
-                tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPooling2D(pool_size=(2, 2))),
-                tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(filters=64, kernel_size=(3, 3), activation='relu')),
-                tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPooling2D(pool_size=(2, 2))),
-                tf.keras.layers.Dropout(0.2),
-                tf.keras.layers.Flatten(),
-                tf.keras.layers.Dense(units=1, activation='sigmoid', input_shape=(None, 1))]
-            ),
-            # makeSequentialModel([
-            #    ConvLSTM2D(filters=32, kernel_size=(3, 3), activation='relu', return_sequences=True),
-            #    ConvLSTM2D(filters=64, kernel_size=(3, 3), activation='relu', return_sequences=True),
-            #    ConvLSTM2D(filters=128, kernel_size=(3, 3), activation='relu', return_sequences=True),
-            #    Flatten(),
-            #    Dense(units=1, activation='sigmoid', input_shape=(None, 1))
-            # ]),
-            ((trainX, trainY), (testX, testY)),
-            fracVal=0.1,
-            epochs=5, 
-            batchSize=16,
     )
