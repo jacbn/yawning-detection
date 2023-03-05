@@ -6,7 +6,7 @@ import numpy as np
 
 TIMESTAMP_PREDICATE = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
 
-def eimuToFourierLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, chunkSize : float, chunkSeparation : float, fileNum : int, totalFiles : int, nOverlap : int, nPerSeg : int) -> commons.AnnotatedData:
+def eimuToFftCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunkSize : float, chunkSeparation : float, fileNum : int, totalFiles : int, nOverlap : int, nPerSeg : int) -> commons.AnnotatedData:
     """ Applies Fourier methods to a .eimu file to generate a tuple of (data, annotations).
 
     Parameters
@@ -44,7 +44,7 @@ def eimuToFourierLSTMInput(eimuPath : str, dataFilter : filters.DataFilter, chun
     
     return data, annotations
 
-class FourierFFTInput(ModelType):
+class FftCNNInput(ModelType):
     def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2, nPerSeg : int = 128, nOverlap : int = 96) -> None:
         self.dataFilter = dataFilter
         self.chunkSize = chunkSize
@@ -53,10 +53,10 @@ class FourierFFTInput(ModelType):
         self.nPerSeg = nPerSeg
     
     def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
-        return eimuToFourierLSTMInput(path, self.dataFilter, self.chunkSize, self.chunkSeparation, fileNum, totalFiles, self.nOverlap, self.nPerSeg)
+        return eimuToFftCNNInput(path, self.dataFilter, self.chunkSize, self.chunkSeparation, fileNum, totalFiles, self.nOverlap, self.nPerSeg)
     
     def getType(self) -> str:
-        return 'fourierLSTM'
+        return 'fftCNN'
 
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     nPerSeg = 128
     filt = filters.FilterCollection([filters.LowPassFilter(96, 5), filters.HighPassFilter(96, 0.1), filters.NormalisationFilter()])
     
-    data, annotations = FourierFFTInput(
+    data, annotations = FftCNNInput(
         chunkSize=chunkSize,
         chunkSeparation=chunkSeparation,
         nPerSeg=nPerSeg,

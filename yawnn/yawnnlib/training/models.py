@@ -1,8 +1,8 @@
-from yawnnlib.utils import commons, filters, config
+from yawnnlib.utils import filters, config
 from yawnnlib.neural.eimuLSTM import EimuLSTMInput
-from yawnnlib.neural.fourierCNN_FFT import FourierFFTInput
-from yawnnlib.neural.fourierCNN_Spectrogram import FourierCNNInput
-from yawnnlib.neural.fourierTimeDistributedCNN import FourierTimeDistributedCNNInput
+from yawnnlib.neural.fftCNN import FftCNNInput
+from yawnnlib.neural.spectrogramCNN import SpectrogramCNNInput
+from yawnnlib.neural.timeDistributedFftCNN import TimeDistributedFftCNNInput
 from yawnnlib.training.trainingFuncs import getTrainTestData, trainModel, makeSequentialModel
 
 import tensorflow as tf
@@ -10,13 +10,35 @@ import tensorflow as tf
 DATA_PATH = config.get("DATA_PATH")
 YAWN_TIME = config.get("YAWN_TIME")
 
+MODEL_INPUTS = {
+    'eimuLSTM': EimuLSTMInput(
+                    sessionWidth=YAWN_TIME*2.5, 
+                    sessionGap=YAWN_TIME/8, 
+                    dataFilter=filters.SmoothFilter(keepData=0.8)
+                ),
+     # todo: rename chunkSize and chunkSeparation to sessionWidth and sessionGap for consistency
+    'fftCNN':   FftCNNInput(
+                    chunkSize=YAWN_TIME*1.5, 
+                    chunkSeparation=YAWN_TIME/4, 
+                    dataFilter=filters.FilterCollection([
+                        filters.HighPassFilter(96, 0.1), 
+                        filters.LowPassFilter(96, 8, 3), 
+                        filters.NormalisationFilter()
+                    ]),
+                    nPerSeg=128,
+                    nOverlap=96
+                ),
+    'specCNN':  SpectrogramCNNInput(
+                    chunkSize=YAWN_TIME*2,
+                    chunkSeparation=YAWN_TIME/8,
+                    dataFilter=filters.LowPassFilter(96, 5),
+                )
+
+}
+
 # Model 1: EimuLSTM, 3xLSTM + Dense @ variable Hz. ~95% accurate at 96Hz
 def trainEimuLSTM(resampleFrequency: int = -1):
-    modelType = EimuLSTMInput(
-        sessionWidth=YAWN_TIME*2.5, 
-        sessionGap=YAWN_TIME/8, 
-        dataFilter=filters.SmoothFilter(keepData=0.8)
-    )
+    modelType = MODEL_INPUTS['eimuLSTM']
     
     # the data has to be collected here, not inside trainModel, as we use properties of the data (namely shape) to build the model
     ((trainX, trainY), (testX, testY)) = getTrainTestData(
@@ -47,13 +69,7 @@ def trainEimuLSTM(resampleFrequency: int = -1):
     
 # Model 2: EimuCNN, 4xConv + GlobalMaxPool + 2xDense @ 96Hz. ~??% accurate
 def trainEimuCNN():
-    modelType = EimuLSTMInput(
-        # dataFilter= filters.FilterCollection([filters.HighPassFilter(96, 0.1), filters.LowPassFilter(96, 5)]), #type: ignore  
-        # dataFilter=filters.MovingAverageFilter(windowSize=5),
-        dataFilter=filters.LowPassFilter(96, 5),
-        sessionWidth=YAWN_TIME*2,
-        sessionGap=YAWN_TIME/8,    
-    )
+    modelType = MODEL_INPUTS['eimuLSTM']
     
     ((trainX, trainY), (testX, testY)) = getTrainTestData(
         modelType,
@@ -86,11 +102,7 @@ def trainEimuCNN():
 
 # Model 3: EimuLSTM, 4xConv 2xLSTM + Dense @ 96Hz. ~78% accurate
 def trainEimuConvLSTM():
-    modelType = EimuLSTMInput(
-        sessionWidth=YAWN_TIME*2.5, 
-        sessionGap=YAWN_TIME/8, 
-        dataFilter=filters.SmoothFilter(keepData=0.8)
-    )
+    modelType = MODEL_INPUTS['eimuLSTM']
     
     ((trainX, trainY), (testX, testY)) = getTrainTestData(
         modelType,
@@ -123,14 +135,8 @@ def trainEimuConvLSTM():
     )
 
 # Model 4: FourierCNN, 4xConv + GlobalMaxPool + 2xDense @ 96Hz. ~??% accurate
-def trainFourierCNN():
-    modelType = FourierCNNInput(
-        # dataFilter= filters.FilterCollection([filters.HighPassFilter(96, 0.1), filters.LowPassFilter(96, 5)]), #type: ignore  
-        # dataFilter=filters.MovingAverageFilter(windowSize=5),
-        dataFilter=filters.LowPassFilter(96, 5),
-        chunkSize=YAWN_TIME*2,
-        chunkSeparation=YAWN_TIME/8,    
-    )
+def trainSpectrogramCNN():
+    modelType = MODEL_INPUTS['specCNN']
     
     ((trainX, trainY), (testX, testY)) = getTrainTestData(
         modelType,
@@ -160,17 +166,9 @@ def trainFourierCNN():
             batchSize=64
     )
 
-# Model 5: FourierLSTM, 3xLSTM + Dense @ 96Hz. ~??% accurate
-def trainFourierLSTM():
-    # Main FourierLSTM, 96Hz
-    # todo: rename chunkSize and chunkSeparation to sessionWidth and sessionGap for consistency
-    modelType = FourierFFTInput(
-        chunkSize=YAWN_TIME*1.5, 
-        chunkSeparation=YAWN_TIME/4, 
-        dataFilter=filters.FilterCollection([filters.HighPassFilter(96, 0.1), filters.LowPassFilter(96, 8, 3), filters.NormalisationFilter()]),
-        nPerSeg=128,
-        nOverlap=96
-    )
+# Model 5: FFT CNN, 4xConv + 2xDense @ 96Hz. ~??% accurate
+def trainFftCNN():
+    modelType = MODEL_INPUTS['fftCNN']
     
     ((trainX, trainY), (testX, testY)) = getTrainTestData(
         modelType,
@@ -191,8 +189,7 @@ def trainFourierLSTM():
                 tf.keras.layers.Dropout(0.5),
                 tf.keras.layers.Flatten(),
                 tf.keras.layers.Dense(units=64, activation='relu'),
-                tf.keras.layers.Dense(units=1, activation='sigmoid')],
-                learningRate=0.0003
+                tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,
@@ -201,9 +198,9 @@ def trainFourierLSTM():
     )
 
 # Model 6: TimeDistributedFourierCNN
-def trainTDFourierCNN():
+def trainTimeDistributedFftCNN():
     #todo: remove this input type and reshape with C=1 in the model itself?
-    modelType = FourierTimeDistributedCNNInput(
+    modelType = TimeDistributedFftCNNInput(
         # dataFilter= filters.FilterCollection([filters.HighPassFilter(96, 0.1), filters.LowPassFilter(96, 4)]), #type: ignore  
         # dataFilter=filters.MovingAverageFilter(windowSize=5),
         dataFilter=filters.LowPassFilter(96, 5),

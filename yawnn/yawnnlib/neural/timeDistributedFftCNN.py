@@ -6,7 +6,7 @@ import numpy as np
 
 TIMESTAMP_PREDICATE = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
 
-def eimuToTimeDistributedFourierCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunkSize : float, chunkSeparation : float, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
+def eimuToTimeDistributedFftCNNInput(eimuPath : str, dataFilter : filters.DataFilter, chunkSize : float, chunkSeparation : float, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
     """ Applies Fourier methods to a .eimu file to generate a tuple of (data, annotations).
 
     Parameters
@@ -55,15 +55,15 @@ def eimuToTimeDistributedFourierCNNInput(eimuPath : str, dataFilter : filters.Da
 
     return data, annotations
 
-class FourierTimeDistributedCNNInput(ModelType):
+class TimeDistributedFftCNNInput(ModelType):
     def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> None:
         self.dataFilter = dataFilter
         self.chunkSize = chunkSize
         self.chunkSeparation = chunkSeparation
     
     def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
-        return eimuToTimeDistributedFourierCNNInput(path, self.dataFilter, self.chunkSize, self.chunkSeparation, fileNum, totalFiles)
+        return eimuToTimeDistributedFftCNNInput(path, self.dataFilter, self.chunkSize, self.chunkSeparation, fileNum, totalFiles)
     
     def getType(self) -> str:
-        return 'fourierTDCNN'
+        return 'timeDistributedFftCNN'
     

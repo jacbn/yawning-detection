@@ -20,7 +20,7 @@ Instructions for how to run each part are in the READMEs of their respective dir
 │   │   
 │   ├───data/                                           # Data files
 │   │
-│   ├───models/                                         # Saved models
+│   ├───trained_models/                                 # Saved models
 │   │ 
 │   ├───test/                                           # Unit tests; directory structure mirrors yawnnlib
 │   │       README.md                                       # Instructions for running tests
@@ -31,24 +31,34 @@ Instructions for how to run each part are in the READMEs of their respective dir
 │   └───yawnnlib/                                       # Main code
 │       │   main.py                                         # Entry point; trains and tests models
 │       │   
-│       ├───utils/                                      # Utility code
-│       │       commons.py                                  # Common functions
-│       │       filters.py                                  # Data filters 
-│       │           
-│       ├───lstm/                                       # LSTM code
+│       ├───evaluation/                                 # Evaluation code
+│       │       metrics.py                                  # Definitions of the metrics used
+│       │       test_model.py                               # Tests a model on a dataset
+│       │   
+│       ├───neural/                                       # Helper classes encapsulating the data for NNs
 │       │       eimuLSTM.py                                 # LSTM for raw headphone data
-│       │       fourierLSTM.py                              # LSTM for Fourier-transformed data
+│       │       fftCNN.py                                   # CNN for FFT data
+│       │       modelType.py                                # Abstract parent class for helpers
+│       │       spectrogramCNN.py                           # CNN for spectrogram data      
 │       │           
 │       ├───other_classifiers/                          # Non-NN classifiers
 │       │       alternativeClassifiers.py                   # Manager for non-NN classifiers
 │       │       knn.py                                      # K-Nearest Neighbours
 │       │       svm_sk.py                                   # Support Vector Machine
+│       │ 
+│       ├───structure/                                  # Classes representing the underlying data
+│       │       fourierData.py                              # A Fourier-transformed dataset
+│       │       sensorReading.py                            # A single sensor reading
+│       │       sessionData.py                              # A standard dataset
+│       │       timestamp.py                                # A timestamp
 │       │
-│       └───structure/                                  # Classes representing the underlying data
-│               fourierData.py                              # A Fourier-transformed dataset
-│               sensorReading.py                            # A single sensor reading
-│               sessionData.py                              # A standard dataset
-│               timestamp.py                                # A timestamp
+│       ├───training/                                   # Training code
+│       │       models.py                                   # Defines the Keras models to be trained
+│       │       trainingFuncs.py                            # Helper functions for training models
+│       │
+│       └───utils/                                      # Utility code
+│               commons.py                                  # Common functions
+│               filters.py                                  # Data filters 
 │
 │
 └───yeimu/                                              # Mobile app to interface with headphones

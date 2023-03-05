@@ -6,9 +6,9 @@ modelMap = {
     1 : models.trainEimuLSTM,
     2 : models.trainEimuCNN,
     3 : models.trainEimuConvLSTM, 
-    4 : models.trainFourierCNN, 
-    5 : models.trainFourierLSTM,
-    6 : models.trainTDFourierCNN, 
+    4 : models.trainSpectrogramCNN, 
+    5 : models.trainFftCNN,
+    6 : models.trainTimeDistributedFftCNN, 
 }
 
 if __name__ == "__main__":
@@ -23,9 +23,9 @@ if __name__ == "__main__":
         print(" 1: Eimu LSTM")
         print(" 2: Eimu CNN")
         print(" 3: Eimu ConvLSTM")
-        print(" 4: Fourier CNN")
-        print(" 5: Fourier LSTM")
-        print(" 6: Time-Distributed Fourier CNN")
+        print(" 4: Spectrogram CNN")
+        print(" 5: FFT CNN")
+        print(" 6: Time-Distributed FFT CNN")
         while True:
             try:
                 model = modelMap[int(input())]

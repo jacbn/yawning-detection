@@ -1,7 +1,7 @@
 import numpy as np
 
 def evaluate(ground : np.ndarray, prediction : np.ndarray):
-    """ Evaluate prediction. """
+    """ Evaluate a prediction given the ground truth and the predicted values. """
     precision = calcPrecision(ground, prediction)
     recall = calcRecall(ground, prediction)
     f1 = calcF1(recall, precision)
@@ -10,17 +10,17 @@ def evaluate(ground : np.ndarray, prediction : np.ndarray):
     print(f"F1: {f1}")
 
 def calcPrecision(ground : np.ndarray, prediction : np.ndarray) -> float:
-    """ Calculate precision. """
+    """ Calculate precision, TP/(TP+FP). """
     if len(prediction) == 0:
         return 0.0
-    return float(np.sum(ground & prediction) / np.sum(ground == prediction))
+    return float(np.sum(ground & prediction) / np.sum(prediction))
 
 def calcRecall(ground : np.ndarray, prediction : np.ndarray) -> float:
-    """ Calculate recall. """
+    """ Calculate recall, TP/(TP+FN) """
     if len(ground) == 0:
         return 0.0
     return float(np.sum(ground & prediction) / np.sum(ground))
 
 def calcF1(recall : float, precision : float) -> float:
-    """ Calculate F1. """
+    """ Calculate F1, the harmonic mean of precision and recall. """
     return 2 * (precision * recall) / (precision + recall)
