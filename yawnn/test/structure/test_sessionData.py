@@ -15,9 +15,9 @@ class TestSessionData(unittest.TestCase):
         commons.YAWN_TIME = 2
         
         session = sessionData.SessionData.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/basic1.eimu")
-        self.assertEqual(len(session.splitSession(sessionWidth = session.sampleRate * commons.YAWN_TIME, sessionGap=1)), 10)
-        self.assertEqual(len(session.splitSession(sessionWidth = session.sampleRate * commons.YAWN_TIME, sessionGap=3)), 4)
-        self.assertEqual(len(session.splitSession(sessionWidth = session.sampleRate * commons.YAWN_TIME, sessionGap=9)), 2)
+        self.assertEqual(len(session.splitSession(windowSize = session.sampleRate * commons.YAWN_TIME, windowSep=1)), 10)
+        self.assertEqual(len(session.splitSession(windowSize = session.sampleRate * commons.YAWN_TIME, windowSep=3)), 4)
+        self.assertEqual(len(session.splitSession(windowSize = session.sampleRate * commons.YAWN_TIME, windowSep=9)), 2)
         
     def test_getYawnIndices(self):
         commons.YAWN_TIME = 2

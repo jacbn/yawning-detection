@@ -94,32 +94,32 @@ class SessionData:
         sensorReadings = list(map(lambda x: SensorReading(x[:3], x[3:]), data))
         return cls(sensorReadings, timestamps, sampleRate, version, fileNum, totalFiles)
         
-    def getEimuData(self, sessionWidth : float, sessionGap : float, dataFilter : filters.DataFilter = filters.NoneFilter()) -> tuple[np.ndarray, list[list[Timestamp]]]:
+    def getEimuData(self, windowSize : float, windowSep : float, dataFilter : filters.DataFilter = filters.NoneFilter()) -> tuple[np.ndarray, list[list[Timestamp]]]:
         """ Returns the data to input to the model.
         
         Attributes
         ----------
         dataFilter : filters.DataFilter = filters.NoneFilter()
             the filter to apply to the data
-        sessionWidth : float
+        windowSize : float
             the number of seconds in each split.
-        sessionGap : float
+        windowSep : float
             the number of seconds between each split.
 
         Returns:
-            np.ndarray: an array of arrays of shape (sessionWidth, 6), with each row a 6D vector of the accel and gyro data
+            np.ndarray: an array of arrays of shape (windowSize, 6), with each row a 6D vector of the accel and gyro data
             list[Timestamp]: a list of timestamps for each point in the session
         """
         
-        trueSessionWidth = int(sessionWidth * self.sampleRate)
-        trueSessionGap = int(sessionGap * self.sampleRate)
+        trueWindowSize = int(windowSize * self.sampleRate)
+        trueWindowSep = int(windowSep * self.sampleRate)
         
         session = self
         
         if dataFilter.getApplyType() in [filters.ApplyType.SESSION, filters.ApplyType.MULTIPLE]:
             session = self.applyFilter(self, dataFilter, filters.ApplyType.SESSION)
         
-        splits = session.splitSession(sessionWidth=trueSessionWidth, sessionGap=trueSessionGap)
+        splits = session.splitSession(windowSize=trueWindowSize, windowSep=trueWindowSep)
         
         if dataFilter.getApplyType() in [filters.ApplyType.SPLIT, filters.ApplyType.MULTIPLE]:
             splits = list(map(lambda x: self.applyFilter(x, dataFilter, filters.ApplyType.SPLIT), splits))
@@ -127,8 +127,8 @@ class SessionData:
         arr = np.array(list(map(lambda x: x.get6DDataVectors(), splits)))
 
         # resize arr if the split's length is less than the expected session width
-        if arr.shape[1] < trueSessionWidth:
-            arr.resize((len(splits), trueSessionWidth, 6))
+        if arr.shape[1] < trueWindowSize:
+            arr.resize((len(splits), trueWindowSize, 6))
         
         return arr, list(map(lambda x: x.timestamps, splits))
     
@@ -169,33 +169,33 @@ class SessionData:
         )
         
         
-    def splitSession(self, sessionWidth : int, sessionGap : int):
+    def splitSession(self, windowSize : int, windowSep : int):
         """Splits one SessionData into a list of smaller SessionData, each of length commons.YAWN_TIME seconds.
         
         Attributes
         ----------
         
-        sessionGap : int
+        windowSep : int
             The number of samples forward to move between each split. Minimum 1.
-        sessionWidth : int
+        windowSize : int
             The number of samples in each split. Minimum 1.
 
         Returns
         -------
             list[SessionData]: The list of smaller SessionData objects.
         """
-        assert sessionWidth > 0
-        assert sessionGap > 0
+        assert windowSize > 0
+        assert windowSep > 0
         
-        if self.numPoints < sessionWidth:
+        if self.numPoints < windowSize:
             print("Session too short to split. Padding original session.")
             return [self]
         
         converted = []
-        for i in range(0, self.numPoints - sessionWidth + 1, sessionGap):
+        for i in range(0, self.numPoints - windowSize + 1, windowSep):
             converted.append(SessionData(
-                self._toSensorReadings(self.accel[i:i+sessionWidth], self.gyro[i:i+sessionWidth]),
-                self._getRelevantTimestamps(self.timestamps, i, i + sessionWidth),
+                self._toSensorReadings(self.accel[i:i+windowSize], self.gyro[i:i+windowSize]),
+                self._getRelevantTimestamps(self.timestamps, i, i + windowSize),
                 self.sampleRate,
                 self.version
             ))
@@ -294,7 +294,7 @@ if __name__ == "__main__":
     s.plot(show=False, figure=3)
     w = s.sampleRate * commons.YAWN_TIME * 1.5
     g = s.sampleRate * commons.YAWN_TIME / 5.3
-    splits = s.splitSession(sessionWidth=int(w), sessionGap=int(g))
+    splits = s.splitSession(windowSize=int(w), windowSep=int(g))
     
     fSplit = SessionData.applyFilter(splits[2], dataFilter = filters.SmoothFilter(0.7), filterType=filters.ApplyType.SPLIT)
     

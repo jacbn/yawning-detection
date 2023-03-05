@@ -6,7 +6,7 @@ import numpy as np
 
 TIMESTAMP_PREDICATE = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
 
-def getSpectrogramModelData(eimuPath : str, dataFilter : filters.DataFilter, chunkSize : float, chunkSeparation : float, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
+def getSpectrogramModelData(eimuPath : str, dataFilter : filters.DataFilter, windowSize : float, windowSep : float, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
     """ Applies Fourier methods to a .eimu file to generate a tuple of (data, annotations).
 
     Parameters
@@ -28,13 +28,13 @@ def getSpectrogramModelData(eimuPath : str, dataFilter : filters.DataFilter, chu
         A tuple of (data, annotations)
     """
     session = FourierData.fromPath(eimuPath, fileNum=fileNum, totalFiles=totalFiles)
-    data, timestamps = session.getSpectrogramData(dataFilter=dataFilter, chunkSize=chunkSize, chunkSeparation=chunkSeparation)
+    data, timestamps = session.getSpectrogramData(dataFilter=dataFilter, windowSize=windowSize, windowSep=windowSep)
     
-    # the number of chunks is variable based on input data, the others depend on constants.
-    # we can either train on (times, frequencies, axes) tuples from the chunks' spectrograms (this file), 
-    # or (frequency, axes) tuples from the FFTs over each chunk (c.f. fftModelInput.py).
+    # the number of windows is variable based on input data, the others depend on constants.
+    # we can either train on (times, frequencies, axes) tuples from the windows' spectrograms (this file), 
+    # or (frequency, axes) tuples from the FFTs over each window (c.f. fftModelInput.py).
     
-    # for this method, we keep the data in the format (chunks, times, frequencies, axes); iterating through will give the tuples.
+    # for this method, we keep the data in the format (windows, times, frequencies, axes); iterating through will give the tuples.
     
     annotations = np.array(timestamps)
     annotations = np.reshape(annotations, (data.shape[0], 1))
@@ -42,14 +42,14 @@ def getSpectrogramModelData(eimuPath : str, dataFilter : filters.DataFilter, chu
     return data, annotations
 
 class SpectrogramModelInput(ModelInput):
-    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2, name : str = "spectrogramNN") -> None:
+    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), windowSize : float = commons.YAWN_TIME*2, windowSep : float = commons.YAWN_TIME/2, name : str = "spectrogramNN") -> None:
         self.dataFilter = dataFilter
-        self.chunkSize = chunkSize
-        self.chunkSeparation = chunkSeparation
+        self.windowSize = windowSize
+        self.windowSep = windowSep
         self.name = name
     
     def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
-        return getSpectrogramModelData(path, self.dataFilter, self.chunkSize, self.chunkSeparation, fileNum, totalFiles)
+        return getSpectrogramModelData(path, self.dataFilter, self.windowSize, self.windowSep, fileNum, totalFiles)
     
     def getType(self) -> str:
         return self.name

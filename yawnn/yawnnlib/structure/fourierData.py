@@ -64,35 +64,35 @@ class FourierData(SessionData):
         session.nOverlap = nOverlap
         return session
     
-    def _applyToChunks(self, applyFunction : Callable[..., np.ndarray], dataFilter : filters.DataFilter = filters.NormalisationFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> tuple[np.ndarray, list[Timestamp]]:
-        """ Splits the class data (self.accel, self.gyro) into chunks, applies a given function to each, then returns a matrix of the results.
+    def _applyToWindows(self, applyFunction : Callable[..., np.ndarray], dataFilter : filters.DataFilter = filters.NormalisationFilter(), windowSize : float = commons.YAWN_TIME*2, windowSep : float = commons.YAWN_TIME/2) -> tuple[np.ndarray, list[Timestamp]]:
+        """ Splits the class data (self.accel, self.gyro) into windows, applies a given function to each, then returns a matrix of the results.
 
         Parameters
         ----------
         applyFunction : Callable[..., np.ndarray]
-            The function to apply to each chunk.
+            The function to apply to each window.
         dataFilter : filters.DataFilter, optional
             The filter to apply to the data. All uses of this are for FFT so by default filters.NormalisationFilter()
-        chunkSize : float, optional
-            The size of the chunks to split the data into, by default commons.YAWN_TIME*2
-        chunkSeparation : float, optional
-            The separation between chunks, by default commons.YAWN_TIME/2
+        windowSize : float, optional
+            The size of the windows to split the data into, by default commons.YAWN_TIME*2
+        windowSep : float, optional
+            The separation between windows, by default commons.YAWN_TIME/2
 
         Returns
         -------
         tuple[np.ndarray, list[Timestamp]]
-            A pair of (data, timestamps). The data has the shape (axes, chunks, {function result}).
+            A pair of (data, timestamps). The data has the shape (axes, windows, {function result}).
 
         Raises
         ------
         ValueError
-            If the data cannot be split into chunks of the given size.
+            If the data cannot be split into windows of the given size.
         """
         axisResults = []
         timestamps = []
         
-        trueChunkSize = int(chunkSize * self.sampleRate)
-        trueChunkSeparation = int(chunkSeparation * self.sampleRate)
+        trueWindowSize = int(windowSize * self.sampleRate)
+        trueWindowSep = int(windowSep * self.sampleRate)
         boundary = self.nPerSeg//2
           
         pString = f"  Calculating Fourier frequencies: "
@@ -104,44 +104,44 @@ class FourierData(SessionData):
             dataFiltered = dataFilter.apply(data)
             
             # there won't be any spectrogram data outside of dataFiltered[boundary:-boundary] as this is the boundary required to calculate the fft
-            if trueChunkSize > len(dataFiltered[boundary:-boundary]):
-                raise ValueError(f"Not enough data to split into chunks of {chunkSize} seconds. Try lowering the chunk size, or using larger files.")
+            if trueWindowSize > len(dataFiltered[boundary:-boundary]):
+                raise ValueError(f"Not enough data to split into windows of {windowSize} seconds. Try lowering the window size, or using larger files.")
             
-            # split the data into chunks
-            chunkResults = []            
-            chunkStart = boundary
+            # split the data into windows
+            windowResults = []            
+            windowStart = boundary
 
-            while chunkStart + trueChunkSize < len(dataFiltered) - boundary:
-                chunk = dataFiltered[chunkStart-boundary : chunkStart+trueChunkSize+boundary]
+            while windowStart + trueWindowSize < len(dataFiltered) - boundary:
+                window = dataFiltered[windowStart-boundary : windowStart+trueWindowSize+boundary]
                 
-                chunkResult = applyFunction(chunk)
+                windowResult = applyFunction(window)
 
-                chunkResults.append(chunkResult)
+                windowResults.append(windowResult)
                 if axis == 0:
-                    # we add a positive timestamp for the spectrogram if the chunk contains the precise time of a yawn
+                    # we add a positive timestamp for the spectrogram if the window contains the precise time of a yawn
                     # todo: control leeway as a hyperparameter
-                    timestamps.append(len(self._getRelevantTimestamps(self.timestamps, chunkStart, chunkStart+trueChunkSize)) > 0)
+                    timestamps.append(len(self._getRelevantTimestamps(self.timestamps, windowStart, windowStart+trueWindowSize)) > 0)
                     
-                chunkStart += trueChunkSeparation
+                windowStart += trueWindowSep
             
-            axisResults.append(chunkResults)
+            axisResults.append(windowResults)
             
             print('\r' + pString + '#' * (axis+1) + '.' * (5-axis), end='' if axis < 5 else '\n')
         
         data = np.array(axisResults, dtype=np.float64)
         return data, timestamps
     
-    def getFFTData(self, dataFilter : filters.DataFilter = filters.NormalisationFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> tuple[np.ndarray, list[Timestamp]]:
-        """ Returns the magnitudes of the FFTs of the data split into chunks. Note that the data **must** be normalised (i.e. use filters.NormalisationFilter()) before being processed.
+    def getFFTData(self, dataFilter : filters.DataFilter = filters.NormalisationFilter(), windowSize : float = commons.YAWN_TIME*2, windowSep : float = commons.YAWN_TIME/2) -> tuple[np.ndarray, list[Timestamp]]:
+        """ Returns the magnitudes of the FFTs of the data split into windows. Note that the data **must** be normalised (i.e. use filters.NormalisationFilter()) before being processed.
 
         Parameters
         ----------
         dataFilter : filters.DataFilter, optional
             The filter to apply to the data, by default filters.NormalisationFilter()
-        chunkSize : float, optional
-            The size of the chunks to split the data into, by default commons.YAWN_TIME*2
-        chunkSeparation : float, optional
-            The separation between chunks, by default commons.YAWN_TIME/2
+        windowSize : float, optional
+            The size of the windows to split the data into, by default commons.YAWN_TIME*2
+        windowSep : float, optional
+            The separation between windows, by default commons.YAWN_TIME/2
 
         Returns
         -------
@@ -150,51 +150,51 @@ class FourierData(SessionData):
         """
         assert isinstance(dataFilter, filters.NormalisationFilter) or (isinstance(dataFilter, filters.FilterCollection) and any([map(lambda x: isinstance(x, filters.NormalisationFilter), dataFilter.filters)])), "Fourier data must be normalised before being processed. Use a NormalisationFilter or a FilterCollection containing a NormalisationFilter."
 
-        # for each axis and chunk, calculate the FFT
+        # for each axis and window, calculate the FFT
         func = lambda x: self._getFFTMagnitudes(x)[1]                                        # gets the magnitudes of the FFT
-        data, timestamps = self._applyToChunks(func, dataFilter, chunkSize, chunkSeparation) # apply this to each chunk
+        data, timestamps = self._applyToWindows(func, dataFilter, windowSize, windowSep) # apply this to each window
         
         ax, ch, fs = data.shape
         assert len(timestamps) == ch
         data = np.transpose(data, (1, 2, 0))
     
-        # data format is (chunks, frequencies, axes)
+        # data format is (windows, frequencies, axes)
         return data, timestamps
 
-    def getSpectrogramData(self, dataFilter : filters.DataFilter = filters.NormalisationFilter(), chunkSize : float = commons.YAWN_TIME*2, chunkSeparation : float = commons.YAWN_TIME/2) -> tuple[np.ndarray, list[Timestamp]]:
+    def getSpectrogramData(self, dataFilter : filters.DataFilter = filters.NormalisationFilter(), windowSize : float = commons.YAWN_TIME*2, windowSep : float = commons.YAWN_TIME/2) -> tuple[np.ndarray, list[Timestamp]]:
         """ Returns spectrogram data for the given input data.
 
         Parameters
         ----------
         dataFilter : filters.DataFilter, optional
             The filter to apply to the data (BEFORE applying FFT), by default filters.NoneFilter()
-        chunkSize : float, optional
-            The chunk size in seconds, by default commons.YAWN_TIME*2
-        chunkSeparation : float, optional
-            The separation between chunks in seconds, by default commons.YAWN_TIME/2
+        windowSize : float, optional
+            The window size in seconds, by default commons.YAWN_TIME*2
+        windowSep : float, optional
+            The separation between windows in seconds, by default commons.YAWN_TIME/2
 
         Returns
         -------
         tuple[np.ndarray, list[Timestamp]]
-            The data and timestamps for the chunks.
+            The data and timestamps for the windows.
 
         Raises
         ------
         ValueError
-            If the data is too small to be split into chunks of chunkSize seconds.
+            If the data is too small to be split into windows of windowSize seconds.
         """
         
         assert isinstance(dataFilter, filters.NormalisationFilter) or (isinstance(dataFilter, filters.FilterCollection) and any([map(lambda x: isinstance(x, filters.NormalisationFilter), dataFilter.filters)])), "Fourier data must be normalised before being processed. Use a NormalisationFilter or a FilterCollection containing a NormalisationFilter."
         
-        # for each axis and chunk, calculate the spectrogram
+        # for each axis and window, calculate the spectrogram
         func = lambda x: self._getSpectrogram(x)[2]                                          # gets the Sxx data from _getSpectrogram
-        data, timestamps = self._applyToChunks(func, dataFilter, chunkSize, chunkSeparation) # apply this to each chunk
+        data, timestamps = self._applyToWindows(func, dataFilter, windowSize, windowSep) # apply this to each window
         
         ax, ch, fs, ts = data.shape
         assert len(timestamps) == ch
         data = np.transpose(data, (1, 3, 2, 0))
         
-        # data format is (chunks, times (samples) per chunk, frequencies, axes)
+        # data format is (windows, times (samples) per window, frequencies, axes)
         return data, timestamps
     
     def _getDataByAxis(self, axis : int):

@@ -10,7 +10,7 @@ class TestCommons(unittest.TestCase):
     def test_directoryToModelData(self):
         commons.YAWN_TIME = 2
         
-        model = eimuModelInput.EimuModelInput(sessionWidth=commons.YAWN_TIME, sessionGap=1/32)
+        model = eimuModelInput.EimuModelInput(windowSize=commons.YAWN_TIME, windowSep=1/32)
         annotatedData = model.fromDirectory(f"{commons.PROJECT_ROOT}/test/test_data/directory_test")
         (x1, y1), (x2, y2) = model.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=False)
         # (x1, y1), (x2, y2) = model.fromDirectory(, equalPositiveAndNegative=False)
@@ -37,7 +37,7 @@ class TestCommons(unittest.TestCase):
         
     def test_equalizePositiveAndNegative(self):
         commons.YAWN_TIME = 2
-        model = eimuModelInput.EimuModelInput(sessionWidth=commons.YAWN_TIME*32, sessionGap=3/32)
+        model = eimuModelInput.EimuModelInput(windowSize=commons.YAWN_TIME*32, windowSep=3/32)
         annotatedData = model.fromDirectory(f"{commons.PROJECT_ROOT}/test/test_data/directory_test")
         (_, y1), (_, y2) = model.fromAnnotatedDataList(annotatedData, equalPositiveAndNegative=True)
         # positive = 1, negative = 0, so sum of all should equal -sum of (all -1)

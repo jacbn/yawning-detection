@@ -8,7 +8,7 @@ import knn as cknn
 import knn_scipy as cknnscipy
 
 def trainSVM(path : str):
-    # when training the SVM we prefer to use continuous data, not split into 64-sample chunks
+    # when training the SVM we prefer to use continuous data, not split into 64-sample windows
     s = SessionData.fromPath(path)
     data, yawns = s.get6DDataVectors(), s.getYawnIndices()
     
@@ -19,7 +19,7 @@ def trainSVM(path : str):
     print(clf.get_params())
     
 def trainKNN(dataPath : str, useScipy : bool = True):
-    modelType = EimuModelInput(sessionWidth=commons.YAWN_TIME*1.5, sessionGap=commons.YAWN_TIME/2)
+    modelType = EimuModelInput(windowSize=commons.YAWN_TIME*1.5, windowSep=commons.YAWN_TIME/2)
     annotatedData = modelType.fromDirectory(dataPath)
     (trainX, trainY), (testX, testY) = modelType.fromAnnotatedDataList(
         annotatedData,

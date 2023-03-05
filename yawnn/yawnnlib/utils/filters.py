@@ -6,7 +6,7 @@ import numpy as np
 
 class ApplyType(Enum):
     # most filters apply to the entire signal,
-    # but some apply to the chunks of data used to train with;
+    # but some apply to the windows of data used to train with;
     # multiple is reserved for the filter collection, where entries may be either
     SESSION = 1
     SPLIT = 2
