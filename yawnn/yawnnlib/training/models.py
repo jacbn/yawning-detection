@@ -24,6 +24,19 @@ MODEL_INPUTS = {
                     name='eimuCNN'
                 ),
     
+    'fftLSTM':  FFTModelInput(
+                    windowSize=YAWN_TIME,
+                    windowSep=YAWN_TIME/8,
+                    dataFilter=filters.FilterCollection([
+                        filters.HighPassFilter(96, 0.01, 30), 
+                        # filters.LowPassFilter(96, 300, 10), 
+                        filters.NormalisationFilter()
+                    ]),
+                    nPerSeg=128,
+                    nOverlap=96,
+                    name='fftLSTM'
+                ),                  
+    
     'fftCNN':   FFTModelInput(
                     windowSize=YAWN_TIME*1.5, 
                     windowSep=YAWN_TIME/4, 
@@ -93,7 +106,7 @@ def trainEimuLSTM(resampleFrequency: int = -1):
             resampleFrequency=resampleFrequency
     )
     
-# Model 2: EimuCNN, 4xConv + GlobalMaxPool + 2xDense @ 96Hz. ~85% accurate
+# Model 2: EimuCNN, 4xConv + 2xDense @ 96Hz. ~85% accurate
 # todo: only trains successfully occasionally, needs investigation
 def trainEimuCNN():
     modelType = MODEL_INPUTS['eimuCNN']
@@ -110,10 +123,14 @@ def trainEimuCNN():
             makeSequentialModel([
                 tf.keras.Input(shape=trainX.shape[1:], name='input'),
                 tf.keras.layers.Reshape((trainX.shape[1], 1, trainX.shape[2])),
-                tf.keras.layers.Conv2D(filters=64,  kernel_size=(6, 1), padding='same', activation='relu'),
-                tf.keras.layers.Conv2D(filters=128, kernel_size=(6, 1), padding='same', activation='relu'),
-                tf.keras.layers.Conv2D(filters=256, kernel_size=(6, 1), padding='same', activation='relu'),
-                tf.keras.layers.Conv2D(filters=512, kernel_size=(6, 1), padding='same', activation='relu'),
+                tf.keras.layers.Conv2D(filters=64,  kernel_size=(5, 1), padding='same', activation='relu'),
+                tf.keras.layers.MaxPool2D(pool_size=(2, 1)),
+                tf.keras.layers.Conv2D(filters=128, kernel_size=(5, 1), padding='same', activation='relu'),
+                tf.keras.layers.MaxPool2D(pool_size=(2, 1)),
+                tf.keras.layers.Conv2D(filters=256, kernel_size=(5, 1), padding='same', activation='relu'),
+                tf.keras.layers.MaxPool2D(pool_size=(2, 1)),
+                tf.keras.layers.Conv2D(filters=512, kernel_size=(5, 1), padding='same', activation='relu'),
+                tf.keras.layers.MaxPool2D(pool_size=(2, 1)),
                 tf.keras.layers.Dropout(0.5),
                 tf.keras.layers.Flatten(),
                 tf.keras.layers.Dense(units=64, activation='relu'),
@@ -122,7 +139,7 @@ def trainEimuCNN():
             ),
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,
-            epochs=30,
+            epochs=45,
             batchSize=64
     )
 
@@ -141,17 +158,18 @@ def trainEimuConvLSTM():
             modelType, 
             makeSequentialModel([
                 tf.keras.Input(shape=trainX.shape[1:], name='input'),
-                tf.keras.layers.Reshape((trainX.shape[1], 1, trainX.shape[2])),
-                tf.keras.layers.Conv2D(filters=64,  kernel_size=(6, 1), padding='same', activation='relu'),
-                tf.keras.layers.Conv2D(filters=64,  kernel_size=(6, 1), padding='same', activation='relu'),
-                tf.keras.layers.Conv2D(filters=128, kernel_size=(6, 1), padding='same', activation='relu'),
-                tf.keras.layers.Conv2D(filters=128, kernel_size=(6, 1), padding='same', activation='relu'),
-                tf.keras.layers.Reshape((trainX.shape[1], 128)),
+                tf.keras.layers.Reshape((trainX.shape[1]//4, 4, 1, trainX.shape[2])),
+                tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(filters=128,  kernel_size=(5, 1), padding='same', activation='relu')),
+                tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPool2D(pool_size=(2, 1))),
+                tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(filters=128,  kernel_size=(5, 1), padding='same', activation='relu')),
+                tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPool2D(pool_size=(2, 1))),
+                tf.keras.layers.TimeDistributed(tf.keras.layers.Flatten()),
                 tf.keras.layers.Dropout(0.3),
-                tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=True),
-                tf.keras.layers.Dropout(0.4),
-                tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=False),
-                tf.keras.layers.Dropout(0.2),
+                tf.keras.layers.LSTM(units=64, activation='tanh', return_sequences=True),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.LSTM(units=64, activation='tanh', return_sequences=False),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.Dense(units=64, activation='relu'),
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (testX, testY)),
@@ -175,10 +193,11 @@ def trainSpectrogramCNN():
             modelType, 
             makeSequentialModel([
                 tf.keras.Input(shape=trainX.shape[1:], name="input"),
-                tf.keras.layers.Conv2D(filters=64,  kernel_size=(6, 1), padding='same', activation='relu'),
-                tf.keras.layers.Conv2D(filters=128, kernel_size=(6, 1), padding='same', activation='relu'),
-                tf.keras.layers.Conv2D(filters=256, kernel_size=(6, 1), padding='same', activation='relu'),
-                tf.keras.layers.Conv2D(filters=512, kernel_size=(6, 1), padding='same', activation='relu'),
+                tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='relu'),
+                tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+                tf.keras.layers.Conv2D(filters=256, kernel_size=(3, 3), padding='same', activation='relu'),
+                tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+                tf.keras.layers.Conv2D(filters=512, kernel_size=(3, 3), padding='same', activation='relu'),
                 tf.keras.layers.Dropout(0.5),
                 tf.keras.layers.Flatten(),
                 tf.keras.layers.Dense(units=64, activation='relu'),
@@ -206,10 +225,10 @@ def trainFftCNN():
             makeSequentialModel([
                 tf.keras.Input(shape=trainX.shape[1:], name='input'),
                 tf.keras.layers.Reshape((trainX.shape[1], 1, trainX.shape[2])),
-                tf.keras.layers.Conv2D(filters=64,  kernel_size=(6, 1), padding='same', activation='relu'),
-                tf.keras.layers.Conv2D(filters=128, kernel_size=(6, 1), padding='same', activation='relu'),
-                tf.keras.layers.Conv2D(filters=256, kernel_size=(6, 1), padding='same', activation='relu'),
-                tf.keras.layers.Conv2D(filters=512, kernel_size=(6, 1), padding='same', activation='relu'),
+                tf.keras.layers.Conv2D(filters=64,  kernel_size=(5, 1), padding='same', activation='relu'),
+                tf.keras.layers.Conv2D(filters=128, kernel_size=(5, 1), padding='same', activation='relu'),
+                tf.keras.layers.Conv2D(filters=256, kernel_size=(5, 1), padding='same', activation='relu'),
+                tf.keras.layers.Conv2D(filters=512, kernel_size=(5, 1), padding='same', activation='relu'),
                 tf.keras.layers.Dropout(0.5),
                 tf.keras.layers.Flatten(),
                 tf.keras.layers.Dense(units=64, activation='relu'),
@@ -219,4 +238,33 @@ def trainFftCNN():
             fracVal=0.1,
             epochs=30,
             batchSize=64
+    )
+
+
+def trainFftLSTM():
+    modelType = MODEL_INPUTS['fftLSTM']
+    
+    ((trainX, trainY), (testX, testY)) = getTrainTestData(
+        modelType,
+        modelType.fromDirectory(DATA_PATH), 
+        shuffle=True, 
+        equalPositiveAndNegative=True
+    )
+    
+    return trainModel(
+            modelType, 
+            makeSequentialModel([
+                tf.keras.Input(shape=trainX.shape[1:], name='input'),
+                tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=True),
+                tf.keras.layers.Dropout(0.5),
+                tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=True),
+                tf.keras.layers.Dropout(0.4),
+                tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=False),
+                tf.keras.layers.Dropout(0.2),
+                tf.keras.layers.Dense(units=1, activation='sigmoid')]
+            ),
+            ((trainX, trainY), (testX, testY)),
+            fracVal=0.1,
+            epochs=30, 
+            batchSize=64,
     )
