@@ -33,7 +33,17 @@ def loadModel(modelPath : str) -> tf.keras.models.Model:
     return model
 
 def visualizeModel(model : tf.keras.models.Model) -> None:
-    vk.layered_view(model, spacing=50, max_xy=800, draw_volume=True, to_file="model.png").show() # type: ignore
+    from collections import defaultdict
+    colorMap = defaultdict(dict)
+    colorMap[tf.keras.layers.Dropout]['fill'] = '#e53d65' # red
+    colorMap[tf.keras.layers.Reshape]['fill'] = '#aaffff' # light blue
+    colorMap[tf.keras.layers.Conv2D]['fill'] = '#90ee90'  # light green
+    colorMap[tf.keras.layers.LSTM]['fill'] = '#ffd166'    # light yellow
+    colorMap[tf.keras.layers.Flatten]['fill'] = 'pink'
+    colorMap[tf.keras.layers.Dense]['fill'] = 'purple'
+    colorMap[tf.keras.layers.MaxPooling2D]['fill'] = 'orange'
+    
+    vk.layered_view(model, spacing=50, max_xy=800, draw_volume=True, to_file="model.png", legend=True, color_map=colorMap).show() # type: ignore
 
 def testDataOnModel(model, modelType : ModelInput, dataDirectory : str) -> None:
     """ Tests the model on the data in a given directory. 
@@ -54,7 +64,7 @@ def testDataOnModel(model, modelType : ModelInput, dataDirectory : str) -> None:
     metrics.evaluate(Y, predY)
 
 if __name__ == "__main__":
-    modelType = MODEL_INPUTS['fftCNN']
-    model = loadModel(f"{MODELS_PATH}/fourierLSTM_3.h5")
+    modelType = MODEL_INPUTS['eimuLSTM']
+    model = loadModel(f"{MODELS_PATH}/eimuLSTM_13.h5")
     visualizeModel(model)
-    testDataOnModel(model, modelType, f"{DATA_PATH}/")
+    # testDataOnModel(model, modelType, f"{DATA_PATH}/")
