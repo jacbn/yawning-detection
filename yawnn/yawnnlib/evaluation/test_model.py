@@ -3,12 +3,16 @@ from yawnnlib.utils import commons, filters, config
 from yawnnlib.neural.fftModelInput import FFTModelInput
 from yawnnlib.neural.eimuModelInput import EimuModelInput
 from yawnnlib.training.models import MODEL_INPUTS
-
 from yawnnlib.neural.modelInput import ModelInput
+from yawnnlib.other_classifiers.altClassifiers import AlternativeClassifier
 
+from sklearn.metrics import ConfusionMatrixDisplay
+from matplotlib import pyplot as plt
+from os import listdir
 import visualkeras as vk
 import numpy as np
 import tensorflow as tf
+import pickle
 
 MODELS_PATH = config.get("MODELS_PATH")
 DATA_PATH = config.get("DATA_PATH")
@@ -62,6 +66,31 @@ def testDataOnModel(model, modelType : ModelInput, dataDirectory : str) -> None:
     model.evaluate(X, Y)
     predY = np.round(model.predict(X)).astype(bool)
     metrics.evaluate(Y, predY)
+    
+def testDataOnAlternativeModels(altModelsPath : str, dataDirectory : str):
+    
+    ALT_MODELS_PATH = MODELS_PATH + "/alternative/"
+    
+    annotatedData = modelType.fromDirectory(dataDirectory)
+    _, (testX, testY) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=False, trainSplit=0.0)
+    fig = 1
+    
+    for file in listdir(ALT_MODELS_PATH):
+        if file.endswith(".pkl"):
+            with open(ALT_MODELS_PATH + file, "rb") as handler:
+                classifier : AlternativeClassifier = pickle.load(handler)
+                clf = classifier.getCLF()
+                score = clf.score(testX, testY)
+                
+                plt.figure(fig)
+                disp = ConfusionMatrixDisplay.from_estimator(clf, testX, testY, display_labels=["No Yawn", "Yawn"])
+                disp.ax_.set_title(classifier.name)
+                print(f"{classifier.name} score: {score}")
+                predY = np.round(model.predict(testX)).astype(bool)
+                metrics.evaluate(testY, predY)
+                fig += 1
+                
+    plt.show()
 
 if __name__ == "__main__":
     modelType = MODEL_INPUTS['eimuLSTM']

@@ -2,7 +2,13 @@ from yawnnlib.utils import filters, config
 from yawnnlib.neural.eimuModelInput import EimuModelInput
 from yawnnlib.neural.fftModelInput import FFTModelInput
 from yawnnlib.neural.spectrogramModelInput import SpectrogramModelInput
-from yawnnlib.training.trainingFuncs import getTrainTestData, trainModel, makeSequentialModel
+from yawnnlib.other_classifiers.altClassifiers import AlternativeClassifier
+from yawnnlib.training.trainingFuncs import getTrainTestData, trainModel, makeSequentialModel, trainAlternatives
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 import tensorflow as tf
 
@@ -268,3 +274,21 @@ def trainFftLSTM():
             epochs=30, 
             batchSize=64,
     )
+    
+def trainAlternativeClassifiers():
+    modelType = MODEL_INPUTS['eimuLSTM']
+    
+    data = getTrainTestData(
+        modelType,
+        modelType.fromDirectory(DATA_PATH), 
+        shuffle=True, 
+        equalPositiveAndNegative=True
+    )
+    
+    classifiers = [
+        AlternativeClassifier("K-Nearest Neighbors", KNeighborsClassifier(n_neighbors=3)),
+        AlternativeClassifier("Linear SVM", SVC(kernel='linear', C=0.025)), # kernel='rbf', C=1
+        AlternativeClassifier("Decision Tree", DecisionTreeClassifier(max_depth=5)),
+        AlternativeClassifier("Random Forest", RandomForestClassifier(max_depth=5, n_estimators=10, max_features='sqrt')),
+    ]
+    trainAlternatives(classifiers, data)

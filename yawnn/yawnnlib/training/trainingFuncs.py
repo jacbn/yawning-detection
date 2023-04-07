@@ -2,10 +2,13 @@ print("Loading imports...")
 
 from yawnnlib.utils import commons, config
 from yawnnlib.neural.modelInput import ModelInput
+from yawnnlib.other_classifiers.altClassifiers import AlternativeClassifier
 import tools.eimuResampler as eimuResampler
 
 from os import listdir
 import tensorflow as tf
+import pickle
+from os import mkdir, path
 
 print("Imports loaded.")
 
@@ -118,3 +121,25 @@ def trainModel(modelType : ModelInput, model : tf.keras.models.Sequential, data 
     
     model.evaluate(testX, testY)
     return model, history
+
+def trainAlternatives(classifiers : list[AlternativeClassifier], data : commons.ModelData, resampleFrequency : int = 96):
+    (trainX, trainY), (testX, testY) = list(map(lambda x: eimuResampler.resampleAnnotatedData(x, 96, resampleFrequency), data))
+
+    samples, windowSize, channels = trainX.shape
+    flattenedTrainX = trainX.reshape(samples, windowSize*channels)
+    samples, windowSize, channels = testX.shape
+    flattenedTestX = testX.reshape(samples, windowSize*channels)
+
+    ALT_MODELS_PATH = MODELS_PATH + "/alternative/"
+    if (not path.exists(ALT_MODELS_PATH)):
+        mkdir(ALT_MODELS_PATH)
+
+    # iterate over classifiers
+    for classifier in classifiers:
+        clf = classifier.getModel()
+        clf.fit(flattenedTrainX, trainY)
+        clf.score(flattenedTestX, testY)
+    
+        with open(ALT_MODELS_PATH + classifier.name + ".pkl", "wb") as handler:
+            pickle.dump(classifier, handler)
+    

@@ -8,7 +8,8 @@ modelMap = {
     3 : models.trainEimuConvLSTM, 
     4 : models.trainSpectrogramCNN, 
     5 : models.trainFftCNN,
-    6 : models.trainFftLSTM,
+    6 : models.trainAlternativeClassifiers,
+    7 : models.trainFftLSTM, # todo
 }
 
 if __name__ == "__main__":
@@ -25,7 +26,7 @@ if __name__ == "__main__":
         print(" 3: Eimu ConvLSTM")
         print(" 4: Spectrogram CNN")
         print(" 5: FFT CNN")
-        print(" 6: ..")
+        print(" 6: Alternative Models")
         while True:
             try:
                 model = modelMap[int(input())]
