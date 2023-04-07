@@ -167,7 +167,7 @@ class FourierData(SessionData):
         Parameters
         ----------
         dataFilter : filters.DataFilter, optional
-            The filter to apply to the data (BEFORE applying FFT), by default filters.NoneFilter()
+            The filter to apply to the data (BEFORE applying FFT), by default filters.NormalisationFilter()
         windowSize : float, optional
             The window size in seconds, by default commons.YAWN_TIME*2
         windowSep : float, optional
