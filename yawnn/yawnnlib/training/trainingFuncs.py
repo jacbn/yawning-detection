@@ -119,7 +119,8 @@ def trainModel(modelType : ModelInput, model : tf.keras.models.Sequential, data 
     model.save(path := f"{MODELS_PATH}/{modelType.getType()}_{modelNum}.h5")
     print(f"Model saved: {path}")
     
-    model.evaluate(testX, testY)
+    if len(testX) > 0:
+        model.evaluate(testX, testY)
     return model, history
 
 def trainAlternatives(classifiers : list[AlternativeClassifier], data : commons.ModelData, resampleFrequency : int = 96):
@@ -136,10 +137,15 @@ def trainAlternatives(classifiers : list[AlternativeClassifier], data : commons.
 
     # iterate over classifiers
     for classifier in classifiers:
+        print("Training " + classifier.name + "...")
         clf = classifier.getModel()
         clf.fit(flattenedTrainX, trainY)
-        clf.score(flattenedTestX, testY)
+        score = clf.score(flattenedTestX, testY)
+        print("Score: " + str(score))
     
         with open(ALT_MODELS_PATH + classifier.name + ".pkl", "wb") as handler:
             pickle.dump(classifier, handler)
+            
+        print("Model saved: " + ALT_MODELS_PATH + classifier.name + ".pkl")
+        
     
