@@ -68,3 +68,26 @@ def _equalisePNForSingleSet(annotatedData : AnnotatedData, shuffle : bool) -> An
         indices = np.sort(indices)
     
     return data[indices], annotations[indices]
+
+def timeDistributeData(data : ModelData, distribution : int = 3) -> ModelData:
+    ((trainX, trainY), (testX, testY)) = data
+    return (_td((trainX, trainY), distribution), _td((testX, testY), distribution))
+
+def _td(annotatedData : AnnotatedData, distribution : int) -> AnnotatedData:
+    data, annotations = annotatedData
+    newData = np.zeros((data.shape[0] // distribution, distribution, *data.shape[1:]))
+    newAnnotations = np.zeros((annotations.shape[0] // distribution))
+    i = 0
+    j = 0
+    for sample in data:
+        if j >= newData.shape[0]:
+            print("WARN: Data was not divisible by distribution factor. Some data was lost.")
+            continue
+        newData[j][i] = sample
+        newAnnotations[j] = max(newAnnotations[j], annotations[j * distribution + i])
+        i += 1
+        if i >= distribution:
+            i = 0
+            j += 1
+    return (newData, newAnnotations)
+            

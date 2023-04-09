@@ -19,7 +19,7 @@ modelMap = {
     3 : models.trainEimuConvLSTM, 
     4 : models.trainFftLSTM,
     5 : models.trainFftCNN,
-    # 6 : models.trainFftConvLSTM, # todo
+    6 : models.trainFftConvLSTM,
     7 : models.trainSpectrogramCNN, 
     8 : models.trainAlternativeClassifiers, 
     9 : trainAllModels,
