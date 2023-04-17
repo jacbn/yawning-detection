@@ -17,12 +17,8 @@ class AlternativeClassifier():
     def fit(self, trainX, trainY):
         self.clf = self.getModel()
         self.clf.fit(trainX, trainY)
-
-    def isTrained(self):
-        return self.clf is not None
-    
-    def getCLF(self) -> pipeline.Pipeline:
+        
+    def score(self, *args):
         if self.clf is None:
             raise ClassifierNotTrainedException()
-        return self.clf
-    
+        return self.clf.score(*args)

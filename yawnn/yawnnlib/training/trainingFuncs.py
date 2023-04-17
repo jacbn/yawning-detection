@@ -5,10 +5,10 @@ from yawnnlib.neural.modelInput import ModelInput
 from yawnnlib.other_classifiers.altClassifiers import AlternativeClassifier
 import tools.eimuResampler as eimuResampler
 
-from os import listdir
+from os import listdir, mkdir, path
+import numpy as np
 import tensorflow as tf
-import pickle
-from os import mkdir, path
+import pickle 
 
 print("Imports loaded.")
 
@@ -57,7 +57,7 @@ def getTrainTestData(modelType : ModelInput, annotatedData : list[commons.Annota
     """
     return modelType.fromAnnotatedDataList(annotatedData, shuffle=shuffle, equalPositiveAndNegative=equalPositiveAndNegative)
 
-def trainModel(modelType : ModelInput, model : tf.keras.models.Sequential, data : commons.ModelData, epochs : int, batchSize : int, fracVal : float = 0.1, saveCheckpoints : bool = True, resampleFrequency : int = -1):
+def trainModel(modelType : ModelInput, model : tf.keras.models.Sequential, data : commons.ModelData, epochs : int, batchSize : int, fracVal : float = 0.1, saveCheckpoints : bool = False, resampleFrequency : int = -1):
     """ Trains a model on the data in a given directory.
     
     Attributes
@@ -87,7 +87,7 @@ def trainModel(modelType : ModelInput, model : tf.keras.models.Sequential, data 
         The training history.
     """
     print(f"\nTraining {modelType.getType()}:")
-    modelNum = len([f for f in listdir(f"{MODELS_PATH}/") if f.startswith(modelType.getType())])
+    modelNum = len([f for f in listdir(f"{MODELS_PATH}/") if f.startswith(modelType.getType() + '_')])
     
     cpCallback = tf.keras.callbacks.ModelCheckpoint(
         filepath=f"{MODELS_PATH}/checkpoints/{modelType.getType()}_{modelNum}/" + "cp-{epoch:04d}.ckpt", 
@@ -123,13 +123,18 @@ def trainModel(modelType : ModelInput, model : tf.keras.models.Sequential, data 
         model.evaluate(testX, testY)
     return model, history
 
-def trainAlternatives(classifiers : list[AlternativeClassifier], data : commons.ModelData, resampleFrequency : int = 96):
-    (trainX, trainY), (testX, testY) = list(map(lambda x: eimuResampler.resampleAnnotatedData(x, 96, resampleFrequency), data))
-
+def trainAlternatives(classifiers : list[AlternativeClassifier], data : commons.ModelData, resampleFrequency : int = -1):
+    if  resampleFrequency > 0:
+        (trainX, trainY), (testX, testY) = list(map(lambda x: eimuResampler.resampleAnnotatedData(x, 96, resampleFrequency), data))
+    else:
+        (trainX, trainY), (testX, testY) = data
+        
     samples, windowSize, channels = trainX.shape
-    flattenedTrainX = trainX.reshape(samples, windowSize*channels)
+    flattenedTrainX = np.reshape(trainX, (samples * windowSize, channels))
+    extendedTrainY = np.repeat(trainY, windowSize)
     samples, windowSize, channels = testX.shape
-    flattenedTestX = testX.reshape(samples, windowSize*channels)
+    flattenedTestX = np.reshape(testX, (samples * windowSize, channels))
+    extendedTestY = np.repeat(testY, windowSize)
 
     ALT_MODELS_PATH = MODELS_PATH + "/alternative/"
     if (not path.exists(ALT_MODELS_PATH)):
@@ -138,10 +143,10 @@ def trainAlternatives(classifiers : list[AlternativeClassifier], data : commons.
     # iterate over classifiers
     for classifier in classifiers:
         print("Training " + classifier.name + "...")
-        clf = classifier.getModel()
-        clf.fit(flattenedTrainX, trainY)
-        score = clf.score(flattenedTestX, testY)
-        print("Score: " + str(score))
+        classifier.fit(flattenedTrainX, extendedTrainY)
+        if len(extendedTrainY) > 0:
+            score = classifier.score(flattenedTestX, extendedTestY)
+            print("Score: " + str(score))
     
         with open(ALT_MODELS_PATH + classifier.name + ".pkl", "wb") as handler:
             pickle.dump(classifier, handler)

@@ -3,10 +3,11 @@ from yawnnlib.utils import config
 
 import sys
 
-def trainAllModels(sampleRate : int = -1):
+def trainSpecificModels(models, sampleRate : int = -1):
     assert config.get("TRAIN_SPLIT") == 1, "TRAIN_SPLIT should be 1 to train all models to ensure testing occurs on separate, consistent data."
     repeats = int(input("Specify how many times to repeat each model: "))
-    for model in modelMap.values():
+    for modelNum in models:
+        model = modelMap[modelNum]
         for _ in range(repeats):
             if sampleRate < 1:
                 model()
@@ -22,7 +23,9 @@ modelMap = {
     6 : models.trainFftConvLSTM,
     7 : models.trainSpectrogramCNN, 
     8 : models.trainAlternativeClassifiers, 
-    9 : trainAllModels,
+    9 : lambda: trainSpecificModels(range(1, 9)),
+    10 : lambda: trainSpecificModels(range(1, 4)),
+    11 : lambda: trainSpecificModels(range(4, 8)),
 }
 
 if __name__ == "__main__":
@@ -45,6 +48,8 @@ if __name__ == "__main__":
         print(" 7: Spectrogram CNN")
         print(" 8: Alternative Models")
         print(" 9: All Models")
+        print("10: All Eimu Models")
+        print("11: All FFT Models")
         while True:
             try:
                 model = modelMap[int(input())]
