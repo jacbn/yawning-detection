@@ -53,7 +53,7 @@ class ModelInput(ABC):
         if equalPositiveAndNegative:
             modelData = commons.equalisePositiveAndNegative(modelData, shuffle)
         if shuffle:
-            modelData = commons.shuffleAllData(modelData)
+            modelData = commons.shuffleAllData(modelData, trainSplit)
     
         return modelData
     
