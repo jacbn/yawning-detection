@@ -6,7 +6,7 @@ import numpy as np
 
 TIMESTAMP_PREDICATE = lambda tList: sum(map(lambda t: t.type == 'yawn', tList))
 
-def getSpectrogramModelData(eimuPath : str, dataFilter : filters.DataFilter, windowSize : float, windowSep : float, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
+def getSpectrogramModelData(eimuPath : str, dataFilter : filters.DataFilter, windowSize : float, windowSep : float, fileNum : int, totalFiles : int, nOverlap : int, nPerSeg : int) -> commons.AnnotatedData:
     """ Applies Fourier methods to a .eimu file to generate a tuple of (data, annotations).
 
     Parameters
@@ -27,7 +27,7 @@ def getSpectrogramModelData(eimuPath : str, dataFilter : filters.DataFilter, win
     commons.AnnotatedData
         A tuple of (data, annotations)
     """
-    session = FourierData.fromPath(eimuPath, fileNum=fileNum, totalFiles=totalFiles)
+    session = FourierData.fromPath(eimuPath, fileNum=fileNum, totalFiles=totalFiles, nOverlap=nOverlap, nPerSeg=nPerSeg)
     data, timestamps = session.getSpectrogramData(dataFilter=dataFilter, windowSize=windowSize, windowSep=windowSep)
     
     # the number of windows is variable based on input data, the others depend on constants.
@@ -42,14 +42,16 @@ def getSpectrogramModelData(eimuPath : str, dataFilter : filters.DataFilter, win
     return data, annotations
 
 class SpectrogramModelInput(ModelInput):
-    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), windowSize : float = commons.YAWN_TIME*2, windowSep : float = commons.YAWN_TIME/2, name : str = "spectrogramNN") -> None:
+    def __init__(self, dataFilter : filters.DataFilter = filters.NoneFilter(), windowSize : float = commons.YAWN_TIME*2, windowSep : float = commons.YAWN_TIME/2, nPerSeg : int = 128, nOverlap : int = 96, name : str = "spectrogramNN") -> None:
         self.dataFilter = dataFilter
         self.windowSize = windowSize
         self.windowSep = windowSep
+        self.nOverlap = nOverlap
+        self.nPerSeg = nPerSeg
         self.name = name
     
     def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
-        return getSpectrogramModelData(path, self.dataFilter, self.windowSize, self.windowSep, fileNum, totalFiles)
+        return getSpectrogramModelData(path, self.dataFilter, self.windowSize, self.windowSep, fileNum, totalFiles, self.nOverlap, self.nPerSeg)
     
     def getType(self) -> str:
         return self.name
