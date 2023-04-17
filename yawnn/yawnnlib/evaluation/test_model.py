@@ -16,6 +16,7 @@ import pickle
 
 MODELS_PATH = config.get("MODELS_PATH")
 DATA_PATH = config.get("DATA_PATH")
+TEST_PATH = config.get("TEST_PATH")
 YAWN_TIME = config.get("YAWN_TIME")
 
 def loadModel(modelPath : str) -> tf.keras.models.Model:
@@ -46,10 +47,11 @@ def visualizeModel(model : tf.keras.models.Model) -> None:
     colorMap[tf.keras.layers.Flatten]['fill'] = 'pink'
     colorMap[tf.keras.layers.Dense]['fill'] = 'purple'
     colorMap[tf.keras.layers.MaxPooling2D]['fill'] = 'orange'
+    colorMap[tf.keras.layers.TimeDistributed]['fill'] = 'blue'
     
     vk.layered_view(model, spacing=50, max_xy=800, draw_volume=True, to_file="model.png", legend=True, color_map=colorMap).show() # type: ignore
 
-def testDataOnModel(model, modelType : ModelInput, dataDirectory : str) -> None:
+def testDataOnModel(model, modelType : ModelInput, dataDirectory : str):
     """ Tests the model on the data in a given directory. 
     
     Attributes
@@ -62,38 +64,47 @@ def testDataOnModel(model, modelType : ModelInput, dataDirectory : str) -> None:
         The directory containing the data to test.
     """
     annotatedData = modelType.fromDirectory(dataDirectory)
-    _, (X, Y) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=False, trainSplit=0.0)
-    model.evaluate(X, Y)
-    predY = np.round(model.predict(X)).astype(bool)
-    metrics.evaluate(Y, predY)
+    _, (X, Y) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
+    if "CNN-LSTM" in modelType.getType():
+        (X, Y) = commons.timeDistributeAnnotatedData((X, Y))
+    # res1 = model.evaluate(X, Y)
+    Y = np.round(Y).astype(bool).squeeze()
+    predY = np.round(model.predict(X)).astype(bool).squeeze()
+    # print(list(zip(Y, predY)))
+    res2 = metrics.evaluate(Y, predY)
+    return res2 # accuracy, precision, recall, f1
     
 def testDataOnAlternativeModels(altModelsPath : str, dataDirectory : str):
     
     ALT_MODELS_PATH = MODELS_PATH + "/alternative/"
-    
+    modelType = MODEL_INPUTS['altModels']
     annotatedData = modelType.fromDirectory(dataDirectory)
-    _, (testX, testY) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=False, trainSplit=0.0)
+    _, (testX, testY) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
     fig = 1
+    
+    samples, windowSize, channels = testX.shape
+    flattenedTestX = np.reshape(testX, (samples * windowSize, channels))
+    extendedTestY = np.repeat(testY, windowSize)
     
     for file in listdir(ALT_MODELS_PATH):
         if file.endswith(".pkl"):
             with open(ALT_MODELS_PATH + file, "rb") as handler:
                 classifier : AlternativeClassifier = pickle.load(handler)
-                clf = classifier.getCLF()
-                score = clf.score(testX, testY)
-                
+                assert classifier.clf is not None, "Classifier not loaded."
+                score = classifier.score(flattenedTestX, extendedTestY)
                 plt.figure(fig)
-                disp = ConfusionMatrixDisplay.from_estimator(clf, testX, testY, display_labels=["No Yawn", "Yawn"])
+                disp = ConfusionMatrixDisplay.from_estimator(classifier.clf, flattenedTestX, extendedTestY, display_labels=["No Yawn", "Yawn"])
                 disp.ax_.set_title(classifier.name)
                 print(f"{classifier.name} score: {score}")
-                predY = np.round(model.predict(testX)).astype(bool)
-                metrics.evaluate(testY, predY)
+                predY = np.round(classifier.clf.predict(flattenedTestX)).astype(bool)
+                metrics.evaluate(extendedTestY, predY)
                 fig += 1
                 
     plt.show()
 
 if __name__ == "__main__":
-    modelType = MODEL_INPUTS['eimuLSTM']
-    model = loadModel(f"{MODELS_PATH}/eimuLSTM_13.h5")
+    modelType = MODEL_INPUTS['specCNN']
+    model = loadModel(f"{MODELS_PATH}/specCNN_0.h5")
     visualizeModel(model)
-    # testDataOnModel(model, modelType, f"{DATA_PATH}/")
+    testDataOnModel(model, modelType, f"{TEST_PATH}/")
+    # testDataOnAlternativeModels(f"{MODELS_PATH}/alternative/", f"{TEST_PATH}/")
