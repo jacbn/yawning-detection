@@ -31,7 +31,7 @@ def mapToDirectory(f : Callable[[str, int, int], T], path : str) -> list[T]:
     return [f(file, i+1, len(files)) for i, file in enumerate(files)]
 
 
-def shuffleAllData(combined : ModelData) -> ModelData:
+def shuffleAllData(combined : ModelData, trainSplit : float) -> ModelData:
     """ Shuffles all the data, across both the training and test sets. """
     data = np.concatenate((combined[0][0], combined[1][0]))
     annotations = np.concatenate((combined[0][1], combined[1][1]))
@@ -39,7 +39,7 @@ def shuffleAllData(combined : ModelData) -> ModelData:
     indices = np.arange(len(data))
     np.random.shuffle(indices)
     
-    trainLength = int(len(data) * config.get("TRAIN_SPLIT"))
+    trainLength = int(len(data) * trainSplit)
     return (data[indices][:trainLength], annotations[indices][:trainLength]), (data[indices][trainLength:], annotations[indices][trainLength:])
 
 
@@ -69,12 +69,13 @@ def _equalisePNForSingleSet(annotatedData : AnnotatedData, shuffle : bool) -> An
     
     return data[indices], annotations[indices]
 
-def timeDistributeData(data : ModelData, distribution : int = 3) -> ModelData:
+def timeDistributeData(data : ModelData) -> ModelData:
     ((trainX, trainY), (testX, testY)) = data
-    return (_td((trainX, trainY), distribution), _td((testX, testY), distribution))
+    return (timeDistributeAnnotatedData((trainX, trainY)), timeDistributeAnnotatedData((testX, testY)))
 
-def _td(annotatedData : AnnotatedData, distribution : int) -> AnnotatedData:
+def timeDistributeAnnotatedData(annotatedData : AnnotatedData) -> AnnotatedData:
     data, annotations = annotatedData
+    distribution = config.get("TIME_DISTRIBUTION")
     newData = np.zeros((data.shape[0] // distribution, distribution, *data.shape[1:]))
     newAnnotations = np.zeros((annotations.shape[0] // distribution))
     i = 0
