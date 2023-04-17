@@ -2,7 +2,7 @@ print("Loading imports...")
 
 from yawnnlib.utils import commons, config
 from yawnnlib.neural.modelInput import ModelInput
-from yawnnlib.other_classifiers.alternative_classifiers import AlternativeClassifier
+from yawnnlib.alternatives.alternative_classifiers import AlternativeClassifier
 import tools.eimuResampler as eimuResampler
 
 from os import listdir, mkdir, path
