@@ -292,12 +292,14 @@ if __name__ == "__main__":
     # below shows a great example of how the smooth filter works
     s = SessionData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
     s.plot(show=False, figure=3)
-    w = s.sampleRate * commons.YAWN_TIME * 1.5
-    g = s.sampleRate * commons.YAWN_TIME / 5.3
-    splits = s.splitSession(windowSize=int(w), windowSep=int(g))
     
-    fSplit = SessionData.applyFilter(splits[2], dataFilter = filters.SmoothFilter(0.7), filterType=filters.ApplyType.SPLIT)
+    # smooth filter application:
+    # w = s.sampleRate * commons.YAWN_TIME * 1.5
+    # g = s.sampleRate * commons.YAWN_TIME / 5.3
+    # splits = s.splitSession(windowSize=int(w), windowSep=int(g))
+    # fSplit = SessionData.applyFilter(splits[2], dataFilter = filters.SmoothFilter(0.7), filterType=filters.ApplyType.SPLIT)
+    # splits[2].plot(show=False)
+    # fSplit.plot(show=True, figure=2)
     
-    splits[2].plot(show=False)
-    fSplit.plot(show=True, figure=2)
-    
+    s2 = SessionData.applyFilter(s, dataFilter = filters.HighPassFilter(96, 0.05, 30), filterType=filters.ApplyType.SESSION)
+    s2.plot(show=True, figure=2)
