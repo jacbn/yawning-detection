@@ -4,7 +4,7 @@ from yawnnlib.neural.fftModelInput import FFTModelInput
 from yawnnlib.neural.eimuModelInput import EimuModelInput
 from yawnnlib.training.models import MODEL_INPUTS
 from yawnnlib.neural.modelInput import ModelInput
-from yawnnlib.alternatives.alternative_classifiers import AlternativeClassifier
+from yawnnlib.alternatives.alternative_classifier import AlternativeClassifier
 
 from sklearn.metrics import ConfusionMatrixDisplay
 from matplotlib import pyplot as plt
@@ -104,7 +104,7 @@ def testDataOnAlternativeModels(altModelsPath : str, dataDirectory : str):
 
 if __name__ == "__main__":
     modelType = MODEL_INPUTS['eimuLSTM']
-    model = loadModel(f"{MODELS_PATH}/eimuLSTM_0.h5")
+    model = loadModel(f"{MODELS_PATH}/eimuLSTM_1.h5")
     visualizeModel(model)
     testDataOnModel(model, modelType, f"{TEST_PATH}/")
     # testDataOnAlternativeModels(f"{MODELS_PATH}/alternative/", f"{TEST_PATH}/")

@@ -2,7 +2,7 @@ from yawnnlib.utils import commons, filters, config
 from yawnnlib.neural.eimuModelInput import EimuModelInput
 from yawnnlib.neural.fftModelInput import FFTModelInput
 from yawnnlib.neural.spectrogramModelInput import SpectrogramModelInput
-from yawnnlib.alternatives.alternative_classifiers import AlternativeClassifier
+from yawnnlib.alternatives.alternative_classifier import AlternativeClassifier
 from yawnnlib.training.trainingFuncs import getTrainTestData, trainModel, makeSequentialModel, trainAlternatives
 
 from sklearn.neighbors import KNeighborsClassifier
