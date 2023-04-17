@@ -2,7 +2,7 @@ from yawnnlib.utils import commons, filters, config
 from yawnnlib.neural.eimuModelInput import EimuModelInput
 from yawnnlib.neural.fftModelInput import FFTModelInput
 from yawnnlib.neural.spectrogramModelInput import SpectrogramModelInput
-from yawnnlib.other_classifiers.altClassifiers import AlternativeClassifier
+from yawnnlib.other_classifiers.alternative_classifiers import AlternativeClassifier
 from yawnnlib.training.trainingFuncs import getTrainTestData, trainModel, makeSequentialModel, trainAlternatives
 
 from sklearn.neighbors import KNeighborsClassifier
@@ -139,7 +139,7 @@ def trainEimuLSTM(resampleFrequency: int = -1):
     )
     
 # Model 2: EimuCNN, 4xConv + 2xDense @ 96Hz. ~85% accurate
-# todo: only trains successfully occasionally, needs investigation
+# training can converge wrongly if learning rate too high
 def trainEimuCNN():
     modelType = MODEL_INPUTS['eimuCNN']
     
@@ -167,7 +167,7 @@ def trainEimuCNN():
                 tf.keras.layers.Flatten(),
                 tf.keras.layers.Dense(units=64, activation='relu'),
                 tf.keras.layers.Dense(units=1, activation='sigmoid')],
-                learningRate=1e-4 # 1e-4
+                learningRate=1e-4
             ),
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,

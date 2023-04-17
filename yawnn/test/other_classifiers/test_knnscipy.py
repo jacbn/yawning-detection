@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from yawnnlib.other_classifiers import knn_scipy
+from yawnnlib.alternatives.manual import knn_scipy
 
 class TestKnnScipy(unittest.TestCase):
 
