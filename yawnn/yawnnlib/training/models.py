@@ -16,32 +16,37 @@ YAWN_TIME = config.get("YAWN_TIME")
 
 MODEL_INPUTS = {
     'eimuLSTM': EimuModelInput(
-                    windowSize=YAWN_TIME, 
+                    windowSize=YAWN_TIME*2.5, 
                     windowSep=YAWN_TIME/4, 
-                    # dataFilter=filters.SmoothFilter(keepData=0.8),
+                    dataFilter=filters.SmoothFilter(keepData=0.8),
                     name='eimuLSTM'
                 ),
     
-    'eimuCNN':  EimuModelInput(
-                    windowSize=YAWN_TIME, 
+    'eimuCNN':  EimuModelInput(  # *2.5, /4 = 0.8482 acc + good metrics
+                    windowSize=YAWN_TIME*2.5,
                     windowSep=YAWN_TIME/4, 
-                    # dataFilter=filters.SmoothFilter(keepData=0.8),
+                    dataFilter=filters.SmoothFilter(keepData=0.8),
                     name='eimuCNN'
                 ),
     
     'eimuCNN-LSTM': EimuModelInput(
-                    windowSize=YAWN_TIME, 
-                    windowSep=YAWN_TIME/4, 
-                    # dataFilter=filters.SmoothFilter(keepData=0.8),
+                    windowSize=YAWN_TIME*2, 
+                    windowSep=YAWN_TIME/8, 
+                    dataFilter=filters.FilterCollection([
+                        filters.MovingAverageFilter(5),
+                        filters.SmoothFilter(keepData=0.8),
+                    ]),
                     name='eimuCNN-LSTM'
                 ),
     
     'fftLSTM':  FFTModelInput(
-                    windowSize=YAWN_TIME,
-                    windowSep=YAWN_TIME/4,
+                    windowSize=YAWN_TIME*1.5,
+                    windowSep=YAWN_TIME/6,
                     dataFilter=filters.FilterCollection([
-                        # filters.HighPassFilter(96, 0.01, 30), 
-                        # filters.LowPassFilter(96, 300, 10), 
+                        # filters.SmoothFilter(keepData=0.8),
+                        filters.HighPassFilter(96, 0.1), 
+                        filters.LowPassFilter(96, 8, 3), 
+                        # filters.MovingAverageFilter(5), 
                         filters.NormalisationFilter()
                     ]),
                     nPerSeg=128,
@@ -50,11 +55,13 @@ MODEL_INPUTS = {
                 ),                  
     
     'fftCNN':   FFTModelInput(
-                    windowSize=YAWN_TIME, 
+                    windowSize=YAWN_TIME*1.5, 
                     windowSep=YAWN_TIME/4, 
                     dataFilter=filters.FilterCollection([
-                        # filters.HighPassFilter(96, 0.1), 
-                        # filters.LowPassFilter(96, 8, 3), 
+                        # filters.SmoothFilter(keepData=0.8),
+                        filters.HighPassFilter(96, 0.1), 
+                        filters.LowPassFilter(96, 8, 3), 
+                        # filters.MovingAverageFilter(5),
                         filters.NormalisationFilter()
                     ]),
                     nPerSeg=128,
@@ -64,10 +71,12 @@ MODEL_INPUTS = {
     
     'fftCNN-LSTM': FFTModelInput(
                     windowSize=YAWN_TIME, 
-                    windowSep=YAWN_TIME/4, 
+                    windowSep=YAWN_TIME/12, 
                     dataFilter=filters.FilterCollection([
-                        # filters.HighPassFilter(96, 0.1), 
-                        # filters.LowPassFilter(96, 8, 3), 
+                        # filters.SmoothFilter(keepData=0.8),
+                        # filters.HighPassFilter(96, 0.01, 30), 
+                        # filters.LowPassFilter(96, 12, 3), 
+                        # filters.MovingAverageFilter(5),
                         filters.NormalisationFilter()
                     ]),
                     nPerSeg=128,
@@ -76,14 +85,23 @@ MODEL_INPUTS = {
                 ),
     
     'specCNN':  SpectrogramModelInput(
-                    windowSize=YAWN_TIME,
+                    windowSize=YAWN_TIME*1.5,
                     windowSep=YAWN_TIME/4,
                     dataFilter=filters.FilterCollection([
-                        # filters.HighPassFilter(96, 0.1), 
-                        # filters.LowPassFilter(96, 8, 3), 
+                        # filters.SmoothFilter(keepData=0.8),
+                        filters.HighPassFilter(96, 0.1), 
+                        filters.LowPassFilter(96, 8, 3), 
+                        # filters.MovingAverageFilter(5),
                         filters.NormalisationFilter()
                     ]),
+                    nPerSeg=128,
+                    nOverlap=96,
                     name='specCNN'
+                ),
+    'altModels': EimuModelInput(
+                    windowSize=YAWN_TIME, 
+                    windowSep=YAWN_TIME, 
+                    name='altModels'
                 ),
 }
 
@@ -105,16 +123,17 @@ def trainEimuLSTM(resampleFrequency: int = -1):
             makeSequentialModel([
                 tf.keras.Input(shape=trainX.shape[1:], name='input'),
                 tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=True),
-                tf.keras.layers.Dropout(0.5),
+                tf.keras.layers.Dropout(0.3),
                 tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=True),
-                tf.keras.layers.Dropout(0.4),
-                tf.keras.layers.LSTM(units=128,  activation='tanh', return_sequences=False),
-                tf.keras.layers.Dropout(0.2),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=True),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.GlobalAveragePooling1D(),
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,
-            epochs=30, 
+            epochs=20, 
             batchSize=64,
             resampleFrequency=resampleFrequency
     )
@@ -148,17 +167,17 @@ def trainEimuCNN():
                 tf.keras.layers.Flatten(),
                 tf.keras.layers.Dense(units=64, activation='relu'),
                 tf.keras.layers.Dense(units=1, activation='sigmoid')],
-                learningRate=3e-4 # 1e-4
+                learningRate=1e-4 # 1e-4
             ),
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,
-            epochs=30,
+            epochs=60,
             batchSize=64
     )
 
 # Model 3: EimuLSTM, 2xConv + 2xLSTM + 2xDense @ 96Hz. ~92% accurate
 def trainEimuConvLSTM():
-    modelType = MODEL_INPUTS['eimuLSTM']
+    modelType = MODEL_INPUTS['eimuCNN-LSTM']
     
     ((trainX, trainY), (testX, testY)) = commons.timeDistributeData(
         getTrainTestData(
@@ -166,8 +185,7 @@ def trainEimuConvLSTM():
             modelType.fromDirectory(DATA_PATH), 
             shuffle=True, 
             equalPositiveAndNegative=True,
-        ), 
-        distribution=3
+        )
     )
     
     return trainModel(
@@ -186,11 +204,12 @@ def trainEimuConvLSTM():
                 tf.keras.layers.LSTM(units=64, activation='tanh', return_sequences=False),
                 tf.keras.layers.Dropout(0.3),
                 tf.keras.layers.Dense(units=64, activation='relu'),
-                tf.keras.layers.Dense(units=1, activation='sigmoid')]
+                tf.keras.layers.Dense(units=1, activation='sigmoid')],
+                learningRate=1e-4 
             ),
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,
-            epochs=30, 
+            epochs=20, 
             batchSize=64
     )
 
@@ -210,21 +229,23 @@ def trainFftLSTM():
             makeSequentialModel([
                 tf.keras.Input(shape=trainX.shape[1:], name='input'),
                 tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=True),
-                tf.keras.layers.Dropout(0.5),
+                tf.keras.layers.Dropout(0.3),
                 tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=True),
-                tf.keras.layers.Dropout(0.4),
-                tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=False),
-                tf.keras.layers.Dropout(0.2),
-                tf.keras.layers.Dense(units=1, activation='sigmoid')]
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=True),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.GlobalAveragePooling1D(),
+                tf.keras.layers.Dense(units=1, activation='sigmoid')],
+                learningRate=3e-4
             ),
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,
-            epochs=30, 
-            batchSize=64,
-    )
+            epochs=60, 
+            batchSize=128,
+    ) # fftLSTM_9: 0.8125, avg pool 3e-4 1 /12 5.9 yawn time (!!)
 
 # Model 5: FFT CNN, 4xConv + 2xDense @ 96Hz. ~90% accurate, overfitting
-def trainFftCNN():
+def trainFftCNN(): #!prefers extended YAWN_TIME
     modelType = MODEL_INPUTS['fftCNN']
     
     ((trainX, trainY), (testX, testY)) = getTrainTestData(
@@ -240,23 +261,31 @@ def trainFftCNN():
                 tf.keras.Input(shape=trainX.shape[1:], name='input'),
                 tf.keras.layers.Reshape((trainX.shape[1], 1, trainX.shape[2])),
                 tf.keras.layers.Conv2D(filters=64,  kernel_size=(5, 1), padding='same', activation='relu'),
+                tf.keras.layers.MaxPool2D(pool_size=(2, 1)),
+                tf.keras.layers.Dropout(0.2),
                 tf.keras.layers.Conv2D(filters=128, kernel_size=(5, 1), padding='same', activation='relu'),
+                tf.keras.layers.MaxPool2D(pool_size=(2, 1)),
+                tf.keras.layers.Dropout(0.2),
                 tf.keras.layers.Conv2D(filters=256, kernel_size=(5, 1), padding='same', activation='relu'),
+                tf.keras.layers.MaxPool2D(pool_size=(2, 1)),
+                tf.keras.layers.Dropout(0.2),
                 tf.keras.layers.Conv2D(filters=512, kernel_size=(5, 1), padding='same', activation='relu'),
-                tf.keras.layers.Dropout(0.5),
+                tf.keras.layers.MaxPool2D(pool_size=(2, 1)),
+                tf.keras.layers.Dropout(0.2),
                 tf.keras.layers.Flatten(),
                 tf.keras.layers.Dense(units=64, activation='relu'),
+                tf.keras.layers.Dropout(0.5),
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (testX, testY)),
-            fracVal=0.1,
-            epochs=30,
+            fracVal=0.2,
+            epochs=40,
             batchSize=64
     )
 
 # Model 6: FFT LSTM, 2xConv + 2xLSTM + 2xDense @ 96Hz. ~92% accurate
 def trainFftConvLSTM():
-    modelType = MODEL_INPUTS['fftLSTM']
+    modelType = MODEL_INPUTS['fftCNN-LSTM']
     
     ((trainX, trainY), (testX, testY)) = commons.timeDistributeData(
         getTrainTestData(
@@ -264,8 +293,7 @@ def trainFftConvLSTM():
             modelType.fromDirectory(DATA_PATH), 
             shuffle=True, 
             equalPositiveAndNegative=True,
-        ), 
-        distribution=3
+        )
     )
     
     return trainModel(
@@ -275,6 +303,10 @@ def trainFftConvLSTM():
                 tf.keras.layers.Reshape((trainX.shape[1], trainX.shape[2], 1, *trainX.shape[3:])),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(filters=128,  kernel_size=(5, 1), padding='same', activation='relu')),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPool2D(pool_size=(2, 1))),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(filters=128,  kernel_size=(5, 1), padding='same', activation='relu')),
+                tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPool2D(pool_size=(2, 1))),
+                tf.keras.layers.Dropout(0.3),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(filters=128,  kernel_size=(5, 1), padding='same', activation='relu')),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPool2D(pool_size=(2, 1))),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.Flatten()),
@@ -283,14 +315,14 @@ def trainFftConvLSTM():
                 tf.keras.layers.Dropout(0.3),
                 tf.keras.layers.LSTM(units=64, activation='tanh', return_sequences=False),
                 tf.keras.layers.Dropout(0.3),
-                tf.keras.layers.Dense(units=64, activation='relu'),
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,
-            epochs=30, 
+            epochs=80, 
             batchSize=64
-    )
+    ) # fftCNN-LSTM_1: 0.8783 1 /12 5.9 yawn time
+    # fftCNN-LSTM_2: 0.8553 1 /12 5.9 yawn time no dense
     
 # Model 7: Spectrogram CNN, 4xConv + 2xDense @ 96Hz. ~85% accurate (overfitting)
 def trainSpectrogramCNN():
@@ -307,25 +339,31 @@ def trainSpectrogramCNN():
             modelType, 
             makeSequentialModel([
                 tf.keras.Input(shape=trainX.shape[1:], name="input"),
-                tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='relu'),
+                tf.keras.layers.Conv2D(filters=256, kernel_size=(5, 5), padding='same', activation='relu'),
                 tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-                tf.keras.layers.Conv2D(filters=256, kernel_size=(3, 3), padding='same', activation='relu'),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.Conv2D(filters=256, kernel_size=(5, 5), padding='same', activation='relu'),
                 tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-                tf.keras.layers.Conv2D(filters=512, kernel_size=(3, 3), padding='same', activation='relu'),
-                tf.keras.layers.Dropout(0.5),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.Conv2D(filters=256, kernel_size=(5, 5), padding='same', activation='relu'),
+                tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.Conv2D(filters=256, kernel_size=(5, 5), padding='same', activation='relu'),
+                tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+                tf.keras.layers.Dropout(0.3),
                 tf.keras.layers.Flatten(),
                 tf.keras.layers.Dense(units=64, activation='relu'),
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,
-            epochs=30, 
+            epochs=40, 
             batchSize=64
     )
 
 # Model 8: Alternative Classifiers
 def trainAlternativeClassifiers():
-    modelType = MODEL_INPUTS['eimuLSTM']
+    modelType = MODEL_INPUTS['altModels']
     
     data = getTrainTestData(
         modelType,
