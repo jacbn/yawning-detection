@@ -1,14 +1,16 @@
 from yawnnlib.evaluation import metrics
 from yawnnlib.utils import commons, filters, config
-from yawnnlib.neural.fftModelInput import FFTModelInput
-from yawnnlib.neural.eimuModelInput import EimuModelInput
+from yawnnlib.preprocessing.fftModelInput import FFTModelInput
+from yawnnlib.preprocessing.eimuModelInput import EimuModelInput
 from yawnnlib.training.models import MODEL_INPUTS
-from yawnnlib.neural.modelInput import ModelInput
+from yawnnlib.preprocessing.modelInput import ModelInput
 from yawnnlib.alternatives.alternative_classifier import AlternativeClassifier
+import tools.eimuResampler as eimuResampler
 
 from sklearn.metrics import ConfusionMatrixDisplay
 from matplotlib import pyplot as plt
 from os import listdir
+from PIL import ImageFont
 import visualkeras as vk
 import numpy as np
 import tensorflow as tf
@@ -48,10 +50,11 @@ def visualizeModel(model : tf.keras.models.Model) -> None:
     colorMap[tf.keras.layers.Dense]['fill'] = 'purple'
     colorMap[tf.keras.layers.MaxPooling2D]['fill'] = 'orange'
     colorMap[tf.keras.layers.TimeDistributed]['fill'] = 'blue'
+    font = ImageFont.truetype("data/font/arial.ttf", 24, encoding="unic")
     
-    vk.layered_view(model, spacing=50, max_xy=800, draw_volume=True, to_file="model.png", legend=True, color_map=colorMap).show() # type: ignore
+    vk.layered_view(model, spacing=50, max_xy=800, draw_volume=True, to_file="model.png", legend=True, font=font, color_map=colorMap).show() # type: ignore
 
-def testDataOnModel(model, modelType : ModelInput, dataDirectory : str):
+def testDataOnModel(model, modelType : ModelInput, dataDirectory : str, resampleFrequency : int = -1):
     """ Tests the model on the data in a given directory. 
     
     Attributes
@@ -65,6 +68,8 @@ def testDataOnModel(model, modelType : ModelInput, dataDirectory : str):
     """
     annotatedData = modelType.fromDirectory(dataDirectory)
     _, (X, Y) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
+    if resampleFrequency > 0:
+        (X, Y) = eimuResampler.resampleAnnotatedData((X, Y), 96, resampleFrequency)
     if "CNN-LSTM" in modelType.getType():
         (X, Y) = commons.timeDistributeAnnotatedData((X, Y))
     # res1 = model.evaluate(X, Y)
@@ -103,8 +108,8 @@ def testDataOnAlternativeModels(altModelsPath : str, dataDirectory : str):
     plt.show()
 
 if __name__ == "__main__":
-    modelType = MODEL_INPUTS['eimuLSTM']
-    model = loadModel(f"{MODELS_PATH}/eimuLSTM_1.h5")
+    modelType = MODEL_INPUTS['specCNN']
+    model = loadModel(f"{MODELS_PATH}/specCNN_0.h5")
     visualizeModel(model)
-    testDataOnModel(model, modelType, f"{TEST_PATH}/")
+    # testDataOnModel(model, modelType, f"{TEST_PATH}/", resampleFrequency=32)
     # testDataOnAlternativeModels(f"{MODELS_PATH}/alternative/", f"{TEST_PATH}/")
