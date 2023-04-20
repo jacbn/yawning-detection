@@ -3,16 +3,13 @@ from yawnnlib.utils import config
 
 import sys
 
-def trainSpecificModels(models, sampleRate : int = -1):
+def trainSpecificModels(models, sampleRate : int):
     assert config.get("TRAIN_SPLIT") == 1, "TRAIN_SPLIT should be 1 to train all models to ensure testing occurs on separate, consistent data."
     repeats = int(input("Specify how many times to repeat each model: "))
     for modelNum in models:
         model = modelMap[modelNum]
         for _ in range(repeats):
-            if sampleRate < 1:
-                model()
-            else:
-                model(sampleRate)
+            model(sampleRate)
 
 modelMap = {
     1 : models.trainEimuLSTM,
@@ -23,9 +20,9 @@ modelMap = {
     6 : models.trainFftConvLSTM,
     7 : models.trainSpectrogramCNN, 
     8 : models.trainAlternativeClassifiers, 
-    9 : lambda: trainSpecificModels(range(1, 9)),
-    10 : lambda: trainSpecificModels(range(1, 4)),
-    11 : lambda: trainSpecificModels(range(4, 8)),
+    9 : lambda sr: trainSpecificModels(range(1, 9), sr),
+    10 : lambda sr: trainSpecificModels(range(1, 4), sr),
+    11 : lambda sr: trainSpecificModels(range(4, 8), sr),
 }
 
 if __name__ == "__main__":
@@ -63,7 +60,4 @@ if __name__ == "__main__":
         except:
             pass
     finally:
-        if sampleRate < 1:
-            model()
-        else:
-            model(sampleRate)
+        model(sampleRate)

@@ -1,7 +1,7 @@
 from yawnnlib.utils import commons, filters, config
-from yawnnlib.neural.eimuModelInput import EimuModelInput
-from yawnnlib.neural.fftModelInput import FFTModelInput
-from yawnnlib.neural.spectrogramModelInput import SpectrogramModelInput
+from yawnnlib.preprocessing.eimuModelInput import EimuModelInput
+from yawnnlib.preprocessing.fftModelInput import FFTModelInput
+from yawnnlib.preprocessing.spectrogramModelInput import SpectrogramModelInput
 from yawnnlib.alternatives.alternative_classifier import AlternativeClassifier
 from yawnnlib.training.trainingFuncs import getTrainTestData, trainModel, makeSequentialModel, trainAlternatives
 
@@ -30,7 +30,7 @@ MODEL_INPUTS = {
                 ),
     
     'eimuCNN-LSTM': EimuModelInput(
-                    windowSize=YAWN_TIME*2, 
+                    windowSize=YAWN_TIME, 
                     windowSep=YAWN_TIME/8, 
                     dataFilter=filters.FilterCollection([
                         filters.MovingAverageFilter(5),
@@ -133,14 +133,14 @@ def trainEimuLSTM(resampleFrequency: int = -1):
             ),
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,
-            epochs=20, 
+            epochs=15, 
             batchSize=64,
             resampleFrequency=resampleFrequency
     )
     
 # Model 2: EimuCNN, 4xConv + 2xDense @ 96Hz. ~85% accurate
 # training can converge wrongly if learning rate too high
-def trainEimuCNN():
+def trainEimuCNN(resampleFrequency: int = -1):
     modelType = MODEL_INPUTS['eimuCNN']
     
     ((trainX, trainY), (testX, testY)) = getTrainTestData(
@@ -172,11 +172,12 @@ def trainEimuCNN():
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,
             epochs=60,
-            batchSize=64
+            batchSize=64,
+            resampleFrequency=resampleFrequency
     )
 
-# Model 3: EimuLSTM, 2xConv + 2xLSTM + 2xDense @ 96Hz. ~92% accurate
-def trainEimuConvLSTM():
+# Model 3: EimuCNN-LSTM, 2xConv + 2xLSTM + 2xDense @ 96Hz. ~92% accurate
+def trainEimuConvLSTM(resampleFrequency: int = -1):
     modelType = MODEL_INPUTS['eimuCNN-LSTM']
     
     ((trainX, trainY), (testX, testY)) = commons.timeDistributeData(
@@ -195,6 +196,10 @@ def trainEimuConvLSTM():
                 tf.keras.layers.Reshape((trainX.shape[1], trainX.shape[2], 1, *trainX.shape[3:])),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(filters=128,  kernel_size=(5, 1), padding='same', activation='relu')),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPool2D(pool_size=(2, 1))),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(filters=128,  kernel_size=(5, 1), padding='same', activation='relu')),
+                tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPool2D(pool_size=(2, 1))),
+                tf.keras.layers.Dropout(0.3),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(filters=128,  kernel_size=(5, 1), padding='same', activation='relu')),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPool2D(pool_size=(2, 1))),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.Flatten()),
@@ -203,18 +208,17 @@ def trainEimuConvLSTM():
                 tf.keras.layers.Dropout(0.3),
                 tf.keras.layers.LSTM(units=64, activation='tanh', return_sequences=False),
                 tf.keras.layers.Dropout(0.3),
-                tf.keras.layers.Dense(units=64, activation='relu'),
-                tf.keras.layers.Dense(units=1, activation='sigmoid')],
-                learningRate=1e-4 
+                tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,
             epochs=20, 
-            batchSize=64
+            batchSize=64,
+            resampleFrequency=resampleFrequency
     )
 
 # Model 4: FFT LSTM, 3xLSTM 1xDense @ 96Hz. needs testing
-def trainFftLSTM():
+def trainFftLSTM(resampleFrequency: int = -1):
     modelType = MODEL_INPUTS['fftLSTM']
     
     ((trainX, trainY), (testX, testY)) = getTrainTestData(
@@ -242,10 +246,11 @@ def trainFftLSTM():
             fracVal=0.1,
             epochs=60, 
             batchSize=128,
+            resampleFrequency=resampleFrequency
     ) # fftLSTM_9: 0.8125, avg pool 3e-4 1 /12 5.9 yawn time (!!)
 
 # Model 5: FFT CNN, 4xConv + 2xDense @ 96Hz. ~90% accurate, overfitting
-def trainFftCNN(): #!prefers extended YAWN_TIME
+def trainFftCNN(resampleFrequency: int = -1): #!prefers extended YAWN_TIME
     modelType = MODEL_INPUTS['fftCNN']
     
     ((trainX, trainY), (testX, testY)) = getTrainTestData(
@@ -280,11 +285,12 @@ def trainFftCNN(): #!prefers extended YAWN_TIME
             ((trainX, trainY), (testX, testY)),
             fracVal=0.2,
             epochs=40,
-            batchSize=64
+            batchSize=64,
+            resampleFrequency=resampleFrequency
     )
 
-# Model 6: FFT LSTM, 2xConv + 2xLSTM + 2xDense @ 96Hz. ~92% accurate
-def trainFftConvLSTM():
+# Model 6: FFT CNN-LSTM, 2xConv + 2xLSTM + 2xDense @ 96Hz. ~92% accurate
+def trainFftConvLSTM(resampleFrequency: int = -1):
     modelType = MODEL_INPUTS['fftCNN-LSTM']
     
     ((trainX, trainY), (testX, testY)) = commons.timeDistributeData(
@@ -320,12 +326,13 @@ def trainFftConvLSTM():
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,
             epochs=80, 
-            batchSize=64
+            batchSize=64,
+            resampleFrequency=resampleFrequency
     ) # fftCNN-LSTM_1: 0.8783 1 /12 5.9 yawn time
     # fftCNN-LSTM_2: 0.8553 1 /12 5.9 yawn time no dense
     
 # Model 7: Spectrogram CNN, 4xConv + 2xDense @ 96Hz. ~85% accurate (overfitting)
-def trainSpectrogramCNN():
+def trainSpectrogramCNN(resampleFrequency: int = -1):
     modelType = MODEL_INPUTS['specCNN']
     
     ((trainX, trainY), (testX, testY)) = getTrainTestData(
@@ -358,11 +365,12 @@ def trainSpectrogramCNN():
             ((trainX, trainY), (testX, testY)),
             fracVal=0.1,
             epochs=40, 
-            batchSize=64
+            batchSize=64,
+            resampleFrequency=resampleFrequency
     )
 
 # Model 8: Alternative Classifiers
-def trainAlternativeClassifiers():
+def trainAlternativeClassifiers(resampleFrequency: int = -1):
     modelType = MODEL_INPUTS['altModels']
     
     data = getTrainTestData(
@@ -377,4 +385,4 @@ def trainAlternativeClassifiers():
         AlternativeClassifier("RBF SVM", SVC(kernel='rbf', C=1)),
         AlternativeClassifier("Random Forest", RandomForestClassifier(n_estimators=100, max_features='sqrt')),
     ]
-    trainAlternatives(classifiers, data)
+    trainAlternatives(classifiers, data, resampleFrequency=resampleFrequency)
