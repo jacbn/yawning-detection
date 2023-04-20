@@ -206,9 +206,9 @@ class FourierData(SessionData):
             dataFiltered = dataFilter.apply(data)
             
             self.plot(show=False, figure=figure, unitConversion=False)
-            self._plotFFTMagnitudes(dataFiltered, axis, figure, False)
-            self._plotIFFTReconstruction(dataFiltered, axis, figure+1, False)
-            self._plotSpectrograms(dataFiltered, axis, figure+2, False, fmin=0, fmax=6, maxAmp=-1)           
+            self._plotFFTMagnitudes(dataFiltered, axis, figure+1, False)
+            self._plotIFFTReconstruction(dataFiltered, axis, figure+2, False)
+            self._plotSpectrograms(dataFiltered, axis, figure+3, False, fmin=0, fmax=6, maxAmp=-1)           
         
         if show:
             plt.show()
@@ -233,6 +233,7 @@ class FourierData(SessionData):
         xf, fourierData = self._getFFTMagnitudes(data)
     
         # plots the magnitude of all frequencies
+        ax.set_yscale("log")
         ax.stem(xf, fourierData, 'r', markerfmt=' ')
         if (show):
             plt.show()
@@ -295,10 +296,10 @@ if __name__ == "__main__":
     s = FourierData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns2.eimu")
     
     s.plot(show=False, figure=1, unitConversion=True)
-    s = FourierData.applyFilter(s, filters.HighPassFilter(96, 0.1), filters.ApplyType.SESSION)
-    s = FourierData.applyFilter(s, filters.LowPassFilter(96, 8, order=3), filters.ApplyType.SESSION)
-    s = FourierData.applyFilter(s, filters.NormalisationFilter(), filters.ApplyType.SESSION)
+    # s = FourierData.applyFilter(s, filters.HighPassFilter(96, 0.1), filters.ApplyType.SESSION)
+    # s = FourierData.applyFilter(s, filters.LowPassFilter(96, 8, order=3), filters.ApplyType.SESSION)
+    # s = FourierData.applyFilter(s, filters.NormalisationFilter(), filters.ApplyType.SESSION)
     assert isinstance(s, FourierData)
-    s.plotSessionData(show=False, figure=2)
+    s.plotSessionData(show=False, figure=8)
     plt.show()
     
