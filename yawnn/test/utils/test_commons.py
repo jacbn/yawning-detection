@@ -1,6 +1,6 @@
 import unittest
 from yawnnlib.utils import commons
-from yawnnlib.neural import eimuModelInput
+from yawnnlib.preprocessing import eimuModelInput
 
 import numpy as np
 

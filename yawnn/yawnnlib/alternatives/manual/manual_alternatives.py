@@ -1,5 +1,5 @@
 from yawnnlib.structure.sessionData import SessionData
-from yawnnlib.neural.eimuModelInput import EimuModelInput
+from yawnnlib.preprocessing.eimuModelInput import EimuModelInput
 from yawnnlib.utils import commons
 
 import numpy as np

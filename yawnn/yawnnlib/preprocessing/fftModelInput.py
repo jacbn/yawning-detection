@@ -1,5 +1,5 @@
 from yawnnlib.utils import commons, filters
-from yawnnlib.neural.modelInput import ModelInput
+from yawnnlib.preprocessing.modelInput import ModelInput
 from yawnnlib.structure.fourierData import FourierData
 
 import numpy as np

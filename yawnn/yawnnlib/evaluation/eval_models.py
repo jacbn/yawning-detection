@@ -1,6 +1,6 @@
 from yawnnlib.evaluation import metrics, test_model
 from yawnnlib.utils import commons, filters, config
-from yawnnlib.neural import modelInput
+from yawnnlib.preprocessing import modelInput
 from yawnnlib.training import models
 
 import os

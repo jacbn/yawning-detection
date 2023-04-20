@@ -1,6 +1,6 @@
 import unittest
 from yawnnlib.structure.fourierData import FourierData
-from yawnnlib.neural import eimuModelInput
+from yawnnlib.preprocessing import eimuModelInput
 from yawnnlib.utils import commons, filters
 import numpy as np
 
