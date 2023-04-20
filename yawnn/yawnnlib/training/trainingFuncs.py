@@ -1,7 +1,7 @@
 print("Loading imports...")
 
 from yawnnlib.utils import commons, config
-from yawnnlib.neural.modelInput import ModelInput
+from yawnnlib.preprocessing.modelInput import ModelInput
 from yawnnlib.alternatives.alternative_classifier import AlternativeClassifier
 import tools.eimuResampler as eimuResampler
 
