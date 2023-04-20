@@ -59,7 +59,9 @@ def resampleSession(session : SessionData, newRate : int) -> SessionData:
 
 def resampleAnnotatedData(annotatedData : commons.AnnotatedData, oldRate : int, newRate : int) -> commons.AnnotatedData:
     data, annotations = annotatedData
-    return _resample(data, annotations.T.tolist()[0], False, oldRate, newRate, data.shape[0])
+    if len(data) == 0:
+        return data, annotations
+    return _resample(data, annotations.squeeze().tolist(), False, oldRate, newRate, data.shape[0])
 
 if __name__ == "__main__":
     session = SessionData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
