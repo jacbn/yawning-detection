@@ -37,10 +37,10 @@ def runContinuousModelEval(results : list[dict], xVals : list[float], xlabel : s
             err.append(errorWidth)
         plt.errorbar(xVals, y, yerr=err, fmt=MARKERS[i], markersize=6, capsize=6, label=modelType, linewidth=2, linestyle="-")
         i += 1
-    plt.xlabel(xlabel)
-    plt.ylabel("F1 score")
-    plt.title(title)
-    plt.legend()
+    plt.xlabel(xlabel, fontsize=16)
+    plt.ylabel("F1 score", fontsize=16)
+    plt.title(title, fontsize=24)
+    plt.legend(loc='lower left', fontsize=20)
     plt.show()
     
 def runDiscreteModelEval(results : list[dict], xVals : list[str], xlabel : str, title : str = '') -> None:
@@ -52,7 +52,7 @@ def runDiscreteModelEval(results : list[dict], xVals : list[str], xlabel : str, 
     ax.set_axisbelow(True)
     ax.grid(axis='y')
     
-    ax.set_title(title)
+    ax.set_title(title, fontsize=24)
     for modelType in [list(results[0].keys())[i] for i in [2, 1, 0, 5, 4, 3, 6]]:
         # (reorder so model types follow order of description)
         y = []
@@ -64,9 +64,9 @@ def runDiscreteModelEval(results : list[dict], xVals : list[str], xlabel : str, 
         ax.bar(x + width*i, y, width=width, yerr=err, capsize=6, label=modelType)
         i += 1
     ax.set_xticks(x + width * (len(results) + 1) / 2, xVals)
-    ax.set_xlabel(xlabel, labelpad=15)
-    ax.set_ylabel("F1 score")
-    ax.legend(loc='lower left')
+    ax.set_xlabel(xlabel, labelpad=15, fontsize=16)
+    ax.set_ylabel("F1 score", fontsize=16)
+    ax.legend(loc='lower left', fontsize=20)
     plt.show()
     
 def runFFTEval(results : list[dict], xVals : list[float], xlabel : str, title : str = '') -> None:
@@ -81,10 +81,10 @@ def runFFTEval(results : list[dict], xVals : list[float], xlabel : str, title : 
             err.append(errorWidth)
         plt.errorbar(xVals, y, yerr=err, fmt=MARKERS[i], markersize=6, capsize=6, label=modelType, linewidth=2, linestyle="-")
         i += 1
-    plt.xlabel(xlabel)
-    plt.ylabel("F1 score")
-    plt.title(title)
-    plt.legend()
+    plt.xlabel(xlabel, fontsize=16)
+    plt.ylabel("F1 score", fontsize=16)
+    plt.title(title, fontsize=24)
+    plt.legend(fontsize=20)
     plt.show()
 
 def runWindowSizeEval():
@@ -95,7 +95,7 @@ def runWindowSizeEval():
 def runWindowSepEval():
     windowSizeEval = loadResults(["window_sep_eighth", "baseline", "window_sep_three_eighths", "window_sep_half"])
     x = [1/8, 2/8, 3/8, 4/8]
-    runContinuousModelEval(windowSizeEval, x, "Window Separation (seconds)")
+    runContinuousModelEval(windowSizeEval, x, "Window Separation (seconds)", "Model Performance with Varying Window Separation")
     
 def runFilterEval():
     filterEval = loadResults(["baseline", "filters_smooth", "filters_moving_avg", "filters_smooth_highpass", "filters_lowpass"])
@@ -123,5 +123,9 @@ def runResearcherDataOnlyEval(n : int):
         print(f"{modelTypeName}: {mean} +/- {sd}")
     
 if __name__ == "__main__":
-    runResearcherDataOnlyEval(5)
+    # runWindowSizeEval()
+    # runWindowSepEval()
+    # runFilterEval()
+    runFftNPerSegEval()
+    # runResearcherDataOnlyEval(5)
     

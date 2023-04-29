@@ -268,6 +268,7 @@ class FourierData(SessionData):
         plt.figure(figure)
         plt.suptitle("Axis Spectrograms")
         ax = plt.subplot(3,2,axis+1)
+        plt.tight_layout(pad=-0.5)
         f, t, Sxx = signal.spectrogram(data, self.sampleRate, nperseg=self.nPerSeg, noverlap=self.nOverlap)
         
         # plot only the frequencies in the given range
@@ -284,16 +285,17 @@ class FourierData(SessionData):
         for timestamp in self.timestamps:
             ax.axvline(timestamp.time/self.sampleRate, color='black', alpha=0.5)
             
-        ax.set_title(commons.AXIS_NAMES[axis%2][axis//2], loc='left')
-        ax.set_ylabel('Frequency [Hz]')
-        ax.set_xlabel('Time [sec]')
+        ax.set_title(commons.AXIS_NAMES[axis%2][axis//2], loc='left', fontsize=20)
+        ax.set_ylabel('Frequency [Hz]', fontsize=16)
+        ax.set_xlabel('Time [sec]', fontsize=16)
         
         if (show):
             plt.show()
     
     
 if __name__ == "__main__":
-    s = FourierData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns2.eimu")
+    # s = FourierData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")
+    s = FourierData.fromPath(f"{commons.PROJECT_ROOT}/data/user_trials/PRESENTATION/john.eimu")
     
     s.plot(show=False, figure=1, unitConversion=True)
     # s = FourierData.applyFilter(s, filters.HighPassFilter(96, 0.1), filters.ApplyType.SESSION)
