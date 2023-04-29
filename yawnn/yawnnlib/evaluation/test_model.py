@@ -108,8 +108,11 @@ def testDataOnAlternativeModels(altModelsPath : str, dataDirectory : str):
     plt.show()
 
 if __name__ == "__main__":
-    modelType = MODEL_INPUTS['specCNN']
-    model = loadModel(f"{MODELS_PATH}/specCNN_0.h5")
-    visualizeModel(model)
+    modelType = MODEL_INPUTS['eimuLSTM']
+    model = loadModel(f"{MODELS_PATH}/eimuLSTM_0.h5")
+    # visualizeModel(model)
+    
+    testDataOnModel(model, modelType, f"{commons.PROJECT_ROOT}/data/user_trials/PRESENTATION/")
+    
     # testDataOnModel(model, modelType, f"{TEST_PATH}/", resampleFrequency=32)
     # testDataOnAlternativeModels(f"{MODELS_PATH}/alternative/", f"{TEST_PATH}/")
