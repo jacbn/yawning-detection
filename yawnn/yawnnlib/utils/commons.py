@@ -16,7 +16,8 @@ ENABLE_CACHING = config.get("ENABLE_CACHING")
 PROJECT_ROOT = config.PROJECT_ROOT
 YAWN_TIME = config.get("YAWN_TIME")
 YAWN_CORRECTION = config.get("YAWN_CORRECTION")
-
+TRAIN_SPLIT = config.get("TRAIN_SPLIT")
+VALIDATION_SPLIT = config.get("VALIDATION_SPLIT")
 
 T = TypeVar('T')
 AnnotatedData = tuple[np.ndarray, np.ndarray] # (data, annotations)
@@ -90,4 +91,15 @@ def timeDistributeAnnotatedData(annotatedData : AnnotatedData) -> AnnotatedData:
             i = 0
             j += 1
     return (newData, newAnnotations)
-            
+
+def splitTrainingData(data : tuple[np.ndarray, np.ndarray], modelNum : int, totalModels : int):
+    if (totalModels == 1):
+        valStart = 0 
+    else:
+        valStart = int(len(data[0]) * (TRAIN_SPLIT - VALIDATION_SPLIT) * modelNum / (totalModels - 1))
+    valEnd = valStart + int(len(data[0]) * VALIDATION_SPLIT)
+    
+    train = (np.concatenate((data[0][:valStart], data[0][valEnd:])), np.concatenate((data[1][:valStart], data[1][valEnd:])))
+    val = (data[0][valStart:valEnd], data[1][valStart:valEnd])
+    
+    return (train, val)

@@ -1,6 +1,6 @@
 print("Loading imports...")
 
-from yawnnlib.utils import commons, config, dataSplit
+from yawnnlib.utils import commons, config
 from yawnnlib.preprocessing.modelInput import ModelInput
 from yawnnlib.alternatives.alternative_classifier import AlternativeClassifier
 import tools.eimuResampler as eimuResampler
@@ -69,7 +69,7 @@ def getValidatedModelData(modelType : ModelInput, annotatedData : list[commons.A
     assert currentModelTypeData != [], "Model number incorrect. Models must start from modelNum=0."
     
     (allTrainX, allTrainY), (testX, testY) = currentModelTypeData
-    (trainX, trainY), (valX, valY) = dataSplit.splitTrainingData((allTrainX, allTrainY), modelNum, totalModels)
+    (trainX, trainY), (valX, valY) = commons.splitTrainingData((allTrainX, allTrainY), modelNum, totalModels)
     
     return ((trainX, trainY), (valX, valY), (testX, testY))
 
