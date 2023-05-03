@@ -3,7 +3,7 @@ from yawnnlib.preprocessing.eimuModelInput import EimuModelInput
 from yawnnlib.preprocessing.fftModelInput import FFTModelInput
 from yawnnlib.preprocessing.spectrogramModelInput import SpectrogramModelInput
 from yawnnlib.alternatives.alternative_classifier import AlternativeClassifier
-from yawnnlib.training.trainingFuncs import getTrainTestData, trainModel, makeSequentialModel, trainAlternatives
+from yawnnlib.training.trainingFuncs import getValidatedModelData, trainModel, makeSequentialModel, trainAlternatives
 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -106,16 +106,18 @@ MODEL_INPUTS = {
 }
 
 # Model 1: EimuLSTM, 3xLSTM + Dense @ variable Hz. ~95% accurate at 96Hz
-def trainEimuLSTM(resampleFrequency: int = -1):
+def trainEimuLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels : int = 1):
     modelType = MODEL_INPUTS['eimuLSTM']
     
     # the data has to be collected here, not inside trainModel, as we use properties of the data (namely shape) to build the model
     # (in this model, it is only used in the optional Input layer, but other models require it for reshapes and so for consistency it is kept)
-    ((trainX, trainY), (testX, testY)) = getTrainTestData(
+    ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
         modelType,
         modelType.fromDirectory(DATA_PATH), 
         shuffle=True, 
-        equalPositiveAndNegative=True
+        equalPositiveAndNegative=True,
+        modelNum=modelNum,
+        totalModels=totalModels
     )
     
     return trainModel(
@@ -131,8 +133,7 @@ def trainEimuLSTM(resampleFrequency: int = -1):
                 tf.keras.layers.GlobalAveragePooling1D(),
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
-            ((trainX, trainY), (testX, testY)),
-            fracVal=0.1,
+            ((trainX, trainY), (valX, valY), (testX, testY)),
             epochs=15, 
             batchSize=64,
             resampleFrequency=resampleFrequency
@@ -140,14 +141,16 @@ def trainEimuLSTM(resampleFrequency: int = -1):
     
 # Model 2: EimuCNN, 4xConv + 2xDense @ 96Hz. ~85% accurate
 # training can converge wrongly if learning rate too high
-def trainEimuCNN(resampleFrequency: int = -1):
+def trainEimuCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : int = 1):
     modelType = MODEL_INPUTS['eimuCNN']
     
-    ((trainX, trainY), (testX, testY)) = getTrainTestData(
+    ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
         modelType,
         modelType.fromDirectory(DATA_PATH), 
         shuffle=True, 
-        equalPositiveAndNegative=True
+        equalPositiveAndNegative=True,
+        modelNum=modelNum,
+        totalModels=totalModels
     )
     
     return trainModel(
@@ -169,23 +172,24 @@ def trainEimuCNN(resampleFrequency: int = -1):
                 tf.keras.layers.Dense(units=1, activation='sigmoid')],
                 learningRate=1e-4
             ),
-            ((trainX, trainY), (testX, testY)),
-            fracVal=0.1,
+            ((trainX, trainY), (valX, valY), (testX, testY)),
             epochs=60,
             batchSize=64,
             resampleFrequency=resampleFrequency
     )
 
 # Model 3: EimuCNN-LSTM, 2xConv + 2xLSTM + 2xDense @ 96Hz. ~92% accurate
-def trainEimuConvLSTM(resampleFrequency: int = -1):
+def trainEimuConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels : int = 1):
     modelType = MODEL_INPUTS['eimuCNN-LSTM']
     
-    ((trainX, trainY), (testX, testY)) = commons.timeDistributeData(
-        getTrainTestData(
+    ((trainX, trainY), (valX, valY), (testX, testY)) = commons.timeDistributeData(
+        getValidatedModelData(
             modelType,
             modelType.fromDirectory(DATA_PATH), 
             shuffle=True, 
             equalPositiveAndNegative=True,
+            modelNum=modelNum,
+            totalModels=totalModels
         )
     )
     
@@ -210,22 +214,23 @@ def trainEimuConvLSTM(resampleFrequency: int = -1):
                 tf.keras.layers.Dropout(0.3),
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
-            ((trainX, trainY), (testX, testY)),
-            fracVal=0.1,
+            ((trainX, trainY), (valX, valY), (testX, testY)),
             epochs=20, 
             batchSize=64,
             resampleFrequency=resampleFrequency
     )
 
 # Model 4: FFT LSTM, 3xLSTM 1xDense @ 96Hz. needs testing
-def trainFftLSTM(resampleFrequency: int = -1):
+def trainFftLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels : int = 1):
     modelType = MODEL_INPUTS['fftLSTM']
     
-    ((trainX, trainY), (testX, testY)) = getTrainTestData(
+    ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
         modelType,
         modelType.fromDirectory(DATA_PATH), 
         shuffle=True, 
-        equalPositiveAndNegative=True
+        equalPositiveAndNegative=True,
+        modelNum=modelNum,
+        totalModels=totalModels
     )
     
     return trainModel(
@@ -242,22 +247,23 @@ def trainFftLSTM(resampleFrequency: int = -1):
                 tf.keras.layers.Dense(units=1, activation='sigmoid')],
                 learningRate=3e-4
             ),
-            ((trainX, trainY), (testX, testY)),
-            fracVal=0.1,
+            ((trainX, trainY), (valX, valY), (testX, testY)),
             epochs=60, 
             batchSize=128,
             resampleFrequency=resampleFrequency
     ) # fftLSTM_9: 0.8125, avg pool 3e-4 1 /12 5.9 yawn time (!!)
 
 # Model 5: FFT CNN, 4xConv + 2xDense @ 96Hz. ~90% accurate, overfitting
-def trainFftCNN(resampleFrequency: int = -1): #!prefers extended YAWN_TIME
+def trainFftCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : int = 1): #!prefers extended YAWN_TIME
     modelType = MODEL_INPUTS['fftCNN']
     
-    ((trainX, trainY), (testX, testY)) = getTrainTestData(
+    ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
         modelType,
         modelType.fromDirectory(DATA_PATH), 
         shuffle=True, 
-        equalPositiveAndNegative=True
+        equalPositiveAndNegative=True,
+        modelNum=modelNum,
+        totalModels=totalModels
     )
 
     return trainModel(
@@ -282,23 +288,24 @@ def trainFftCNN(resampleFrequency: int = -1): #!prefers extended YAWN_TIME
                 tf.keras.layers.Dropout(0.5),
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
-            ((trainX, trainY), (testX, testY)),
-            fracVal=0.2,
+            ((trainX, trainY), (valX, valY), (testX, testY)),
             epochs=40,
             batchSize=64,
             resampleFrequency=resampleFrequency
     )
 
 # Model 6: FFT CNN-LSTM, 2xConv + 2xLSTM + 2xDense @ 96Hz. ~92% accurate
-def trainFftConvLSTM(resampleFrequency: int = -1):
+def trainFftConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels : int = 1):
     modelType = MODEL_INPUTS['fftCNN-LSTM']
     
-    ((trainX, trainY), (testX, testY)) = commons.timeDistributeData(
-        getTrainTestData(
+    ((trainX, trainY), (valX, valY), (testX, testY)) = commons.timeDistributeData(
+        getValidatedModelData(
             modelType,
             modelType.fromDirectory(DATA_PATH), 
             shuffle=True, 
             equalPositiveAndNegative=True,
+            modelNum=modelNum,
+            totalModels=totalModels
         )
     )
     
@@ -323,8 +330,7 @@ def trainFftConvLSTM(resampleFrequency: int = -1):
                 tf.keras.layers.Dropout(0.3),
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
-            ((trainX, trainY), (testX, testY)),
-            fracVal=0.1,
+            ((trainX, trainY), (valX, valY), (testX, testY)),
             epochs=80, 
             batchSize=64,
             resampleFrequency=resampleFrequency
@@ -332,14 +338,16 @@ def trainFftConvLSTM(resampleFrequency: int = -1):
     # fftCNN-LSTM_2: 0.8553 1 /12 5.9 yawn time no dense
     
 # Model 7: Spectrogram CNN, 4xConv + 2xDense @ 96Hz. ~85% accurate (overfitting)
-def trainSpectrogramCNN(resampleFrequency: int = -1):
+def trainSpectrogramCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : int = 1):
     modelType = MODEL_INPUTS['specCNN']
     
-    ((trainX, trainY), (testX, testY)) = getTrainTestData(
+    ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
         modelType,
         modelType.fromDirectory(DATA_PATH), 
         shuffle=True, 
-        equalPositiveAndNegative=True
+        equalPositiveAndNegative=True,
+        modelNum=modelNum,
+        totalModels=totalModels
     )
     
     return trainModel(
@@ -362,8 +370,7 @@ def trainSpectrogramCNN(resampleFrequency: int = -1):
                 tf.keras.layers.Dense(units=64, activation='relu'),
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
-            ((trainX, trainY), (testX, testY)),
-            fracVal=0.1,
+            ((trainX, trainY), (valX, valY), (testX, testY)),
             epochs=40, 
             batchSize=64,
             resampleFrequency=resampleFrequency
@@ -373,7 +380,8 @@ def trainSpectrogramCNN(resampleFrequency: int = -1):
 def trainAlternativeClassifiers(resampleFrequency: int = -1):
     modelType = MODEL_INPUTS['altModels']
     
-    data = getTrainTestData(
+    # validation set unsupported for alternative classifiers
+    ((trainX, trainY), _, (testX, testY)) = getValidatedModelData(
         modelType,
         modelType.fromDirectory(DATA_PATH), 
         shuffle=True, 
@@ -385,4 +393,4 @@ def trainAlternativeClassifiers(resampleFrequency: int = -1):
         AlternativeClassifier("RBF SVM", SVC(kernel='rbf', C=1)),
         AlternativeClassifier("Random Forest", RandomForestClassifier(n_estimators=100, max_features='sqrt')),
     ]
-    trainAlternatives(classifiers, data, resampleFrequency=resampleFrequency)
+    trainAlternatives(classifiers, ((trainX, trainY), (testX, testY)), resampleFrequency=resampleFrequency)

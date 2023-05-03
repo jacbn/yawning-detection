@@ -1,6 +1,6 @@
 from yawnnlib.utils import config
 
-from typing import TypeVar, Callable
+from typing import TypeVar, Callable, Union
 from abc import ABC, abstractmethod
 from os import listdir
 from os.path import isfile, join, abspath
@@ -20,8 +20,8 @@ YAWN_CORRECTION = config.get("YAWN_CORRECTION")
 
 T = TypeVar('T')
 AnnotatedData = tuple[np.ndarray, np.ndarray] # (data, annotations)
-ModelData = tuple[AnnotatedData, AnnotatedData] # one for training, one for testing
-
+ModelData = tuple[AnnotatedData, AnnotatedData] # (train, test)
+ValidatedModelData = tuple[AnnotatedData, AnnotatedData, AnnotatedData] # (train, val, test)
 
 def mapToDirectory(f : Callable[[str, int, int], T], path : str) -> list[T]:
     if path[-1] != '/':
@@ -69,9 +69,8 @@ def _equalisePNForSingleSet(annotatedData : AnnotatedData, shuffle : bool) -> An
     
     return data[indices], annotations[indices]
 
-def timeDistributeData(data : ModelData) -> ModelData:
-    ((trainX, trainY), (testX, testY)) = data
-    return (timeDistributeAnnotatedData((trainX, trainY)), timeDistributeAnnotatedData((testX, testY)))
+def timeDistributeData(data : Union[ModelData, ValidatedModelData]):
+    return tuple([timeDistributeAnnotatedData(x) for x in data])
 
 def timeDistributeAnnotatedData(annotatedData : AnnotatedData) -> AnnotatedData:
     data, annotations = annotatedData

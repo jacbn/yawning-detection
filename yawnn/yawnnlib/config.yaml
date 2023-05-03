@@ -9,4 +9,5 @@ YAWN_TIME: 5.9       # time, in seconds, an individual yawn lasts for
 YAWN_CORRECTION: 0   # account for the delay between the recognisable part of a yawn and pressing it
 TIME_DISTRIBUTION: 2 # the number of windows time distribution layers are applied to
 
-TRAIN_SPLIT: 1       # fraction of data to use for training
+TRAIN_SPLIT: 1       # fraction of total data to use for training (including validation)
+VALIDATION_SPLIT: 0.1  # fraction of total data to use for validation

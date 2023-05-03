@@ -8,8 +8,8 @@ def trainSpecificModels(models, sampleRate : int):
     repeats = int(input("Specify how many times to repeat each model: "))
     for modelNum in models:
         model = modelMap[modelNum]
-        for _ in range(repeats):
-            model(sampleRate)
+        for i in range(repeats):
+            model(sampleRate, i, repeats)
 
 modelMap = {
     1 : models.trainEimuLSTM,
