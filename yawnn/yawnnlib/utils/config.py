@@ -14,6 +14,10 @@ def get(key : str) -> Any:
         result = result.format(**globals())
     return result
 
+def set(key : str, value : Any):
+    # this should only be used in e.g. tests, where the user values in the config should be ignored
+    config[key] = value
+
 if __name__ == "__main__":
     print(vars()["PROJECT_ROOT"])
     print(get("DATA_PATH"))
