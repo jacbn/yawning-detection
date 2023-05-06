@@ -128,7 +128,7 @@ class SessionData:
 
         # resize arr if the split's length is less than the expected session width
         if arr.shape[1] < trueWindowSize:
-            arr.resize((len(splits), trueWindowSize, 6))
+            arr = np.resize(arr, (len(splits), trueWindowSize, 6))
         
         return arr, list(map(lambda x: x.timestamps, splits))
     
