@@ -1,8 +1,11 @@
 import unittest
 from yawnnlib.structure.fourierData import FourierData
 from yawnnlib.preprocessing import eimuModelInput
-from yawnnlib.utils import commons, filters
+from yawnnlib.utils import commons, filters, config
+
 import numpy as np
+
+config.set("YAWN_TIME", 2)
 
 class TestFilters(unittest.TestCase):
     def test_LowPassFilter(self):
@@ -40,15 +43,24 @@ class TestFilters(unittest.TestCase):
         
     
     def test_MovingAverageFilter(self):
-        model = eimuModelInput.EimuModelInput(windowSize=commons.YAWN_TIME*32, windowSep=3/32, dataFilter=filters.MovingAverageFilter(5))
+        YAWN_TIME = config.get("YAWN_TIME")
+        model = eimuModelInput.EimuModelInput(windowSize=YAWN_TIME*32, windowSep=3/32, dataFilter=filters.MovingAverageFilter(5))
         data, annotations = model.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/basic2.eimu")
         self.assertEqual(data[0][8].tolist(), [0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
         self.assertEqual(data[0][9].tolist(), [0.4, 0.4, 0.4, 0.4, 0.4, 0.4])
         self.assertEqual(data[0][10].tolist(), [0.6, 0.6, 0.6, 0.6, 0.6, 0.6])
         
     def test_SmoothFilter(self):
-        # todo
-        pass
+        from matplotlib import pyplot as plt
+        data_length = 200
+        
+        plt.xlabel("Fraction of data")
+        plt.ylabel("Multiplier")
+        
+        x = np.arange(0, data_length, step = data_length/1000)
+        y = np.sin(x) # sample data
+        f = filters.SmoothFilter(0.7)
+        f.smoothCurve(y, plot=True)
     
 if __name__ == "__main__":
     unittest.main()

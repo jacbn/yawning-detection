@@ -1,8 +1,9 @@
 import unittest
 from yawnnlib.structure import sessionData, timestamp
-from yawnnlib.utils import commons
+from yawnnlib.utils import commons, config
 
-commons.ENABLE_CACHING = False
+config.set("ENABLE_CACHING", False)
+config.set("YAWN_TIME", 2)
 
 class TestSessionData(unittest.TestCase):
     def test_fromPath(self):
@@ -12,17 +13,16 @@ class TestSessionData(unittest.TestCase):
         self.assertListEqual(session.timestamps, [timestamp.Timestamp(17, 'yawn')])
         
     def test_splitSession(self):
-        commons.YAWN_TIME = 2
-        
+        YAWN_TIME = config.get("YAWN_TIME")
         session = sessionData.SessionData.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/basic1.eimu")
-        self.assertEqual(len(session.splitSession(windowSize = session.sampleRate * commons.YAWN_TIME, windowSep=1)), 10)
-        self.assertEqual(len(session.splitSession(windowSize = session.sampleRate * commons.YAWN_TIME, windowSep=3)), 4)
-        self.assertEqual(len(session.splitSession(windowSize = session.sampleRate * commons.YAWN_TIME, windowSep=9)), 2)
+        self.assertEqual(len(session.splitSession(windowSize = session.sampleRate * YAWN_TIME, windowSep=1)), 10)
+        self.assertEqual(len(session.splitSession(windowSize = session.sampleRate * YAWN_TIME, windowSep=3)), 4)
+        self.assertEqual(len(session.splitSession(windowSize = session.sampleRate * YAWN_TIME, windowSep=9)), 2)
         
     def test_getYawnIndices(self):
-        commons.YAWN_TIME = 2
+        YAWN_TIME = config.get("YAWN_TIME")
         session = sessionData.SessionData.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/basic2.eimu")
-        self.assertEqual(len(session.getYawnIndices()), 1 * commons.YAWN_TIME * session.sampleRate)
+        self.assertEqual(len(session.getYawnIndices()), 1 * YAWN_TIME * session.sampleRate)
         
     def test_getRelevantTimestamps(self):
         session = sessionData.SessionData.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/basic2.eimu")
