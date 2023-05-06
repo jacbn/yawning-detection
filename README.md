@@ -30,21 +30,21 @@ Instructions for how to run each part are in the READMEs of their respective dir
 │   │       
 │   └───yawnnlib/                                       # Main code
 │       │   main.py                                         # Entry point; trains and tests models
+│       │   config.yaml                                     # Global hyperparameter configuration
+│       │   
+│       ├───alternatives/                               # Classical ML approaches (non-NN)
+│       │       alternative_classifier.py                   # Wrapper class for pipelined approach
+│       │       manual/                                     # Manually-written approaches
 │       │   
 │       ├───evaluation/                                 # Evaluation code
 │       │       metrics.py                                  # Definitions of the metrics used
 │       │       test_model.py                               # Tests a model on a dataset
 │       │   
-│       ├───neural/                                     # Classes encapsulating the input to a NN
+│       ├───preprocessing/                              # Classes encapsulating the input to a classifier
 │       │       eimuModelInput.py                           # Raw .eimu headphone data
 │       │       fftModelInput.py                            # FFT of headphone data
 │       │       modelInput.py                               # Abstract parent class
 │       │       spectrogramModelInput.py                    # Spectrogram of headphone data
-│       │           
-│       ├───other_classifiers/                          # Non-NN classifiers
-│       │       alternativeClassifiers.py                   # Manager for non-NN classifiers
-│       │       knn.py                                      # K-Nearest Neighbours
-│       │       svm_sk.py                                   # Support Vector Machine
 │       │ 
 │       ├───structure/                                  # Classes representing the underlying data
 │       │       fourierData.py                              # A Fourier-transformed dataset
@@ -58,6 +58,7 @@ Instructions for how to run each part are in the READMEs of their respective dir
 │       │
 │       └───utils/                                      # Utility code
 │               commons.py                                  # Common functions
+│               config.py                                   # Interfaces with config.yaml
 │               filters.py                                  # Data filters 
 │
 │
