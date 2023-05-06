@@ -10,9 +10,6 @@ import numpy as np
 AXIS_NAMES = [['Accel X', 'Accel Y', 'Accel Z'], ['Gyro X', 'Gyro Y', 'Gyro Z']]
 AXIS_COLOURS = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-# while the user-defined values for these are in the config, we need to be able to modify them for testing purposes,
-# so uses in non-entry-point code will refer to these instead of the config values
-ENABLE_CACHING = config.get("ENABLE_CACHING")
 PROJECT_ROOT = config.PROJECT_ROOT
 YAWN_TIME = config.get("YAWN_TIME")
 YAWN_CORRECTION = config.get("YAWN_CORRECTION")
