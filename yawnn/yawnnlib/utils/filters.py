@@ -148,7 +148,7 @@ class SmoothFilter(TimestampedDataFilter):
         
         smoothed = np.apply_along_axis(lambda d: np.mean(d) + (d - np.mean(d)) * y, 0, data)
         
-        if plot:
+        if plot: # pragma: no cover
             from matplotlib import pyplot as plt
             plt.plot(x, y)
             plt.figure(2)

@@ -200,7 +200,7 @@ class FourierData(SessionData):
     def _getDataByAxis(self, axis : int):
         return np.array(list(map(lambda x: x[axis%2][axis//2], zip(self.accel, self.gyro))))
         
-    def plotSessionData(self, show : bool = False, figure : int = 1, dataFilter : filters.DataFilter = filters.NoneFilter()) -> None:
+    def plotSessionData(self, show : bool = False, figure : int = 1, dataFilter : filters.DataFilter = filters.NoneFilter()) -> None: # pragma: no cover
         for axis in range(6):
             data = self._getDataByAxis(axis)
             dataFiltered = dataFilter.apply(data)
@@ -224,7 +224,7 @@ class FourierData(SessionData):
         f, t, Sxx = signal.spectrogram(data, self.sampleRate, nperseg=self.nPerSeg, noverlap=self.nOverlap)
         return f, t, Sxx
     
-    def _plotFFTMagnitudes(self, data : np.ndarray, axis : int, figure : int = 2, show : bool = False) -> None:
+    def _plotFFTMagnitudes(self, data : np.ndarray, axis : int, figure : int = 2, show : bool = False) -> None: # pragma: no cover
         plt.figure(figure)
         plt.suptitle("FFT Magnitudes")
         ax = plt.subplot(3,2,axis+1)
@@ -238,7 +238,7 @@ class FourierData(SessionData):
         if (show):
             plt.show()
             
-    def _plotIFFTReconstruction(self, data : np.ndarray, axis : int, figure : int = 3, show : bool = False) -> None:
+    def _plotIFFTReconstruction(self, data : np.ndarray, axis : int, figure : int = 3, show : bool = False) -> None: # pragma: no cover
         plt.figure(figure)
         plt.suptitle("Inverse FFT Reconstructions")
         ax = plt.subplot(3,2,axis+1)
@@ -264,7 +264,7 @@ class FourierData(SessionData):
         if (show):
             plt.show()
             
-    def _plotSpectrograms(self, data : np.ndarray, axis : int, figure : int = 5, show : bool = False, fmin : int = 0, fmax : int = 6, maxAmp : int = -1) -> None:
+    def _plotSpectrograms(self, data : np.ndarray, axis : int, figure : int = 5, show : bool = False, fmin : int = 0, fmax : int = 6, maxAmp : int = -1) -> None: # pragma: no cover
         plt.figure(figure)
         plt.suptitle("Axis Spectrograms")
         ax = plt.subplot(3,2,axis+1)

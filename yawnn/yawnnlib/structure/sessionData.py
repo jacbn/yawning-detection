@@ -249,7 +249,7 @@ class SessionData:
         # todo
         pass
     
-    def plot(self, show=True, figure : int = 1, unitConversion : bool = True):
+    def plot(self, show=True, figure : int = 1, unitConversion : bool = True): # pragma: no cover
         """ Plot the accel and gyro data for this session. """
         plt.figure(figure)
         ax1 = plt.subplot(211)
