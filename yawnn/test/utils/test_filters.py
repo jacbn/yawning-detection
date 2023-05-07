@@ -27,7 +27,7 @@ class TestFilters(unittest.TestCase):
         self.assertEqual(len(fourierData2[fourierData2 > 1000]), 1) # the butterworth filter means there is only 1 major frequency, but it increases the magnitude of others around it
         # (for reference, the magnitude of the 4Hz frequency is 930,000 and the magnitude of the 12Hz frequency is 445,000)
         
-        if __name__ == "__main__":
+        if __name__ == "__main__": # pragma: no cover
             # run this file for a plot of this test
             from matplotlib import pyplot as plt
             plt.title("Frequency Domain without Low-Pass Filter")
@@ -70,5 +70,5 @@ class TestFilters(unittest.TestCase):
         highConst = int(len(y) * fracConst / 2)
         self.assertListEqual(y[lowConst : highConst].tolist(), smoothData[lowConst : highConst].tolist())
     
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover 
     unittest.main()

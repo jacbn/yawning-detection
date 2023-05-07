@@ -24,6 +24,6 @@ class TestEimuModelInput(unittest.TestCase):
         spectrogramModelInput.SpectrogramModelInput(windowSize=YAWN_TIME, windowSep=3/32, dataFilter=filters.FilterCollection([filters.NormalisationFilter(), filters.SmoothFilter(keepData=0.7)])).fromPath(f"{PROJECT_ROOT}/test/test_data/high_freq.eimu")
         spectrogramModelInput.SpectrogramModelInput(windowSize=YAWN_TIME, windowSep=3/32, dataFilter=filters.FilterCollection([filters.NormalisationFilter(), filters.LowPassFilter(32, 10)])).fromPath(f"{PROJECT_ROOT}/test/test_data/high_freq.eimu")
         
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     unittest.main()
     

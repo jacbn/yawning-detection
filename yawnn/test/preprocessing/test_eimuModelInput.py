@@ -29,6 +29,6 @@ class TestEimuModelInput(unittest.TestCase):
         eimuModelInput.EimuModelInput(windowSize=YAWN_TIME, windowSep=3/32, dataFilter=filters.SmoothFilter(keepData=0.7)).fromPath(f"{PROJECT_ROOT}/test/test_data/basic2.eimu")
         eimuModelInput.EimuModelInput(windowSize=YAWN_TIME, windowSep=3/32, dataFilter=filters.NormalisationFilter()).fromPath(f"{PROJECT_ROOT}/test/test_data/basic2.eimu")
         
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     unittest.main()
     

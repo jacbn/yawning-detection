@@ -48,5 +48,5 @@ class TestSessionData(unittest.TestCase):
         # equality function can be found in sessionData.py
         self.assertEqual(session, session2)
         
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     unittest.main()

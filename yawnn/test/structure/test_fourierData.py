@@ -14,6 +14,6 @@ class TestFourierData(unittest.TestCase):
         # the number of frequencies and samples per window are functions of N_PER_SEG, N_OVERLAP, windowSize and windowSep.
         # the number of windows is a function of the length of the data
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     unittest.main()
     

@@ -63,5 +63,5 @@ class TestCommons(unittest.TestCase):
         self.assertEqual(trainX.shape[0], int(allTrainX.shape[0] * (1 - VALIDATION_SPLIT)) + 1)
         self.assertEqual(valX.shape[0], int(allTrainX.shape[0] * (VALIDATION_SPLIT)))
         
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     unittest.main()

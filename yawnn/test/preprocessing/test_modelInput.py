@@ -31,3 +31,6 @@ class TestModelInput(unittest.TestCase):
         # check that the data is the same
         self.assertTrue((data1 == data2).all())
         self.assertTrue((annotations1 == annotations2).all())
+        
+if __name__ == "__main__": # pragma: no cover
+    unittest.main()

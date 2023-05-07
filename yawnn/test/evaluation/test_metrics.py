@@ -48,5 +48,5 @@ class TestMetrics(unittest.TestCase):
         self.assertAlmostEqual(4/7, metrics.calcF1(0.4, 1.0))
         
     
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     unittest.main()

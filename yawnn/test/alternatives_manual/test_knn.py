@@ -11,5 +11,5 @@ class TestKnn(unittest.TestCase):
         self.assertEqual(knn.classify([10, 10, 5, 2, 3, 1], data, classifications), 1)
         self.assertEqual(knn.classify([1, -5, -5, -5, -4, -3], data, classifications), 0)
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     unittest.main()
