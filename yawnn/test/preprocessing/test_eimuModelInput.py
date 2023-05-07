@@ -2,7 +2,7 @@ import unittest
 from yawnnlib.preprocessing import eimuModelInput
 from yawnnlib.utils import filters, config
 
-PROJECT_ROOT = config.get("PROJECT_ROOT")
+PROJECT_ROOT = config.PROJECT_ROOT
 config.set("YAWN_TIME", 2)
 
 class TestEimuModelInput(unittest.TestCase):
@@ -26,7 +26,8 @@ class TestEimuModelInput(unittest.TestCase):
         YAWN_TIME = config.get("YAWN_TIME")
         # check that none of the following throw an exception
         eimuModelInput.EimuModelInput(windowSize=YAWN_TIME, windowSep=3/32, dataFilter=filters.MovingAverageFilter(5)).fromPath(f"{PROJECT_ROOT}/test/test_data/basic2.eimu")
-        # todo
+        eimuModelInput.EimuModelInput(windowSize=YAWN_TIME, windowSep=3/32, dataFilter=filters.SmoothFilter(keepData=0.7)).fromPath(f"{PROJECT_ROOT}/test/test_data/basic2.eimu")
+        eimuModelInput.EimuModelInput(windowSize=YAWN_TIME, windowSep=3/32, dataFilter=filters.NormalisationFilter()).fromPath(f"{PROJECT_ROOT}/test/test_data/basic2.eimu")
         
 if __name__ == "__main__":
     unittest.main()

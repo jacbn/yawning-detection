@@ -44,5 +44,24 @@ class TestCommons(unittest.TestCase):
         self.assertEqual(np.sum(y1), -np.sum(y1 - 1))
         self.assertEqual(np.sum(y2), -np.sum(y2 - 1))
         
+    def test_splitTrainingData(self):
+        YAWN_TIME = config.get("YAWN_TIME")
+        VALIDATION_SPLIT = config.get("VALIDATION_SPLIT")
+        model = eimuModelInput.EimuModelInput(windowSize=YAWN_TIME, windowSep=3/32)
+        annotatedData = model.fromDirectory(f"{commons.PROJECT_ROOT}/test/test_data/directory_test")
+        (allTrainX, allTrainY), _ = model.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=False)
+        
+        (trainX, trainY), (valX, valY) = commons.splitTrainingData((allTrainX, allTrainY), 0, 1)
+        self.assertEqual(trainX.shape[0] + valX.shape[0], allTrainX.shape[0])
+        self.assertEqual(trainY.shape[0] + valY.shape[0], allTrainY.shape[0])
+        self.assertEqual(trainX.shape[0], int(allTrainX.shape[0] * (1 - VALIDATION_SPLIT)) + 1)
+        self.assertEqual(valX.shape[0], int(allTrainX.shape[0] * (VALIDATION_SPLIT)))
+        
+        (trainX, trainY), (valX, valY) = commons.splitTrainingData((allTrainX, allTrainY), 3, 5)
+        self.assertEqual(trainX.shape[0] + valX.shape[0], allTrainX.shape[0])
+        self.assertEqual(trainY.shape[0] + valY.shape[0], allTrainY.shape[0])
+        self.assertEqual(trainX.shape[0], int(allTrainX.shape[0] * (1 - VALIDATION_SPLIT)) + 1)
+        self.assertEqual(valX.shape[0], int(allTrainX.shape[0] * (VALIDATION_SPLIT)))
+        
 if __name__ == "__main__":
     unittest.main()
