@@ -89,7 +89,24 @@ def timeDistributeAnnotatedData(annotatedData : AnnotatedData) -> AnnotatedData:
             j += 1
     return (newData, newAnnotations)
 
-def splitTrainingData(data : tuple[np.ndarray, np.ndarray], modelNum : int, totalModels : int):
+def splitTrainingData(data : AnnotatedData, modelNum : int, totalModels : int):
+    """ Splits the training data into training and validation sets, based on the model number and total number of models.
+
+    Parameters
+    ----------
+    data : AnnotatedData
+        The training data to split.
+    modelNum : int
+        The model index (starting from 0).
+    totalModels : int
+        The total number of models to train.
+
+    Returns
+    -------
+    (train, val) : tuple[AnnotatedData, AnnotatedData]
+        The training and validation sets.
+        
+    """
     if (totalModels == 1):
         valStart = 0 
     else:

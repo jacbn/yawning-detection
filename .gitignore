@@ -8,3 +8,4 @@ yawnn/lib/classifiers/__pycache__*
 *__pycache__*
 model.png
 /dissertation/main.aux
+*.coverage

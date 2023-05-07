@@ -5,8 +5,6 @@ import numpy as np
 from os import mkdir
 from os.path import exists, basename, normpath
 
-ENABLE_CACHING = config.get("ENABLE_CACHING")
-
 class ModelInput(ABC):
     """ An abstract class that represents an input to a NN model. """
     @abstractmethod
@@ -15,7 +13,7 @@ class ModelInput(ABC):
     
     def fromPathOrCache(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
         print(f"Processing data: {fileNum}/{totalFiles}...", end='\r')
-        if (ENABLE_CACHING):
+        if (config.get("ENABLE_CACHING")):
             fileName = basename(normpath(path))
             
             directory = self._getCachePathForFile(fileName)
