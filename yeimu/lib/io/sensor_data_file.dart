@@ -17,7 +17,7 @@ class SensorDataFile {
   factory SensorDataFile.from(String filename, String fileContents) {
     final List<String> lines = fileContents.split('\n');
     int version = int.parse(lines[0]);
-    // TODO: lines[1] currently reserved for splitting one session into multiple files
+    // lines[1] reserved for splitting one session into multiple files
     final List<Timestamp> timestamps = [];
     int sampleRate = int.parse(lines[2]);
     int numTimestamps = int.parse(lines[3]);

@@ -119,7 +119,6 @@ class FourierData(SessionData):
                 windowResults.append(windowResult)
                 if axis == 0:
                     # we add a positive timestamp for the spectrogram if the window contains the precise time of a yawn
-                    # todo: control leeway as a hyperparameter
                     timestamps.append(len(self._getRelevantTimestamps(self.timestamps, windowStart, windowStart+trueWindowSize)) > 0)
                     
                 windowStart += trueWindowSep

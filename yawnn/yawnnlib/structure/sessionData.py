@@ -246,7 +246,7 @@ class SessionData:
     
     @staticmethod
     def combineSessions(sessions):
-        # todo
+        # this functionality was never needed in the end, but remains here for posterity
         pass
     
     def plot(self, show=True, figure : int = 1, unitConversion : bool = True): # pragma: no cover
