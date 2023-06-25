@@ -212,6 +212,9 @@ def trainEimuLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels :
         totalModels=totalModels
     )
     
+    #todo: replace all Input layers. requires a reshape of the first dimension by newSampleRate//oldSampleRate
+    # (-> could have the original sample rate be a property of modelType? new is resampleFrequency)
+    
     return trainModel(
             modelType, 
             makeSequentialModel([
@@ -236,11 +239,13 @@ def trainEimuLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels :
 def trainEimuCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : int = 1):
     modelType = MODEL_INPUTS['eimuCNN']
     
+    if config.get("FILE_FORMAT") == "eimu":
+        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+    else:
+        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+    
     ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
-        modelType,
-        modelType.fromEimuDirectory(DATA_PATH), 
-        shuffle=True, 
-        equalPositiveAndNegative=True,
+        modelData=modelData,
         modelNum=modelNum,
         totalModels=totalModels
     )
@@ -248,7 +253,7 @@ def trainEimuCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : 
     return trainModel(
             modelType, 
             makeSequentialModel([
-                tf.keras.Input(shape=trainX.shape[1:], name='input'),
+                # tf.keras.Input(shape=trainX.shape[1:], name='input'),
                 tf.keras.layers.Reshape((trainX.shape[1], 1, trainX.shape[2])),
                 tf.keras.layers.Conv2D(filters=64,  kernel_size=(5, 1), padding='same', activation='relu'),
                 tf.keras.layers.MaxPool2D(pool_size=(2, 1)),
@@ -274,12 +279,14 @@ def trainEimuCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : 
 def trainEimuConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels : int = 1):
     modelType = MODEL_INPUTS['eimuCNN-LSTM']
     
+    if config.get("FILE_FORMAT") == "eimu":
+        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+    else:
+        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+    
     ((trainX, trainY), (valX, valY), (testX, testY)) = commons.timeDistributeData(
         getValidatedModelData(
-            modelType,
-            modelType.fromEimuDirectory(DATA_PATH), 
-            shuffle=True, 
-            equalPositiveAndNegative=True,
+            modelData=modelData,
             modelNum=modelNum,
             totalModels=totalModels
         )
@@ -288,7 +295,7 @@ def trainEimuConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalMode
     return trainModel(
             modelType, 
             makeSequentialModel([
-                tf.keras.Input(shape=trainX.shape[1:], name='input'),
+                # tf.keras.Input(shape=trainX.shape[1:], name='input'),
                 tf.keras.layers.Reshape((trainX.shape[1], trainX.shape[2], 1, *trainX.shape[3:])),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(filters=128,  kernel_size=(5, 1), padding='same', activation='relu')),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPool2D(pool_size=(2, 1))),
@@ -316,11 +323,13 @@ def trainEimuConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalMode
 def trainFftLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels : int = 1):
     modelType = MODEL_INPUTS['fftLSTM']
     
+    if config.get("FILE_FORMAT") == "eimu":
+        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+    else:
+        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+    
     ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
-        modelType,
-        modelType.fromEimuDirectory(DATA_PATH), 
-        shuffle=True, 
-        equalPositiveAndNegative=True,
+        modelData=modelData,
         modelNum=modelNum,
         totalModels=totalModels
     )
@@ -328,7 +337,7 @@ def trainFftLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels : 
     return trainModel(
             modelType, 
             makeSequentialModel([
-                tf.keras.Input(shape=trainX.shape[1:], name='input'),
+                # tf.keras.Input(shape=trainX.shape[1:], name='input'),
                 tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=True),
                 tf.keras.layers.Dropout(0.3),
                 tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=True),
@@ -349,11 +358,13 @@ def trainFftLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels : 
 def trainFftCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : int = 1): #!prefers extended YAWN_TIME
     modelType = MODEL_INPUTS['fftCNN']
     
+    if config.get("FILE_FORMAT") == "eimu":
+        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+    else:
+        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+    
     ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
-        modelType,
-        modelType.fromEimuDirectory(DATA_PATH), 
-        shuffle=True, 
-        equalPositiveAndNegative=True,
+        modelData=modelData,
         modelNum=modelNum,
         totalModels=totalModels
     )
@@ -361,7 +372,7 @@ def trainFftCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : i
     return trainModel(
             modelType, 
             makeSequentialModel([
-                tf.keras.Input(shape=trainX.shape[1:], name='input'),
+                # tf.keras.Input(shape=trainX.shape[1:], name='input'),
                 tf.keras.layers.Reshape((trainX.shape[1], 1, trainX.shape[2])),
                 tf.keras.layers.Conv2D(filters=64,  kernel_size=(5, 1), padding='same', activation='relu'),
                 tf.keras.layers.MaxPool2D(pool_size=(2, 1)),
@@ -390,21 +401,23 @@ def trainFftCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : i
 def trainFftConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels : int = 1):
     modelType = MODEL_INPUTS['fftCNN-LSTM']
     
+    if config.get("FILE_FORMAT") == "eimu":
+        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+    else:
+        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+    
     ((trainX, trainY), (valX, valY), (testX, testY)) = commons.timeDistributeData(
         getValidatedModelData(
-            modelType,
-            modelType.fromEimuDirectory(DATA_PATH), 
-            shuffle=True, 
-            equalPositiveAndNegative=True,
+            modelData=modelData,
             modelNum=modelNum,
-            totalModels=totalModels
+            totalModels=totalModels,
         )
     )
     
     return trainModel(
             modelType, 
             makeSequentialModel([
-                tf.keras.Input(shape=trainX.shape[1:], name='input'),
+                # tf.keras.Input(shape=trainX.shape[1:], name='input'),
                 tf.keras.layers.Reshape((trainX.shape[1], trainX.shape[2], 1, *trainX.shape[3:])),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(filters=128,  kernel_size=(5, 1), padding='same', activation='relu')),
                 tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPool2D(pool_size=(2, 1))),
@@ -433,11 +446,13 @@ def trainFftConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModel
 def trainSpectrogramCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : int = 1):
     modelType = MODEL_INPUTS['specCNN']
     
+    if config.get("FILE_FORMAT") == "eimu":
+        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+    else:
+        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+    
     ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
-        modelType,
-        modelType.fromEimuDirectory(DATA_PATH), 
-        shuffle=True, 
-        equalPositiveAndNegative=True,
+        modelData=modelData,
         modelNum=modelNum,
         totalModels=totalModels
     )
@@ -445,7 +460,7 @@ def trainSpectrogramCNN(resampleFrequency: int = -1, modelNum : int = 0, totalMo
     return trainModel(
             modelType, 
             makeSequentialModel([
-                tf.keras.Input(shape=trainX.shape[1:], name="input"),
+                # tf.keras.Input(shape=trainX.shape[1:], name="input"),
                 tf.keras.layers.Conv2D(filters=256, kernel_size=(5, 5), padding='same', activation='relu'),
                 tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
                 tf.keras.layers.Dropout(0.3),
@@ -472,12 +487,14 @@ def trainSpectrogramCNN(resampleFrequency: int = -1, modelNum : int = 0, totalMo
 def trainAlternativeClassifiers(resampleFrequency: int = -1):
     modelType = MODEL_INPUTS['altModels']
     
+    if config.get("FILE_FORMAT") == "eimu":
+        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+    else:
+        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+    
     # validation set unsupported for alternative classifiers
     ((trainX, trainY), _, (testX, testY)) = getValidatedModelData(
-        modelType,
-        modelType.fromEimuDirectory(DATA_PATH), 
-        shuffle=True, 
-        equalPositiveAndNegative=True
+        modelData=modelData
     )
     
     classifiers = [
