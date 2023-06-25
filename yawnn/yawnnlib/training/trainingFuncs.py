@@ -14,7 +14,7 @@ print("Imports loaded.")
 
 MODELS_PATH = config.get("MODELS_PATH")
 
-currentModelTypeData = []
+currentModelData = []
 
 def makeSequentialModel(layers : list, compile_ : bool = True, learningRate : float = 0.0003) -> tf.keras.models.Sequential:
     """ Creates a sequential model from a list of layers.
@@ -38,8 +38,8 @@ def makeSequentialModel(layers : list, compile_ : bool = True, learningRate : fl
         model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
-def getValidatedModelData(modelType : ModelInput, annotatedData : list[commons.AnnotatedData], shuffle : bool = True, equalPositiveAndNegative : bool = True, modelNum : int = 0, totalModels : int = 1):
-    """ Gets the training, validation and test data from a list of annotated data.
+def getValidatedModelData(modelData : commons.ModelData, modelNum : int = 0, totalModels : int = 1):
+    """ Gets the training, validation and test data from combined annotated data (c.f. modelInput.fromAnnotatedDataList ).
 
     Parameters
     ----------
@@ -61,14 +61,14 @@ def getValidatedModelData(modelType : ModelInput, annotatedData : list[commons.A
     commons.ModelData
         The training, validation and test data, as a tuple of ((trainX, trainY), (valX, valY), (testX, testY)).
     """
-    global currentModelTypeData # needed as this state must be preserved between calls
+    global currentModelData # needed as this state must be preserved between calls
     
     if (modelNum == 0):
-        currentModelTypeData = modelType.fromAnnotatedDataList(annotatedData, shuffle=shuffle, equalPositiveAndNegative=equalPositiveAndNegative)
+        currentModelData = modelData
     
-    assert currentModelTypeData != [], "Model number incorrect. Models must start from modelNum=0."
+    assert currentModelData != [], "Model number incorrect. Models must start from modelNum=0."
     
-    (allTrainX, allTrainY), (testX, testY) = currentModelTypeData
+    (allTrainX, allTrainY), (testX, testY) = currentModelData
     (trainX, trainY), (valX, valY) = commons.splitTrainingData((allTrainX, allTrainY), modelNum, totalModels)
     
     return ((trainX, trainY), (valX, valY), (testX, testY))
@@ -113,14 +113,15 @@ def trainModel(modelType : ModelInput, model : tf.keras.models.Sequential, data 
     if resampleFrequency < 0:
         (trainX, trainY), (valX, valY), (testX, testY) = data
     else:
+        # todo: use frequency given by model as opposed to hardcoding
         (trainX, trainY), (valX, valY), (testX, testY) = list(map(lambda x: eimuResampler.resampleAnnotatedData(x, 96, resampleFrequency), data))
     
-    print(f"TrainX data shape: {trainX.shape}")
-    print(f"TrainY data shape: {trainY.shape}")
-    print(f"ValX data shape: {valX.shape}")
-    print(f"ValY data shape: {valY.shape}")
-    print(f"TestX data shape: {testX.shape}")
-    print(f"TestY data shape: {testY.shape}")
+    print(f"TrainX data shape: {trainX.shape}, type {trainX.dtype}")
+    print(f"TrainY data shape: {trainY.shape}, type {trainX.dtype}")
+    print(f"ValX data shape: {valX.shape}, type {trainX.dtype}")
+    print(f"ValY data shape: {valY.shape}, type {trainX.dtype}")
+    print(f"TestX data shape: {testX.shape}, type {trainX.dtype}")
+    print(f"TestY data shape: {testY.shape}, type {trainX.dtype}")
     
     history = model.fit(trainX, trainY, epochs=epochs, batch_size=batchSize, validation_data=(valX, valY), shuffle=True, callbacks=[cpCallback] if saveCheckpoints else None)
     

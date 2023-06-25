@@ -54,7 +54,7 @@ def visualizeModel(model : tf.keras.models.Model) -> None:
     
     vk.layered_view(model, spacing=50, max_xy=800, draw_volume=True, to_file="model.png", legend=True, font=font, color_map=colorMap).show() # type: ignore
 
-def testDataOnModel(model, modelType : ModelInput, dataDirectory : str, resampleFrequency : int = -1):
+def testDataOnModel(model, modelType : ModelInput, dataDirectory : str, isHafar : bool = False, resampleFrequency : int = -1):
     """ Tests the model on the data in a given directory. 
     
     Attributes
@@ -66,9 +66,14 @@ def testDataOnModel(model, modelType : ModelInput, dataDirectory : str, resample
     dataDirectory : str
         The directory containing the data to test.
     """
-    annotatedData = modelType.fromDirectory(dataDirectory)
-    _, (X, Y) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
+    if isHafar:
+        combinedTuple = modelType.fromHafarDirectory(dataDirectory)
+        _, (X, Y) = modelType.fromCombinedTuple(combinedTuple, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
+    else:
+        annotatedData = modelType.fromEimuDirectory(dataDirectory)
+        _, (X, Y) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
     if resampleFrequency > 0:
+        # todo: use frequency given by model as opposed to hardcoding
         (X, Y) = eimuResampler.resampleAnnotatedData((X, Y), 96, resampleFrequency)
     if "CNN-LSTM" in modelType.getType():
         (X, Y) = commons.timeDistributeAnnotatedData((X, Y))
@@ -83,7 +88,7 @@ def testDataOnAlternativeModels(altModelsPath : str, dataDirectory : str):
     
     ALT_MODELS_PATH = MODELS_PATH + "/alternative/"
     modelType = MODEL_INPUTS['altModels']
-    annotatedData = modelType.fromDirectory(dataDirectory)
+    annotatedData = modelType.fromEimuDirectory(dataDirectory)
     _, (testX, testY) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
     fig = 1
     
@@ -110,9 +115,10 @@ def testDataOnAlternativeModels(altModelsPath : str, dataDirectory : str):
 if __name__ == "__main__":
     modelType = MODEL_INPUTS['eimuLSTM']
     model = loadModel(f"{MODELS_PATH}/eimuLSTM_0.h5")
-    # visualizeModel(model)
+    visualizeModel(model)
     
-    testDataOnModel(model, modelType, f"{commons.PROJECT_ROOT}/data/user_trials/PRESENTATION/")
+    # testDataOnModel(model, modelType, f"{commons.PROJECT_ROOT}/data/user_trials/PRESENTATION/", isHafar=False)
+    # testDataOnModel(model, modelType, config.get("HAFAR_PATH"), isHafar=True)
     
-    # testDataOnModel(model, modelType, f"{TEST_PATH}/", resampleFrequency=32)
+    testDataOnModel(model, modelType, f"{TEST_PATH}/", resampleFrequency=32)
     # testDataOnAlternativeModels(f"{MODELS_PATH}/alternative/", f"{TEST_PATH}/")

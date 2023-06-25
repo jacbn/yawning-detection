@@ -12,26 +12,116 @@ from sklearn.ensemble import RandomForestClassifier
 import tensorflow as tf
 
 DATA_PATH = config.get("DATA_PATH")
+HAFAR_PATH = config.get("HAFAR_PATH")
 YAWN_TIME = config.get("YAWN_TIME")
 
 MODEL_INPUTS = {
+    # these are the models used in the dissertation. the hafar dataset requires strict 2s inputs so the *2.5, /4 etc can't be used 
+    # 'eimuLSTM': EimuModelInput(
+    #                 windowSize=YAWN_TIME*2.5, 
+    #                 windowSep=YAWN_TIME/4, 
+    #                 dataFilter=filters.SmoothFilter(keepData=0.8),
+    #                 name='eimuLSTM'
+    #             ),
+    
+    # 'eimuCNN':  EimuModelInput(  # *2.5, /4 = 0.8482 acc + good metrics
+    #                 windowSize=YAWN_TIME*2.5,
+    #                 windowSep=YAWN_TIME/4, 
+    #                 dataFilter=filters.SmoothFilter(keepData=0.8),
+    #                 name='eimuCNN'
+    #             ),
+    
+    # 'eimuCNN-LSTM': EimuModelInput(
+    #                 windowSize=YAWN_TIME, 
+    #                 windowSep=YAWN_TIME/8, 
+    #                 dataFilter=filters.FilterCollection([
+    #                     filters.MovingAverageFilter(5),
+    #                     filters.SmoothFilter(keepData=0.8),
+    #                 ]),
+    #                 name='eimuCNN-LSTM'
+    #             ),
+    
+    # 'fftLSTM':  FFTModelInput(
+    #                 windowSize=YAWN_TIME*1.5,
+    #                 windowSep=YAWN_TIME/6,
+    #                 dataFilter=filters.FilterCollection([
+    #                     # filters.SmoothFilter(keepData=0.8),
+    #                     filters.HighPassFilter(96, 0.1), 
+    #                     filters.LowPassFilter(96, 8, 3), 
+    #                     # filters.MovingAverageFilter(5), 
+    #                     filters.NormalisationFilter()
+    #                 ]),
+    #                 nPerSeg=128,
+    #                 nOverlap=96,
+    #                 name='fftLSTM'
+    #             ),                  
+    
+    # 'fftCNN':   FFTModelInput(
+    #                 windowSize=YAWN_TIME*1.5, 
+    #                 windowSep=YAWN_TIME/4, 
+    #                 dataFilter=filters.FilterCollection([
+    #                     # filters.SmoothFilter(keepData=0.8),
+    #                     filters.HighPassFilter(96, 0.1), 
+    #                     filters.LowPassFilter(96, 8, 3), 
+    #                     # filters.MovingAverageFilter(5),
+    #                     filters.NormalisationFilter()
+    #                 ]),
+    #                 nPerSeg=128,
+    #                 nOverlap=96,
+    #                 name='fftCNN'
+    #             ),
+    
+    # 'fftCNN-LSTM': FFTModelInput(
+    #                 windowSize=YAWN_TIME, 
+    #                 windowSep=YAWN_TIME/12, 
+    #                 dataFilter=filters.FilterCollection([
+    #                     # filters.SmoothFilter(keepData=0.8),
+    #                     # filters.HighPassFilter(96, 0.01, 30), 
+    #                     # filters.LowPassFilter(96, 12, 3), 
+    #                     # filters.MovingAverageFilter(5),
+    #                     filters.NormalisationFilter()
+    #                 ]),
+    #                 nPerSeg=128,
+    #                 nOverlap=96,
+    #                 name='fftCNN-LSTM'
+    #             ),
+    
+    # 'specCNN':  SpectrogramModelInput(
+    #                 windowSize=YAWN_TIME*1.5,
+    #                 windowSep=YAWN_TIME/4,
+    #                 dataFilter=filters.FilterCollection([
+    #                     # filters.SmoothFilter(keepData=0.8),
+    #                     filters.HighPassFilter(96, 0.1), 
+    #                     filters.LowPassFilter(96, 8, 3), 
+    #                     # filters.MovingAverageFilter(5),
+    #                     filters.NormalisationFilter()
+    #                 ]),
+    #                 nPerSeg=128,
+    #                 nOverlap=96,
+    #                 name='specCNN'
+    #             ),
+    # 'altModels': EimuModelInput(
+    #                 windowSize=YAWN_TIME, 
+    #                 windowSep=YAWN_TIME, 
+    #                 name='altModels'
+    #             ),
     'eimuLSTM': EimuModelInput(
-                    windowSize=YAWN_TIME*2.5, 
-                    windowSep=YAWN_TIME/4, 
+                    windowSize=YAWN_TIME, 
+                    windowSep=YAWN_TIME/2, 
                     dataFilter=filters.SmoothFilter(keepData=0.8),
                     name='eimuLSTM'
                 ),
     
-    'eimuCNN':  EimuModelInput(  # *2.5, /4 = 0.8482 acc + good metrics
-                    windowSize=YAWN_TIME*2.5,
-                    windowSep=YAWN_TIME/4, 
+    'eimuCNN':  EimuModelInput(
+                    windowSize=YAWN_TIME,
+                    windowSep=YAWN_TIME/2, 
                     dataFilter=filters.SmoothFilter(keepData=0.8),
                     name='eimuCNN'
                 ),
     
     'eimuCNN-LSTM': EimuModelInput(
                     windowSize=YAWN_TIME, 
-                    windowSep=YAWN_TIME/8, 
+                    windowSep=YAWN_TIME/2, 
                     dataFilter=filters.FilterCollection([
                         filters.MovingAverageFilter(5),
                         filters.SmoothFilter(keepData=0.8),
@@ -40,8 +130,8 @@ MODEL_INPUTS = {
                 ),
     
     'fftLSTM':  FFTModelInput(
-                    windowSize=YAWN_TIME*1.5,
-                    windowSep=YAWN_TIME/6,
+                    windowSize=YAWN_TIME,
+                    windowSep=YAWN_TIME/2,
                     dataFilter=filters.FilterCollection([
                         # filters.SmoothFilter(keepData=0.8),
                         filters.HighPassFilter(96, 0.1), 
@@ -55,8 +145,8 @@ MODEL_INPUTS = {
                 ),                  
     
     'fftCNN':   FFTModelInput(
-                    windowSize=YAWN_TIME*1.5, 
-                    windowSep=YAWN_TIME/4, 
+                    windowSize=YAWN_TIME, 
+                    windowSep=YAWN_TIME/2, 
                     dataFilter=filters.FilterCollection([
                         # filters.SmoothFilter(keepData=0.8),
                         filters.HighPassFilter(96, 0.1), 
@@ -71,7 +161,7 @@ MODEL_INPUTS = {
     
     'fftCNN-LSTM': FFTModelInput(
                     windowSize=YAWN_TIME, 
-                    windowSep=YAWN_TIME/12, 
+                    windowSep=YAWN_TIME/2, 
                     dataFilter=filters.FilterCollection([
                         # filters.SmoothFilter(keepData=0.8),
                         # filters.HighPassFilter(96, 0.01, 30), 
@@ -85,8 +175,8 @@ MODEL_INPUTS = {
                 ),
     
     'specCNN':  SpectrogramModelInput(
-                    windowSize=YAWN_TIME*1.5,
-                    windowSep=YAWN_TIME/4,
+                    windowSize=YAWN_TIME,
+                    windowSep=YAWN_TIME/2,
                     dataFilter=filters.FilterCollection([
                         # filters.SmoothFilter(keepData=0.8),
                         filters.HighPassFilter(96, 0.1), 
@@ -100,7 +190,7 @@ MODEL_INPUTS = {
                 ),
     'altModels': EimuModelInput(
                     windowSize=YAWN_TIME, 
-                    windowSep=YAWN_TIME, 
+                    windowSep=YAWN_TIME/2, 
                     name='altModels'
                 ),
 }
@@ -111,11 +201,13 @@ def trainEimuLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels :
     
     # the data has to be collected here, not inside trainModel, as we use properties of the data (namely shape) to build the model
     # (in this model, it is only used in the optional Input layer, but other models require it for reshapes and so for consistency it is kept)
+    if config.get("FILE_FORMAT") == "eimu":
+        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+    else:
+        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+    
     ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
-        modelType,
-        modelType.fromDirectory(DATA_PATH), 
-        shuffle=True, 
-        equalPositiveAndNegative=True,
+        modelData=modelData,
         modelNum=modelNum,
         totalModels=totalModels
     )
@@ -123,7 +215,7 @@ def trainEimuLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels :
     return trainModel(
             modelType, 
             makeSequentialModel([
-                tf.keras.Input(shape=trainX.shape[1:], name='input'),
+                # tf.keras.Input(shape=trainX.shape[1:], name='input'),
                 tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=True),
                 tf.keras.layers.Dropout(0.3),
                 tf.keras.layers.LSTM(units=128, activation='tanh', return_sequences=True),
@@ -146,7 +238,7 @@ def trainEimuCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : 
     
     ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
         modelType,
-        modelType.fromDirectory(DATA_PATH), 
+        modelType.fromEimuDirectory(DATA_PATH), 
         shuffle=True, 
         equalPositiveAndNegative=True,
         modelNum=modelNum,
@@ -185,7 +277,7 @@ def trainEimuConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalMode
     ((trainX, trainY), (valX, valY), (testX, testY)) = commons.timeDistributeData(
         getValidatedModelData(
             modelType,
-            modelType.fromDirectory(DATA_PATH), 
+            modelType.fromEimuDirectory(DATA_PATH), 
             shuffle=True, 
             equalPositiveAndNegative=True,
             modelNum=modelNum,
@@ -226,7 +318,7 @@ def trainFftLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels : 
     
     ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
         modelType,
-        modelType.fromDirectory(DATA_PATH), 
+        modelType.fromEimuDirectory(DATA_PATH), 
         shuffle=True, 
         equalPositiveAndNegative=True,
         modelNum=modelNum,
@@ -259,7 +351,7 @@ def trainFftCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : i
     
     ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
         modelType,
-        modelType.fromDirectory(DATA_PATH), 
+        modelType.fromEimuDirectory(DATA_PATH), 
         shuffle=True, 
         equalPositiveAndNegative=True,
         modelNum=modelNum,
@@ -301,7 +393,7 @@ def trainFftConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModel
     ((trainX, trainY), (valX, valY), (testX, testY)) = commons.timeDistributeData(
         getValidatedModelData(
             modelType,
-            modelType.fromDirectory(DATA_PATH), 
+            modelType.fromEimuDirectory(DATA_PATH), 
             shuffle=True, 
             equalPositiveAndNegative=True,
             modelNum=modelNum,
@@ -343,7 +435,7 @@ def trainSpectrogramCNN(resampleFrequency: int = -1, modelNum : int = 0, totalMo
     
     ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
         modelType,
-        modelType.fromDirectory(DATA_PATH), 
+        modelType.fromEimuDirectory(DATA_PATH), 
         shuffle=True, 
         equalPositiveAndNegative=True,
         modelNum=modelNum,
@@ -383,7 +475,7 @@ def trainAlternativeClassifiers(resampleFrequency: int = -1):
     # validation set unsupported for alternative classifiers
     ((trainX, trainY), _, (testX, testY)) = getValidatedModelData(
         modelType,
-        modelType.fromDirectory(DATA_PATH), 
+        modelType.fromEimuDirectory(DATA_PATH), 
         shuffle=True, 
         equalPositiveAndNegative=True
     )
