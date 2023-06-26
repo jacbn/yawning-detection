@@ -229,7 +229,7 @@ def trainEimuLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels :
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (valX, valY), (testX, testY)),
-            epochs=15, 
+            epochs=5, # pre-hafar: 15
             batchSize=64,
             resampleFrequency=resampleFrequency
     )
@@ -270,7 +270,7 @@ def trainEimuCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : 
                 learningRate=1e-4
             ),
             ((trainX, trainY), (valX, valY), (testX, testY)),
-            epochs=60,
+            epochs=20,
             batchSize=64,
             resampleFrequency=resampleFrequency
     )
@@ -349,7 +349,7 @@ def trainFftLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels : 
                 learningRate=3e-4
             ),
             ((trainX, trainY), (valX, valY), (testX, testY)),
-            epochs=60, 
+            epochs=5, # pre-hafar: 60, 
             batchSize=128,
             resampleFrequency=resampleFrequency
     ) # fftLSTM_9: 0.8125, avg pool 3e-4 1 /12 5.9 yawn time (!!)
@@ -392,7 +392,7 @@ def trainFftCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : i
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (valX, valY), (testX, testY)),
-            epochs=40,
+            epochs=15, # pre-hafar: 40 
             batchSize=64,
             resampleFrequency=resampleFrequency
     )
@@ -436,7 +436,7 @@ def trainFftConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModel
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (valX, valY), (testX, testY)),
-            epochs=80, 
+            epochs=20, # pre-hafar: 40 
             batchSize=64,
             resampleFrequency=resampleFrequency
     ) # fftCNN-LSTM_1: 0.8783 1 /12 5.9 yawn time
@@ -478,7 +478,7 @@ def trainSpectrogramCNN(resampleFrequency: int = -1, modelNum : int = 0, totalMo
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (valX, valY), (testX, testY)),
-            epochs=40, 
+            epochs=15, # pre-hafar: 40 
             batchSize=64,
             resampleFrequency=resampleFrequency
     )

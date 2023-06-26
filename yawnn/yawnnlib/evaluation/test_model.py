@@ -113,12 +113,12 @@ def testDataOnAlternativeModels(altModelsPath : str, dataDirectory : str):
     plt.show()
 
 if __name__ == "__main__":
-    modelType = MODEL_INPUTS['eimuLSTM']
-    model = loadModel(f"{MODELS_PATH}/eimuLSTM_0.h5")
+    modelType = MODEL_INPUTS['fftLSTM']
+    model = loadModel(f"{MODELS_PATH}/fftLSTM_0.h5")
     visualizeModel(model)
     
     # testDataOnModel(model, modelType, f"{commons.PROJECT_ROOT}/data/user_trials/PRESENTATION/", isHafar=False)
-    # testDataOnModel(model, modelType, config.get("HAFAR_PATH"), isHafar=True)
+    testDataOnModel(model, modelType, config.get("HAFAR_PATH"), isHafar=True)
     
-    testDataOnModel(model, modelType, f"{TEST_PATH}/", resampleFrequency=32)
+    # testDataOnModel(model, modelType, f"{TEST_PATH}/", resampleFrequency=32)
     # testDataOnAlternativeModels(f"{MODELS_PATH}/alternative/", f"{TEST_PATH}/")

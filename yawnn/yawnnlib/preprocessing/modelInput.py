@@ -46,7 +46,7 @@ class ModelInput(ABC):
     def fromHafarDirectory(self, directoryPath : str) -> commons.AnnotatedData:
         """ Put all .csv files from the HAFAR dataset into a combined tuple of (data, annotations).
         Pass result into fromCombinedTuple to get a ModelData object. """
-        return hafarToEimu.convert(directoryPath)
+        return hafarToEimu.convert(directoryPath, specificUsers=config.get("HAFAR_USERS"))
         
     def fromAnnotatedDataList(self, annotatedDataList : list[commons.AnnotatedData], shuffle : bool = True, equalPositiveAndNegative : bool = True, trainSplit : float = config.get("TRAIN_SPLIT")) -> commons.ModelData:
         try:
