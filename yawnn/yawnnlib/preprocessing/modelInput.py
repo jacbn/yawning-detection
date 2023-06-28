@@ -1,4 +1,5 @@
 from yawnnlib.utils import commons, config
+from yawnnlib.preprocessing.modelData import ModelData
 import tools.hafarToEimu as hafarToEimu
 
 import numpy as np
@@ -37,37 +38,19 @@ class ModelInput(ABC):
     def getType(self) -> str:
         pass
     
-    def fromEimuDirectory(self, directoryPath : str) -> list[commons.AnnotatedData]:
+    def fromEimuDirectory(self, directoryPath : str, trainSplit : float = config.get("TRAIN_SPLIT"), equalPositiveAndNegative=True, shuffle=True) -> ModelData:
         """ Pull all .eimu files from one directory into a list of pairs of (data, annotations).
         Pass result into fromAnnotatedDataList to get a ModelData object. """
+        # todo: update descriptions
         # todo: merge this with fromHafarDirectory (move L2 of fromAnnotatedDataList to before use of this)
-        return commons.mapToDirectory(self.fromPathOrCache, directoryPath) 
+        combinedList = commons.mapToDirectory(self.fromPathOrCache, directoryPath)
+        return ModelData.fromAnnotatedDataList(combinedList, None, 96, trainSplit=trainSplit, equalPositiveAndNegative=equalPositiveAndNegative, shuffle=shuffle)
     
-    def fromHafarDirectory(self, directoryPath : str) -> commons.AnnotatedData:
+    def fromHafarDirectory(self, directoryPath : str, trainSplit : float = config.get("TRAIN_SPLIT"), equalPositiveAndNegative=True, shuffle=True) -> ModelData:
         """ Put all .csv files from the HAFAR dataset into a combined tuple of (data, annotations).
         Pass result into fromCombinedTuple to get a ModelData object. """
-        return hafarToEimu.convert(directoryPath, specificUsers=config.get("HAFAR_USERS"))
-        
-    def fromAnnotatedDataList(self, annotatedDataList : list[commons.AnnotatedData], shuffle : bool = True, equalPositiveAndNegative : bool = True, trainSplit : float = config.get("TRAIN_SPLIT")) -> commons.ModelData:
-        try:
-            # combine all the inputs into a single tuple of (data, annotations)
-            combinedTuple = np.concatenate(list(map(lambda x: x[0], annotatedDataList))), np.concatenate(list(map(lambda x: x[1], annotatedDataList)))
-            return self.fromCombinedTuple(combinedTuple, shuffle, equalPositiveAndNegative, trainSplit)
-        except ValueError as e:
-            raise ValueError(f"Data could not be combined. Ensure all files use the same sampling rate.", e)
-    
-    def fromCombinedTuple(self, combinedTuple : commons.AnnotatedData, shuffle : bool = True, equalPositiveAndNegative : bool = True, trainSplit : float = config.get("TRAIN_SPLIT")) -> commons.ModelData:
-        """ Converts a tuple of (data, annotations) into a ModelData object. """
-        # split the data into training and test sets (the model data); (trainSplit * 100%) of the data is used for training
-        trainLength = int(len(combinedTuple[0]) * trainSplit)
-        modelData = (combinedTuple[0][:trainLength], combinedTuple[1][:trainLength]), (combinedTuple[0][trainLength:], combinedTuple[1][trainLength:])
-        
-        if equalPositiveAndNegative:
-            modelData = commons.equalisePositiveAndNegative(modelData, shuffle)
-        if shuffle:
-            modelData = commons.shuffleAllData(modelData, trainSplit)
-    
-        return modelData
+        annotatedData, weights = hafarToEimu.convert(directoryPath, specificUsers=config.get("HAFAR_USERS"))
+        return ModelData.fromCombinedTuple(annotatedData, weights, config.get("HAFAR_SAMPLE_RATE"), trainSplit=trainSplit, equalPositiveAndNegative=equalPositiveAndNegative, shuffle=shuffle)
     
     def _getCachePathForFile(self, fileName : str) -> str:
         cacheDirectory = config.get("CACHE_DIRECTORY")

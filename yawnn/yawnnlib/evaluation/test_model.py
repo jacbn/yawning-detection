@@ -67,14 +67,16 @@ def testDataOnModel(model, modelType : ModelInput, dataDirectory : str, isHafar 
         The directory containing the data to test.
     """
     if isHafar:
-        combinedTuple = modelType.fromHafarDirectory(dataDirectory)
-        _, (X, Y) = modelType.fromCombinedTuple(combinedTuple, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
+        # combinedTuple = modelType.fromHafarDirectory(dataDirectory)
+        # _, (X, Y) = modelType.fromCombinedTuple(combinedTuple, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
+        modelData = modelType.fromHafarDirectory(dataDirectory, shuffle=True, equalPositiveAndNegative=True, trainSplit=1.0)
     else:
-        annotatedData = modelType.fromEimuDirectory(dataDirectory)
-        _, (X, Y) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
+        # annotatedData = modelType.fromEimuDirectory(dataDirectory)
+        # _, (X, Y) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
+        modelData = modelType.fromEimuDirectory(dataDirectory, shuffle=True, equalPositiveAndNegative=True, trainSplit=1.0)
+    (X, Y) = modelData.train
     if resampleFrequency > 0:
-        # todo: use frequency given by model as opposed to hardcoding
-        (X, Y) = eimuResampler.resampleAnnotatedData((X, Y), 96, resampleFrequency)
+        (X, Y) = eimuResampler.resampleAnnotatedData((X, Y), modelData.sampleRate, resampleFrequency)
     if "CNN-LSTM" in modelType.getType():
         (X, Y) = commons.timeDistributeAnnotatedData((X, Y))
     # res1 = model.evaluate(X, Y)
@@ -113,8 +115,8 @@ def testDataOnAlternativeModels(altModelsPath : str, dataDirectory : str):
     plt.show()
 
 if __name__ == "__main__":
-    modelType = MODEL_INPUTS['fftLSTM']
-    model = loadModel(f"{MODELS_PATH}/fftLSTM_0.h5")
+    modelType = MODEL_INPUTS['eimuLSTM']
+    model = loadModel(f"{MODELS_PATH}/eimuLSTM_5.h5")
     visualizeModel(model)
     
     # testDataOnModel(model, modelType, f"{commons.PROJECT_ROOT}/data/user_trials/PRESENTATION/", isHafar=False)

@@ -2,8 +2,9 @@ from yawnnlib.utils import commons, filters, config
 from yawnnlib.preprocessing.eimuModelInput import EimuModelInput
 from yawnnlib.preprocessing.fftModelInput import FFTModelInput
 from yawnnlib.preprocessing.spectrogramModelInput import SpectrogramModelInput
+from yawnnlib.preprocessing.modelData import ModelData
 from yawnnlib.alternatives.alternative_classifier import AlternativeClassifier
-from yawnnlib.training.trainingFuncs import getValidatedModelData, trainModel, makeSequentialModel, trainAlternatives
+from yawnnlib.training.trainingFuncs import trainModel, makeSequentialModel, trainAlternatives
 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -202,12 +203,13 @@ def trainEimuLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels :
     # the data has to be collected here, not inside trainModel, as we use properties of the data (namely shape) to build the model
     # (in this model, it is only used in the optional Input layer, but other models require it for reshapes and so for consistency it is kept)
     if config.get("FILE_FORMAT") == "eimu":
-        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromEimuDirectory(DATA_PATH, shuffle=True, equalPositiveAndNegative=True)
+        # modelData = ModelData.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
     else:
-        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromHafarDirectory(HAFAR_PATH, shuffle=True, equalPositiveAndNegative=True)
+        # modelData = ModelData.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
     
-    ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
-        modelData=modelData,
+    ((trainX, trainY), (valX, valY), (testX, testY)), trainingSampleWeights = modelData.splitValidationFromTrainTest(
         modelNum=modelNum,
         totalModels=totalModels
     )
@@ -229,6 +231,8 @@ def trainEimuLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels :
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (valX, valY), (testX, testY)),
+            trainingSampleWeights,
+            modelData.sampleRate,
             epochs=5, # pre-hafar: 15
             batchSize=64,
             resampleFrequency=resampleFrequency

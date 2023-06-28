@@ -1,13 +1,14 @@
 from yawnnlib.utils import commons, config
+from yawnnlib.preprocessing.modelData import ModelData
 
 import pandas as pd
 import numpy as np
 import os
 
-HAFAR_FREQ = 32 # hz
+HAFAR_FREQ = config.get("HAFAR_SAMPLE_RATE") # hz
 WINDOW_SIZE = 2 # seconds
 
-def convert(directoryPath : str, specificUsers : set[int] = set(range(1, 24))) -> commons.AnnotatedData:
+def convert(directoryPath : str, specificUsers : set[int] = set(range(1, 24))) -> commons.WeightedAnnotatedData:
     
     # convert the specified users to their IDs
     specificUserIDs = set(map(lambda x: f"w{x:03d}", specificUsers))
@@ -19,6 +20,7 @@ def convert(directoryPath : str, specificUsers : set[int] = set(range(1, 24))) -
     # load data from specified users
     data = []
     timestamps = []
+    weights = []
     for user in users:
         user_dfs = [pd.read_csv(f"{directoryPath}/{user}_{f}_eSense.csv") for f in ["acc", "gyro", "activity"]]
         # "user" is also another file type, but has no useful info for this task (and is missing for user 10)
@@ -34,21 +36,27 @@ def convert(directoryPath : str, specificUsers : set[int] = set(range(1, 24))) -
             if len(frame) < HAFAR_FREQ * WINDOW_SIZE:
                 # then frame too short for a WINDOW_SIZE second sample -- ignore
                 continue
-            for j in range(0, len(frame) - HAFAR_FREQ * WINDOW_SIZE, HAFAR_FREQ):
+            for j in range(0, len(frame) - HAFAR_FREQ * WINDOW_SIZE, HAFAR_FREQ): # windows overlap, hence the movement by only 1 second
                 # todo: we currently always ignore the rightmost part of the frame. could experiment with ignoring the leftmost part instead
                 fixedLengthFrame = frame[j : j + HAFAR_FREQ * WINDOW_SIZE, :]
                 data.append(fixedLengthFrame)
                 timestamps.append(int(activities[i] == "Yawn")) # use the timestamp of the current activity
-            
+        
+        weights += [round(59282 / max(400, len(df) / HAFAR_FREQ)) for _ in range(len(data) - len(weights))]
+        # 59282 is the number of samples in the longest file (user 7), # todo: obtain automatically
+        # we take the max of the number of samples in the file and 400 to avoid ridiculous weights for very short files
+        # the division by HAFAR_FREQ obtains the number of windows in the file, used as the weighting metric
+        # this is then rounded for an integer weight
+        
         del df
         del activities
     
-    assert len(data) == len(timestamps)
-    return np.array(data, dtype=np.float32), np.array(timestamps)
+    assert len(data) == len(timestamps) == len(weights), f"{len(data)}, {len(timestamps)}, {len(weights)} not equal."
+    return (np.array(data, dtype=np.float32), np.array(timestamps)), np.array(weights, dtype=np.float32)
 
 if __name__ == "__main__":
     for i in range(1, 24):
-        d, t = convert(config.get("HAFAR_PATH"), specificUsers=set([i]))
+        (d, t), w = convert(config.get("HAFAR_PATH"), specificUsers=set([i]))
         # print(d.shape)
         # print(t.shape)
-        print(f"{i}: {np.sum(t)}")
+        print(f"{i:02d}: {len(d): 6d}, {np.sum(t): 6d}, {w[0]}")
