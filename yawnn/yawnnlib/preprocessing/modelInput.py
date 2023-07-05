@@ -46,10 +46,16 @@ class ModelInput(ABC):
         combinedList = commons.mapToDirectory(self.fromPathOrCache, directoryPath)
         return ModelData.fromAnnotatedDataList(combinedList, None, 96, trainSplit=trainSplit, equalPositiveAndNegative=equalPositiveAndNegative, shuffle=shuffle)
     
-    def fromHafarDirectory(self, directoryPath : str, trainSplit : float = config.get("TRAIN_SPLIT"), equalPositiveAndNegative=True, shuffle=True) -> ModelData:
+    def fromHafarDirectory(self, directoryPath : str, trainSplit : float = config.get("TRAIN_SPLIT"), isTrain=True, equalPositiveAndNegative=True, shuffle=True) -> ModelData:
         """ Put all .csv files from the HAFAR dataset into a combined tuple of (data, annotations).
         Pass result into fromCombinedTuple to get a ModelData object. """
-        annotatedData, weights = hafarToEimu.convert(directoryPath, specificUsers=config.get("HAFAR_USERS"))
+        annotatedData, weights = hafarToEimu.convert(
+            directoryPath, 
+            specificUsers=config.get("HAFAR_USERS"),
+            poiUsers=config.get("HAFAR_POI_USERS"),
+            poiTrainSplit=config.get("HAFAR_POI_TRAIN_SPLIT"),
+            isTrain=isTrain
+        )
         return ModelData.fromCombinedTuple(annotatedData, weights, config.get("HAFAR_SAMPLE_RATE"), trainSplit=trainSplit, equalPositiveAndNegative=equalPositiveAndNegative, shuffle=shuffle)
     
     def _getCachePathForFile(self, fileName : str) -> str:

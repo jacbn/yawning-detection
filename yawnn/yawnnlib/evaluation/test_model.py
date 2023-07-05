@@ -69,7 +69,7 @@ def testDataOnModel(model, modelType : ModelInput, dataDirectory : str, isHafar 
     if isHafar:
         # combinedTuple = modelType.fromHafarDirectory(dataDirectory)
         # _, (X, Y) = modelType.fromCombinedTuple(combinedTuple, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
-        modelData = modelType.fromHafarDirectory(dataDirectory, shuffle=True, equalPositiveAndNegative=True, trainSplit=1.0)
+        modelData = modelType.fromHafarDirectory(dataDirectory, isTrain=False, shuffle=True, equalPositiveAndNegative=True, trainSplit=1.0)
     else:
         # annotatedData = modelType.fromEimuDirectory(dataDirectory)
         # _, (X, Y) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
@@ -115,8 +115,8 @@ def testDataOnAlternativeModels(altModelsPath : str, dataDirectory : str):
     plt.show()
 
 if __name__ == "__main__":
-    modelType = MODEL_INPUTS['eimuLSTM']
-    model = loadModel(f"{MODELS_PATH}/eimuLSTM_5.h5")
+    modelType = MODEL_INPUTS['eimuCNN']
+    model = loadModel(f"{MODELS_PATH}/eimuCNN_1.h5")
     visualizeModel(model)
     
     # testDataOnModel(model, modelType, f"{commons.PROJECT_ROOT}/data/user_trials/PRESENTATION/", isHafar=False)

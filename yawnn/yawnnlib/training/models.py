@@ -204,10 +204,8 @@ def trainEimuLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels :
     # (in this model, it is only used in the optional Input layer, but other models require it for reshapes and so for consistency it is kept)
     if config.get("FILE_FORMAT") == "eimu":
         modelData = modelType.fromEimuDirectory(DATA_PATH, shuffle=True, equalPositiveAndNegative=True)
-        # modelData = ModelData.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
     else:
         modelData = modelType.fromHafarDirectory(HAFAR_PATH, shuffle=True, equalPositiveAndNegative=True)
-        # modelData = ModelData.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
     
     ((trainX, trainY), (valX, valY), (testX, testY)), trainingSampleWeights = modelData.splitValidationFromTrainTest(
         modelNum=modelNum,
@@ -244,12 +242,11 @@ def trainEimuCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : 
     modelType = MODEL_INPUTS['eimuCNN']
     
     if config.get("FILE_FORMAT") == "eimu":
-        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromEimuDirectory(DATA_PATH, shuffle=True, equalPositiveAndNegative=True)
     else:
-        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromHafarDirectory(HAFAR_PATH, shuffle=True, equalPositiveAndNegative=True)
     
-    ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
-        modelData=modelData,
+    ((trainX, trainY), (valX, valY), (testX, testY)), trainingSampleWeights = modelData.splitValidationFromTrainTest(
         modelNum=modelNum,
         totalModels=totalModels
     )
@@ -274,6 +271,8 @@ def trainEimuCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : 
                 learningRate=1e-4
             ),
             ((trainX, trainY), (valX, valY), (testX, testY)),
+            trainingSampleWeights,
+            modelData.sampleRate,
             epochs=20,
             batchSize=64,
             resampleFrequency=resampleFrequency
@@ -284,16 +283,13 @@ def trainEimuConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalMode
     modelType = MODEL_INPUTS['eimuCNN-LSTM']
     
     if config.get("FILE_FORMAT") == "eimu":
-        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromEimuDirectory(DATA_PATH, shuffle=True, equalPositiveAndNegative=True)
     else:
-        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromHafarDirectory(HAFAR_PATH, shuffle=True, equalPositiveAndNegative=True)
     
-    ((trainX, trainY), (valX, valY), (testX, testY)) = commons.timeDistributeData(
-        getValidatedModelData(
-            modelData=modelData,
-            modelNum=modelNum,
-            totalModels=totalModels
-        )
+    ((trainX, trainY), (valX, valY), (testX, testY)), trainingSampleWeights = modelData.splitValidationFromTrainTest(
+        modelNum=modelNum,
+        totalModels=totalModels
     )
     
     return trainModel(
@@ -318,6 +314,8 @@ def trainEimuConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalMode
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (valX, valY), (testX, testY)),
+            trainingSampleWeights,
+            modelData.sampleRate,
             epochs=20, 
             batchSize=64,
             resampleFrequency=resampleFrequency
@@ -328,12 +326,11 @@ def trainFftLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels : 
     modelType = MODEL_INPUTS['fftLSTM']
     
     if config.get("FILE_FORMAT") == "eimu":
-        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromEimuDirectory(DATA_PATH, shuffle=True, equalPositiveAndNegative=True)
     else:
-        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromHafarDirectory(HAFAR_PATH, shuffle=True, equalPositiveAndNegative=True)
     
-    ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
-        modelData=modelData,
+    ((trainX, trainY), (valX, valY), (testX, testY)), trainingSampleWeights = modelData.splitValidationFromTrainTest(
         modelNum=modelNum,
         totalModels=totalModels
     )
@@ -353,6 +350,8 @@ def trainFftLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModels : 
                 learningRate=3e-4
             ),
             ((trainX, trainY), (valX, valY), (testX, testY)),
+            trainingSampleWeights,
+            modelData.sampleRate,
             epochs=5, # pre-hafar: 60, 
             batchSize=128,
             resampleFrequency=resampleFrequency
@@ -363,12 +362,11 @@ def trainFftCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : i
     modelType = MODEL_INPUTS['fftCNN']
     
     if config.get("FILE_FORMAT") == "eimu":
-        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromEimuDirectory(DATA_PATH, shuffle=True, equalPositiveAndNegative=True)
     else:
-        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromHafarDirectory(HAFAR_PATH, shuffle=True, equalPositiveAndNegative=True)
     
-    ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
-        modelData=modelData,
+    ((trainX, trainY), (valX, valY), (testX, testY)), trainingSampleWeights = modelData.splitValidationFromTrainTest(
         modelNum=modelNum,
         totalModels=totalModels
     )
@@ -396,6 +394,8 @@ def trainFftCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : i
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (valX, valY), (testX, testY)),
+            trainingSampleWeights,
+            modelData.sampleRate,
             epochs=15, # pre-hafar: 40 
             batchSize=64,
             resampleFrequency=resampleFrequency
@@ -406,16 +406,13 @@ def trainFftConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModel
     modelType = MODEL_INPUTS['fftCNN-LSTM']
     
     if config.get("FILE_FORMAT") == "eimu":
-        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromEimuDirectory(DATA_PATH, shuffle=True, equalPositiveAndNegative=True)
     else:
-        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromHafarDirectory(HAFAR_PATH, shuffle=True, equalPositiveAndNegative=True)
     
-    ((trainX, trainY), (valX, valY), (testX, testY)) = commons.timeDistributeData(
-        getValidatedModelData(
-            modelData=modelData,
-            modelNum=modelNum,
-            totalModels=totalModels,
-        )
+    ((trainX, trainY), (valX, valY), (testX, testY)), trainingSampleWeights = modelData.splitValidationFromTrainTest(
+        modelNum=modelNum,
+        totalModels=totalModels
     )
     
     return trainModel(
@@ -440,6 +437,8 @@ def trainFftConvLSTM(resampleFrequency: int = -1, modelNum : int = 0, totalModel
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (valX, valY), (testX, testY)),
+            trainingSampleWeights,
+            modelData.sampleRate,
             epochs=20, # pre-hafar: 40 
             batchSize=64,
             resampleFrequency=resampleFrequency
@@ -451,12 +450,11 @@ def trainSpectrogramCNN(resampleFrequency: int = -1, modelNum : int = 0, totalMo
     modelType = MODEL_INPUTS['specCNN']
     
     if config.get("FILE_FORMAT") == "eimu":
-        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromEimuDirectory(DATA_PATH, shuffle=True, equalPositiveAndNegative=True)
     else:
-        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromHafarDirectory(HAFAR_PATH, shuffle=True, equalPositiveAndNegative=True)
     
-    ((trainX, trainY), (valX, valY), (testX, testY)) = getValidatedModelData(
-        modelData=modelData,
+    ((trainX, trainY), (valX, valY), (testX, testY)), trainingSampleWeights = modelData.splitValidationFromTrainTest(
         modelNum=modelNum,
         totalModels=totalModels
     )
@@ -482,6 +480,8 @@ def trainSpectrogramCNN(resampleFrequency: int = -1, modelNum : int = 0, totalMo
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
             ),
             ((trainX, trainY), (valX, valY), (testX, testY)),
+            trainingSampleWeights,
+            modelData.sampleRate,
             epochs=15, # pre-hafar: 40 
             batchSize=64,
             resampleFrequency=resampleFrequency
@@ -492,13 +492,12 @@ def trainAlternativeClassifiers(resampleFrequency: int = -1):
     modelType = MODEL_INPUTS['altModels']
     
     if config.get("FILE_FORMAT") == "eimu":
-        modelData = modelType.fromAnnotatedDataList(modelType.fromEimuDirectory(DATA_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromEimuDirectory(DATA_PATH, shuffle=True, equalPositiveAndNegative=True)
     else:
-        modelData = modelType.fromCombinedTuple(modelType.fromHafarDirectory(HAFAR_PATH), shuffle=True, equalPositiveAndNegative=True)
+        modelData = modelType.fromHafarDirectory(HAFAR_PATH, shuffle=True, equalPositiveAndNegative=True)
     
-    # validation set unsupported for alternative classifiers
-    ((trainX, trainY), _, (testX, testY)) = getValidatedModelData(
-        modelData=modelData
+    ((trainX, trainY), _, (testX, testY)), trainingSampleWeights = modelData.splitValidationFromTrainTest(
+        modelNum=0,
     )
     
     classifiers = [

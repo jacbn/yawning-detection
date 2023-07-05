@@ -8,9 +8,11 @@ CACHE_DIRECTORY: "{PROJECT_ROOT}/data/.preprocessing_cache"
 FILE_FORMAT: "csv" # "eimu" or "csv" (hafar-style)
 HAFAR_PATH: "{PROJECT_ROOT}/data/HAFAR/files"
 HAFAR_SAMPLE_RATE: 32
-# HAFAR_USERS: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] # all users
+HAFAR_USERS: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] # all users
 # HAFAR_USERS: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] # train set
-HAFAR_USERS: [17, 18, 19, 20, 21, 22, 23] # test set
+# HAFAR_USERS: [17, 18, 19, 20, 21, 22, 23] # test set
+HAFAR_POI_USERS: [1, 2, 3, 4, 5, 6, 7] # POIs
+HAFAR_POI_TRAIN_SPLIT: 0.2 # fraction of POI data to use for training (including validation)
 
 YAWN_TIME: 2           # time, in seconds, an individual yawn lasts for
 YAWN_CORRECTION: 0     # account for the delay between the recognisable part of a yawn and pressing it
