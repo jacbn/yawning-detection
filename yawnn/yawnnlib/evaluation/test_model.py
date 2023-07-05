@@ -115,12 +115,29 @@ def testDataOnAlternativeModels(altModelsPath : str, dataDirectory : str):
     plt.show()
 
 if __name__ == "__main__":
-    modelType = MODEL_INPUTS['eimuCNN']
-    model = loadModel(f"{MODELS_PATH}/eimuCNN_1.h5")
-    visualizeModel(model)
     
-    # testDataOnModel(model, modelType, f"{commons.PROJECT_ROOT}/data/user_trials/PRESENTATION/", isHafar=False)
-    testDataOnModel(model, modelType, config.get("HAFAR_PATH"), isHafar=True)
+    testSingle = False
+    # saves a text file of results. if further analysis (graphs etc) is required, use eval_models.py and plot_xxx_eval.py instead
+    saveResults = True
+    results = []
+    
+    if testSingle:
+        modelType = MODEL_INPUTS['eimuCNN']
+        model = loadModel(f"{MODELS_PATH}/eimuCNN_1.h5")
+        # visualizeModel(model)
+        results = [testDataOnModel(model, modelType, config.get("HAFAR_PATH"), isHafar=True)]
+    else:
+        for mType in ['eimuLSTM', 'eimuCNN', 'fftLSTM', 'fftCNN']:
+            modelType = MODEL_INPUTS[mType]
+            for i in range(10):
+                model = loadModel(f"{MODELS_PATH}/{mType}_{i}.h5")
+                res = testDataOnModel(model, modelType, config.get("HAFAR_PATH"), isHafar=True)
+                if saveResults:
+                    results.append(res)
+    if saveResults:
+        with open("results.txt", "w") as f:
+            for r in results:
+                f.write(str(r) + '\n')
     
     # testDataOnModel(model, modelType, f"{TEST_PATH}/", resampleFrequency=32)
     # testDataOnAlternativeModels(f"{MODELS_PATH}/alternative/", f"{TEST_PATH}/")

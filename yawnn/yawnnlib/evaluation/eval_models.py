@@ -17,21 +17,24 @@ class ModelEvaluation:
         self.path = f"{MODELS_PATH}/{name}"
         self.results = {}
     
-    def evaluate(self):
+    def evaluate(self, isHafar : bool = False):
         modelPaths = list(filter(lambda x: x.endswith(".h5"), os.listdir(self.path)))
         for modelPath in modelPaths:
             model = test_model.loadModel(f"{self.path}/{modelPath}")
             modelType = models.MODEL_INPUTS[modelPath.split("_")[0]]
             if modelType.getType() not in self.results:
                 self.results[modelType.getType()] = {}
-            accuracy, prec, recall, f1 = test_model.testDataOnModel(model, modelType, TEST_PATH)
+            if isHafar:
+                accuracy, prec, recall, f1 = test_model.testDataOnModel(model, modelType, config.get("HAFAR_PATH"), isHafar=True)
+            else:
+                accuracy, prec, recall, f1 = test_model.testDataOnModel(model, modelType, TEST_PATH)
             self.results[modelType.getType()][modelPath] = [accuracy, prec, recall, f1]
             del model
             
     def save(self):
         pickle.dump(self.results, open(f"{MODELS_PATH}/evaluation/{self.name}_results.pkl", "wb"))
 
-paramEval = ModelEvaluation("fft_128") 
-paramEval.evaluate()
+paramEval = ModelEvaluation("main_models") 
+paramEval.evaluate(isHafar=True)
 paramEval.save()
 print(paramEval.results)

@@ -24,6 +24,7 @@ modelMap = {
     10 : lambda sr: trainSpecificModels(range(1, 4), sr),
     11 : lambda sr: trainSpecificModels(range(4, 8), sr),
     12 : lambda sr: trainSpecificModels([1, 2, 4, 5, 7], sr),
+    13 : lambda sr: trainSpecificModels(list(map(int, input("Custom models: ").split(' '))), sr)
 }
 
 if __name__ == "__main__":
@@ -49,6 +50,7 @@ if __name__ == "__main__":
         print("10: All Eimu Models")
         print("11: All FFT Models")
         print("12: HAFAR-Compatible Models")
+        print("13: Custom")
         while True:
             try:
                 model = modelMap[int(input())]

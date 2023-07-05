@@ -8,5 +8,6 @@ yawnn/lib/classifiers/__pycache__*
 .venv*
 *__pycache__*
 model.png
+results.txt
 /dissertation/main.aux
 *.coverage
