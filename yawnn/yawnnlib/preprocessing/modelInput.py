@@ -11,11 +11,11 @@ class ModelInput(ABC):
     """ An abstract class that represents an input to a NN model. """
     # todo: make private
     @abstractmethod
-    def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
+    def applyModelTransformOnPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
         pass
     
     # todo: as above
-    def fromPathOrCache(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
+    def applyModelTransformOnCachedPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
         print(f"Processing data: {fileNum}/{totalFiles}...", end='\r')
         if (config.get("ENABLE_CACHING")):
             fileName = basename(normpath(path))
@@ -28,11 +28,15 @@ class ModelInput(ABC):
                 return self._fromCache(directory)
             else:
                 print()
-                data, annotations = self.fromPath(path, fileNum, totalFiles)
+                data, annotations = self.applyModelTransformOnPath(path, fileNum, totalFiles)
                 self._toCache(directory, data, annotations)
                 return data, annotations
         print()
-        return self.fromPath(path, fileNum, totalFiles)
+        return self.applyModelTransformOnPath(path, fileNum, totalFiles)
+    
+    @abstractmethod
+    def applyModelTransformOnWeightedAnnotatedData(self, waData : commons.WeightedAnnotatedData) -> commons.WeightedAnnotatedData:
+        pass
     
     @abstractmethod
     def getType(self) -> str:
@@ -43,19 +47,23 @@ class ModelInput(ABC):
         Pass result into fromAnnotatedDataList to get a ModelData object. """
         # todo: update descriptions
         # todo: merge this with fromHafarDirectory (move L2 of fromAnnotatedDataList to before use of this)
-        combinedList = commons.mapToDirectory(self.fromPathOrCache, directoryPath)
+        combinedList = commons.mapToDirectory(self.applyModelTransformOnCachedPath, directoryPath)
         return ModelData.fromAnnotatedDataList(combinedList, None, 96, trainSplit=trainSplit, equalPositiveAndNegative=equalPositiveAndNegative, shuffle=shuffle)
     
     def fromHafarDirectory(self, directoryPath : str, trainSplit : float = config.get("TRAIN_SPLIT"), isTrain=True, equalPositiveAndNegative=True, shuffle=True) -> ModelData:
         """ Put all .csv files from the HAFAR dataset into a combined tuple of (data, annotations).
         Pass result into fromCombinedTuple to get a ModelData object. """
-        annotatedData, weights = hafarToEimu.convert(
+        hafarData = hafarToEimu.convert(
             directoryPath, 
             specificUsers=config.get("HAFAR_USERS"),
             poiUsers=config.get("HAFAR_POI_USERS"),
             poiTrainSplit=config.get("HAFAR_POI_TRAIN_SPLIT"),
             isTrain=isTrain
         )
+        
+        print(f"Applying {self.getType()} transform...")
+        annotatedData, weights = self.applyModelTransformOnWeightedAnnotatedData(hafarData)
+        print("Transform applied.")
         return ModelData.fromCombinedTuple(annotatedData, weights, config.get("HAFAR_SAMPLE_RATE"), trainSplit=trainSplit, equalPositiveAndNegative=equalPositiveAndNegative, shuffle=shuffle)
     
     def _getCachePathForFile(self, fileName : str) -> str:

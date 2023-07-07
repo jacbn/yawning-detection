@@ -131,8 +131,8 @@ MODEL_INPUTS = {
                 ),
     
     'fftLSTM':  FFTModelInput(
-                    windowSize=YAWN_TIME,
-                    windowSep=YAWN_TIME/2,
+                    windowSize=YAWN_TIME/2,
+                    windowSep=YAWN_TIME,
                     dataFilter=filters.FilterCollection([
                         # filters.SmoothFilter(keepData=0.8),
                         filters.HighPassFilter(96, 0.1), 
@@ -140,14 +140,14 @@ MODEL_INPUTS = {
                         # filters.MovingAverageFilter(5), 
                         filters.NormalisationFilter()
                     ]),
-                    nPerSeg=128,
-                    nOverlap=96,
+                    nPerSeg=32,
+                    nOverlap=16,
                     name='fftLSTM'
                 ),                  
     
     'fftCNN':   FFTModelInput(
                     windowSize=YAWN_TIME, 
-                    windowSep=YAWN_TIME/2, 
+                    windowSep=YAWN_TIME, 
                     dataFilter=filters.FilterCollection([
                         # filters.SmoothFilter(keepData=0.8),
                         filters.HighPassFilter(96, 0.1), 
@@ -162,7 +162,7 @@ MODEL_INPUTS = {
     
     'fftCNN-LSTM': FFTModelInput(
                     windowSize=YAWN_TIME, 
-                    windowSep=YAWN_TIME/2, 
+                    windowSep=YAWN_TIME, 
                     dataFilter=filters.FilterCollection([
                         # filters.SmoothFilter(keepData=0.8),
                         # filters.HighPassFilter(96, 0.01, 30), 
@@ -177,7 +177,7 @@ MODEL_INPUTS = {
     
     'specCNN':  SpectrogramModelInput(
                     windowSize=YAWN_TIME,
-                    windowSep=YAWN_TIME/2,
+                    windowSep=YAWN_TIME,
                     dataFilter=filters.FilterCollection([
                         # filters.SmoothFilter(keepData=0.8),
                         filters.HighPassFilter(96, 0.1), 
@@ -191,7 +191,7 @@ MODEL_INPUTS = {
                 ),
     'altModels': EimuModelInput(
                     windowSize=YAWN_TIME, 
-                    windowSep=YAWN_TIME/2, 
+                    windowSep=YAWN_TIME, 
                     name='altModels'
                 ),
 }

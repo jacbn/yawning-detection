@@ -18,8 +18,9 @@ class EimuModelInput(ModelInput):
         return self._applyModelTransform(session)
     
     def applyModelTransformOnWeightedAnnotatedData(self, hafarData : commons.WeightedAnnotatedData) -> commons.WeightedAnnotatedData:
-        session = SessionData.fromWeightedAnnotatedData(hafarData, config.get("HAFAR_SAMPLE_RATE"), config.get("EIMU_VERSION")) 
-        return self._applyModelTransform(session), np.array(session.weights)
+        # eimu data is straight from the headphones, no conversion required
+        # todo: this won't apply filters, not relevant for HAFAR but worth noting
+        return hafarData
     
     def _applyModelTransform(self, session : SessionData) -> commons.AnnotatedData:
         """ Converts a session to a tuple of (data, annotations)

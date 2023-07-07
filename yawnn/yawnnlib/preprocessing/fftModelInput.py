@@ -20,8 +20,20 @@ class FFTModelInput(ModelInput):
         return self._applyModelTransform(session)
     
     def applyModelTransformOnWeightedAnnotatedData(self, hafarData : commons.WeightedAnnotatedData) -> commons.WeightedAnnotatedData:
-        session = FourierData.fromWeightedAnnotatedData(hafarData, config.get("HAFAR_SAMPLE_RATE"), config.get("EIMU_VERSION"), nOverlap=self.nOverlap, nPerSeg=self.nPerSeg) 
-        return self._applyModelTransform(session), np.array(session.weights)
+        # the data is already windowed, so we need only apply the FFT to each
+        (data, annotations), weights = hafarData
+        transformedData = []
+        transformedAnnotations = []
+        for window in range(len(data)):
+            waData = (data[window], annotations[window]), weights[window]
+            session = FourierData.fromWeightedAnnotatedData(waData, config.get("HAFAR_SAMPLE_RATE"), config.get("EIMU_VERSION"), nOverlap=self.nOverlap, nPerSeg=self.nPerSeg)
+            d, a = self._applyModelTransform(session)
+            transformedData.append(d)
+            transformedAnnotations.append(a)
+            if (window % 1000 == 0):
+                print(f"Processing data: {window}/{len(data)}...", end='\r')
+        return (np.array(transformedData), np.array(transformedAnnotations)), weights
+        
     
     def _applyModelTransform(self, session : FourierData) -> commons.AnnotatedData:
         """ Applies Fourier methods to a session to generate a tuple of (data, annotations).
