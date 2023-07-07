@@ -36,7 +36,7 @@ class SessionData:
         used exclusively for splitting a session; the total number of splits. -1 if not used 
     """
     
-    def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1):
+    def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1, weights : list[float] = []):
         """ Constructs the necessary attributes for the SessionData object.
 
         Attributes
@@ -61,6 +61,7 @@ class SessionData:
         self.gyroLim = max(abs(min(map(min, self.gyro))), abs(max(map(max, self.gyro))))
         self.numPoints = len(dataset)
         self.timestamps = timestamps
+        self.weights = weights
         self.sampleRate = sampleRate
         self.version = version
         self.fileNum = fileNum
@@ -88,11 +89,21 @@ class SessionData:
         return cls(data, timestamps, sampleRate, version, fileNum, totalFiles)
     
     @classmethod
-    def from6DDataVectors(cls, data : list[list[float]], timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1):
+    def from6DDataVectors(cls, data : list[list[float]], timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1, weights : list[float] = []):
         """ Create a SessionData object from a 6D data vector. 
         Note that this will not apply a correction to the yawn times. """
         sensorReadings = list(map(lambda x: SensorReading(x[:3], x[3:]), data))
-        return cls(sensorReadings, timestamps, sampleRate, version, fileNum, totalFiles)
+        return cls(sensorReadings, timestamps, sampleRate, version, fileNum=fileNum, totalFiles=totalFiles, weights=weights)
+    
+    @classmethod
+    def fromWeightedAnnotatedData(cls, data : commons.WeightedAnnotatedData, sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1):
+        """ Create a SessionData object from a WeightedAnnotatedData object. """
+        annotatedData, weights = data
+        # print(annotatedData[0].tolist())
+        print(annotatedData[0].shape)
+        readings = annotatedData[0].reshape((-1, 6)).tolist()
+        timestamps = list(map(lambda x: Timestamp(x, "yawn"), np.where(annotatedData[1] == 1)[0].tolist()))
+        return cls.from6DDataVectors(readings, timestamps, sampleRate, version, fileNum=fileNum, totalFiles=totalFiles, weights=weights.tolist())
         
     def getEimuData(self, windowSize : float, windowSep : float, dataFilter : filters.DataFilter = filters.NoneFilter()) -> tuple[np.ndarray, list[list[Timestamp]]]:
         """ Returns the data to input to the model.
