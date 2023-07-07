@@ -67,8 +67,6 @@ def convert(directoryPath : str, specificUsers : set[int] = set(range(1, 24)), p
     
     assert len(data) == len(timestamps) == len(weights), f"{len(data)}, {len(timestamps)}, {len(weights)} not equal."
     ad, w = (np.array(data, dtype=np.float32), np.array(timestamps)), np.array(weights, dtype=np.float32)
-    trainTestBorder = int(len(ad) * poiTrainSplit)
-    # return (ad[:trainTestBorder], w[:trainTestBorder]), (ad[trainTestBorder:], w[trainTestBorder:])
     return ad, w
 
 if __name__ == "__main__":

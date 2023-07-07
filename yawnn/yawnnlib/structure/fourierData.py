@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from typing import Callable
 
 class FourierData(SessionData):
-    def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int, sessionID : int = -1, totalSessions : int = -1, nPerSeg : int = 128, nOverlap : int = 96):
+    def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1, nPerSeg : int = 128, nOverlap : int = 96, weights : list[float] = []):
         """ Initializes a FourierData object.
 
         Parameters
@@ -23,16 +23,16 @@ class FourierData(SessionData):
             The sample rate of the data.
         version : int
             The version of the data.
-        sessionID : int, optional
-            The ID of a session when split, by default -1
-        totalSessions : int, optional
-            The total number of sessions in the split, by default -1
+        fileNum : int, optional
+            The file/session number when split, by default -1
+        totalFiles : int, optional
+            The total number of files/sessions in the split, by default -1
         nPerSeg : int, optional
             FFT parameter, used to determine width of FFT windows. ~256 is optimal, but has high runtime length and data size. By default 128
         nOverlap : int, optional
             FFT parameter, used to determine separation of windows. nPerSeg-1 is optimal, but at a significant runtime cost. By default 96
         """
-        super().__init__(dataset, timestamps, sampleRate, version, sessionID, totalSessions)
+        super().__init__(dataset, timestamps, sampleRate, version, fileNum=fileNum, totalFiles=totalFiles, weights=weights)
         self.nPerSeg = nPerSeg
         self.nOverlap = nOverlap
     
@@ -59,6 +59,14 @@ class FourierData(SessionData):
             The FourierData object.
         """
         session = super().fromPath(path, fileNum, totalFiles)
+        session.__class__ = cls
+        session.nPerSeg = nPerSeg
+        session.nOverlap = nOverlap
+        return session
+    
+    @classmethod
+    def fromWeightedAnnotatedData(cls, data: commons.WeightedAnnotatedData, sampleRate: int, version: int, fileNum: int = -1, totalFiles: int = -1, nPerSeg : int = 128, nOverlap : int = 96):
+        session = super().fromWeightedAnnotatedData(data, sampleRate, version, fileNum, totalFiles)
         session.__class__ = cls
         session.nPerSeg = nPerSeg
         session.nOverlap = nOverlap

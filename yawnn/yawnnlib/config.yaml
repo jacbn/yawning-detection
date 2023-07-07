@@ -5,6 +5,7 @@ MODELS_PATH: "{PROJECT_ROOT}/trained_models"
 ENABLE_CACHING: False
 CACHE_DIRECTORY: "{PROJECT_ROOT}/data/.preprocessing_cache"
 
+EIMU_VERSION: 4
 FILE_FORMAT: "csv" # "eimu" or "csv" (hafar-style)
 HAFAR_PATH: "{PROJECT_ROOT}/data/HAFAR/files"
 HAFAR_SAMPLE_RATE: 32

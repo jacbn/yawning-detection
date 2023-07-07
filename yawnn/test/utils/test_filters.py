@@ -45,7 +45,7 @@ class TestFilters(unittest.TestCase):
     def test_MovingAverageFilter(self):
         YAWN_TIME = config.get("YAWN_TIME")
         model = eimuModelInput.EimuModelInput(windowSize=YAWN_TIME*32, windowSep=3/32, dataFilter=filters.MovingAverageFilter(5))
-        data, annotations = model.fromPath(f"{commons.PROJECT_ROOT}/test/test_data/basic2.eimu")
+        data, annotations = model.applyModelTransformOnPath(f"{commons.PROJECT_ROOT}/test/test_data/basic2.eimu")
         self.assertEqual(data[0][8].tolist(), [0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
         self.assertEqual(data[0][9].tolist(), [0.4, 0.4, 0.4, 0.4, 0.4, 0.4])
         self.assertEqual(data[0][10].tolist(), [0.6, 0.6, 0.6, 0.6, 0.6, 0.6])
