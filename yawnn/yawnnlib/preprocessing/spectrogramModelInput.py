@@ -23,16 +23,19 @@ class SpectrogramModelInput(ModelInput):
         # the data is already windowed, so we need only apply the FFT to each
         (data, annotations), weights = hafarData
         transformedData = []
-        transformedAnnotations = []
         for window in range(len(data)):
-            waData = (data[window], annotations[window]), weights[window]
+            waData = (data[window], np.array([annotations[window]])), np.array([weights[window]])
             session = FourierData.fromWeightedAnnotatedData(waData, config.get("HAFAR_SAMPLE_RATE"), config.get("EIMU_VERSION"), nOverlap=self.nOverlap, nPerSeg=self.nPerSeg)
-            d, a = self._applyModelTransform(session)
+            d, _ = self._applyModelTransform(session)
+            # annotations ignored as we already have correctly labelled ones from the dataset.
+            # there is definitely wasted work going on behind the scenes # todo
+            d = np.squeeze(d)
             transformedData.append(d)
-            transformedAnnotations.append(a)
             if (window % 1000 == 0):
-                print(f"Processing data: {window}/{len(data)}...", end='\r')
-        return (np.array(transformedData), np.array(transformedAnnotations)), weights
+                print(f"Processing data: {window}/{len(data)}... Expected shape: ({len(data)}, {d.shape})", end='\r')
+        fData = np.array(transformedData)
+        print(f"\nFinal shape: {fData.shape}, {annotations.shape}\n")
+        return (fData, annotations), weights
     
     def _applyModelTransform(self, session : FourierData) -> commons.AnnotatedData:
         """ Applies Fourier methods to a session to generate a tuple of (data, annotations).
@@ -62,9 +65,7 @@ class SpectrogramModelInput(ModelInput):
         # or (frequency, axes) tuples from the FFTs over each window (c.f. fftModelInput.py).
         
         # for this method, we keep the data in the format (windows, times, frequencies, axes); iterating through will give the tuples.
-        
-        print(f"============== {data.shape} ================ ")
-        
+                
         annotations = np.array(timestamps)
         annotations = np.reshape(annotations, (data.shape[0], 1))
 

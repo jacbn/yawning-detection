@@ -23,16 +23,19 @@ class FFTModelInput(ModelInput):
         # the data is already windowed, so we need only apply the FFT to each
         (data, annotations), weights = hafarData
         transformedData = []
-        transformedAnnotations = []
         for window in range(len(data)):
-            waData = (data[window], annotations[window]), weights[window]
+            waData = (data[window], np.array([annotations[window]])), np.array([weights[window]])
             session = FourierData.fromWeightedAnnotatedData(waData, config.get("HAFAR_SAMPLE_RATE"), config.get("EIMU_VERSION"), nOverlap=self.nOverlap, nPerSeg=self.nPerSeg)
-            d, a = self._applyModelTransform(session)
+            d, _ = self._applyModelTransform(session)
+            # annotations ignored as we already have correctly labelled ones from the dataset.
+            # there is definitely wasted work going on behind the scenes # todo
+            d = np.squeeze(d)
             transformedData.append(d)
-            transformedAnnotations.append(a)
             if (window % 1000 == 0):
-                print(f"Processing data: {window}/{len(data)}...", end='\r')
-        return (np.array(transformedData), np.array(transformedAnnotations)), weights
+                print(f"Processing data: {window}/{len(data)}... Expected shape: ({len(data)}, {d.shape})", end='\r')
+        fData = np.array(transformedData)
+        print(f"\nFinal shape: {fData.shape}, {annotations.shape}\n")
+        return (fData, annotations), weights
         
     
     def _applyModelTransform(self, session : FourierData) -> commons.AnnotatedData:
@@ -57,7 +60,7 @@ class FFTModelInput(ModelInput):
             A tuple of (data, annotations)
         """
         data, timestamps = session.getFFTData(dataFilter=self.dataFilter, windowSize=self.windowSize, windowSep=self.windowSep)
-        
+               
         # the number of windows is variable based on input data, the others depend on constants.
         # we can either train on (times, frequencies, axes) tuples from the windows' spectrograms (c.f. spectrogramModelInput.py), 
         # or (frequency, axes) tuples from the FFTs over each window (this file).

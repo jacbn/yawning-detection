@@ -18,9 +18,22 @@ class EimuModelInput(ModelInput):
         return self._applyModelTransform(session)
     
     def applyModelTransformOnWeightedAnnotatedData(self, hafarData : commons.WeightedAnnotatedData) -> commons.WeightedAnnotatedData:
-        # eimu data is straight from the headphones, no conversion required
-        # todo: this won't apply filters, not relevant for HAFAR but worth noting
-        return hafarData
+        # the data is already windowed, so we need only apply the FFT to each
+        (data, annotations), weights = hafarData
+        transformedData = []
+        for window in range(len(data)):
+            waData = (data[window], np.array([annotations[window]])), np.array([weights[window]])
+            session = SessionData.fromWeightedAnnotatedData(waData, config.get("HAFAR_SAMPLE_RATE"), config.get("EIMU_VERSION"))
+            d, _ = self._applyModelTransform(session)
+            # annotations ignored as we already have correctly labelled ones from the dataset.
+            # there is definitely wasted work going on behind the scenes # todo
+            d = np.squeeze(d)
+            transformedData.append(d)
+            if (window % 1000 == 0):
+                print(f"Processing data: {window}/{len(data)}... Expected shape: ({len(data)}, {d.shape})", end='\r')
+        fData = np.array(transformedData)
+        print(f"\nFinal shape: {fData.shape}, {annotations.shape}\n")
+        return (fData, annotations), weights
     
     def _applyModelTransform(self, session : SessionData) -> commons.AnnotatedData:
         """ Converts a session to a tuple of (data, annotations)
