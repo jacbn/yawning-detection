@@ -1,8 +1,6 @@
 from yawnnlib.utils import commons, config
 import numpy as np
 
-from typing import Union
-
 currentTrainTestData = []
 # todo: make config params
 equalPositiveAndNegative = True
