@@ -10,7 +10,7 @@ There are two main parts to the project: the mobile app, YeIMU (Flutter/Dart), u
 
 ## Project Structure
 
-For the code used to generate the results used in the paper, see branch 'paper'.
+This branch holds the work used to generate the results of the paper; for the dissertation results, see the respective branch.
 
 Instructions for how to run each part are in the READMEs of their respective directories.
 
