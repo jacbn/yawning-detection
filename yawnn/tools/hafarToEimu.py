@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 HAFAR_FREQ = config.get("HAFAR_SAMPLE_RATE") # hz
-WINDOW_SIZE = 2 # seconds
+WINDOW_SIZE = config.get("YAWN_TIME") # seconds
 
 def convert(directoryPath : str, specificUsers : set[int] = set(range(1, 24)), poiUsers : set[int] = set(), poiTrainSplit : float = 0.2, isTrain : bool = True) -> commons.WeightedAnnotatedData:
     
@@ -22,6 +22,13 @@ def convert(directoryPath : str, specificUsers : set[int] = set(range(1, 24)), p
         specificUserIDs.remove("w010")
         specificUserIDs = specificUserIDs.union(set(["w010a", "w010b", "w010c"]))
     users = sorted(list(set([f.split("_")[0] for f in os.listdir(directoryPath)]).intersection(specificUserIDs)))
+        
+    specificPoiUserIDs = set(map(lambda x: f"w{x:03d}", poiUsers))
+    if "w010" in specificPoiUserIDs:
+        specificPoiUserIDs.remove("w010")
+        specificPoiUserIDs = specificPoiUserIDs.union(set(["w010a", "w010b", "w010c"]))
+        
+    print(f"====== SELECTED USERS: {users} ======")
     
     # load data from specified users
     data = []
@@ -36,7 +43,7 @@ def convert(directoryPath : str, specificUsers : set[int] = set(range(1, 24)), p
     
         del user_dfs
         
-        if user in poiUsers:
+        if user in specificPoiUserIDs:
             # then keep only poiTrainSplit*100% of the data if isTrain, else keep only the rest
             if isTrain:
                 df = df[:int(len(df) * poiTrainSplit)]
@@ -67,7 +74,8 @@ def convert(directoryPath : str, specificUsers : set[int] = set(range(1, 24)), p
     
     assert len(data) == len(timestamps) == len(weights), f"{len(data)}, {len(timestamps)}, {len(weights)} not equal."
     ad, w = (np.array(data, dtype=np.float32), np.array(timestamps)), np.array(weights, dtype=np.float32)
-    return ad, w
+    eqAd, indices = ModelData._equalisePNForSingleSet(ad, True)
+    return eqAd, w[indices]
 
 if __name__ == "__main__":
     for i in range(1, 24):

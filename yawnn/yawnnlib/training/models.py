@@ -109,26 +109,36 @@ MODEL_INPUTS = {
     'eimuLSTM': EimuModelInput(
                     windowSize=YAWN_TIME, 
                     windowSep=YAWN_TIME/2, 
-                    dataFilter=filters.SmoothFilter(keepData=0.8),
+                    dataFilter=filters.FilterCollection([
+                        # filters.SmoothFilter(keepData=0.8),
+                        filters.HighPassFilter(96, 0.1), 
+                        # filters.LowPassFilter(32, 12, 3), 
+                        # filters.MovingAverageFilter(5), 
+                    ]),
                     name='eimuLSTM'
                 ),
     
     'eimuCNN':  EimuModelInput(
                     windowSize=YAWN_TIME,
                     windowSep=YAWN_TIME/2, 
-                    dataFilter=filters.SmoothFilter(keepData=0.8),
+                    dataFilter=filters.FilterCollection([
+                        # filters.SmoothFilter(keepData=0.8),
+                        filters.HighPassFilter(96, 0.1), 
+                        # filters.LowPassFilter(32, 12, 3), 
+                        # filters.MovingAverageFilter(5), 
+                    ]),
                     name='eimuCNN'
                 ),
     
-    'eimuCNN-LSTM': EimuModelInput(
-                    windowSize=YAWN_TIME, 
-                    windowSep=YAWN_TIME/2, 
-                    dataFilter=filters.FilterCollection([
-                        filters.MovingAverageFilter(5),
-                        filters.SmoothFilter(keepData=0.8),
-                    ]),
-                    name='eimuCNN-LSTM'
-                ),
+    # 'eimuCNN-LSTM': EimuModelInput(
+    #                 windowSize=YAWN_TIME, 
+    #                 windowSep=YAWN_TIME/2, 
+    #                 dataFilter=filters.FilterCollection([
+    #                     # filters.MovingAverageFilter(5),
+    #                     # filters.SmoothFilter(keepData=0.8),
+    #                 ]),
+    #                 name='eimuCNN-LSTM'
+    #             ),
     
     'fftLSTM':  FFTModelInput(
                     windowSize=YAWN_TIME/2,
@@ -136,57 +146,57 @@ MODEL_INPUTS = {
                     dataFilter=filters.FilterCollection([
                         # filters.SmoothFilter(keepData=0.8),
                         filters.HighPassFilter(96, 0.1), 
-                        filters.LowPassFilter(96, 8, 3), 
+                        # filters.LowPassFilter(32, 12, 3), 
                         # filters.MovingAverageFilter(5), 
                         filters.NormalisationFilter()
                     ]),
                     nPerSeg=32,
-                    nOverlap=16,
+                    nOverlap=31,
                     name='fftLSTM'
                 ),                  
     
     'fftCNN':   FFTModelInput(
-                    windowSize=YAWN_TIME, 
+                    windowSize=YAWN_TIME/2, 
                     windowSep=YAWN_TIME, 
                     dataFilter=filters.FilterCollection([
                         # filters.SmoothFilter(keepData=0.8),
                         filters.HighPassFilter(96, 0.1), 
-                        filters.LowPassFilter(96, 8, 3), 
+                        # filters.LowPassFilter(32, 12, 3), 
                         # filters.MovingAverageFilter(5),
                         filters.NormalisationFilter()
                     ]),
-                    nPerSeg=128,
-                    nOverlap=96,
+                    nPerSeg=32,
+                    nOverlap=31,
                     name='fftCNN'
                 ),
     
-    'fftCNN-LSTM': FFTModelInput(
-                    windowSize=YAWN_TIME, 
-                    windowSep=YAWN_TIME, 
-                    dataFilter=filters.FilterCollection([
-                        # filters.SmoothFilter(keepData=0.8),
-                        # filters.HighPassFilter(96, 0.01, 30), 
-                        # filters.LowPassFilter(96, 12, 3), 
-                        # filters.MovingAverageFilter(5),
-                        filters.NormalisationFilter()
-                    ]),
-                    nPerSeg=128,
-                    nOverlap=96,
-                    name='fftCNN-LSTM'
-                ),
+    # 'fftCNN-LSTM': FFTModelInput(
+    #                 windowSize=YAWN_TIME/2, 
+    #                 windowSep=YAWN_TIME, 
+    #                 dataFilter=filters.FilterCollection([
+    #                     # filters.SmoothFilter(keepData=0.8),
+    #                     # filters.HighPassFilter(96, 0.01, 30), 
+    #                     filters.LowPassFilter(32, 12, 3), 
+                            #  filters.MovingAverageFilter(5),
+    #                     filters.NormalisationFilter()
+    #                 ]),
+    #                 nPerSeg=32,
+    #                 nOverlap=31,
+    #                 name='fftCNN-LSTM'
+    #               ),
     
     'specCNN':  SpectrogramModelInput(
-                    windowSize=YAWN_TIME,
+                    windowSize=YAWN_TIME/2,
                     windowSep=YAWN_TIME,
                     dataFilter=filters.FilterCollection([
                         # filters.SmoothFilter(keepData=0.8),
                         filters.HighPassFilter(96, 0.1), 
-                        filters.LowPassFilter(96, 8, 3), 
+                        # filters.LowPassFilter(32, 12, 3), 
                         # filters.MovingAverageFilter(5),
                         filters.NormalisationFilter()
                     ]),
-                    nPerSeg=128,
-                    nOverlap=96,
+                    nPerSeg=32,
+                    nOverlap=31,
                     name='specCNN'
                 ),
     'altModels': EimuModelInput(
@@ -396,7 +406,7 @@ def trainFftCNN(resampleFrequency: int = -1, modelNum : int = 0, totalModels : i
             ((trainX, trainY), (valX, valY), (testX, testY)),
             trainingSampleWeights,
             modelData.sampleRate,
-            epochs=15, # pre-hafar: 40 
+            epochs=20, # pre-hafar: 40 
             batchSize=64,
             resampleFrequency=resampleFrequency
     )
@@ -472,9 +482,9 @@ def trainSpectrogramCNN(resampleFrequency: int = -1, modelNum : int = 0, totalMo
                 tf.keras.layers.Conv2D(filters=256, kernel_size=(5, 5), padding='same', activation='relu'),
                 tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
                 tf.keras.layers.Dropout(0.3),
-                tf.keras.layers.Conv2D(filters=256, kernel_size=(5, 5), padding='same', activation='relu'),
-                tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-                tf.keras.layers.Dropout(0.3),
+                # tf.keras.layers.Conv2D(filters=256, kernel_size=(5, 5), padding='same', activation='relu'),
+                # tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+                # tf.keras.layers.Dropout(0.3),
                 tf.keras.layers.Flatten(),
                 tf.keras.layers.Dense(units=64, activation='relu'),
                 tf.keras.layers.Dense(units=1, activation='sigmoid')]
