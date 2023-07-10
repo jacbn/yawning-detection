@@ -1,17 +1,24 @@
 from yawnnlib.utils import commons, config
+from yawnnlib.preprocessing.modelData import ModelData
+import tools.hafarToEimu as hafarToEimu
 
-from abc import ABC, abstractmethod
 import numpy as np
+from abc import ABC, abstractmethod
 from os import mkdir
 from os.path import exists, basename, normpath
+import pickle
 
 class ModelInput(ABC):
     """ An abstract class that represents an input to a NN model. """
+    cachedData = {}
+    
+    # todo: make private
     @abstractmethod
-    def fromPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
+    def applyModelTransformOnPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
         pass
     
-    def fromPathOrCache(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
+    # todo: as above
+    def applyModelTransformOnCachedPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
         print(f"Processing data: {fileNum}/{totalFiles}...", end='\r')
         if (config.get("ENABLE_CACHING")):
             fileName = basename(normpath(path))
@@ -24,38 +31,49 @@ class ModelInput(ABC):
                 return self._fromCache(directory)
             else:
                 print()
-                data, annotations = self.fromPath(path, fileNum, totalFiles)
+                data, annotations = self.applyModelTransformOnPath(path, fileNum, totalFiles)
                 self._toCache(directory, data, annotations)
                 return data, annotations
         print()
-        return self.fromPath(path, fileNum, totalFiles)
+        return self.applyModelTransformOnPath(path, fileNum, totalFiles)
+    
+    @abstractmethod
+    def applyModelTransformOnWeightedAnnotatedData(self, waData : commons.WeightedAnnotatedData) -> commons.WeightedAnnotatedData:
+        pass
     
     @abstractmethod
     def getType(self) -> str:
         pass
     
-    def fromDirectory(self, directoryPath : str) -> list[commons.AnnotatedData]:
+    def fromEimuDirectory(self, directoryPath : str, trainSplit : float = config.get("TRAIN_SPLIT"), equalPositiveAndNegative=True, shuffle=True) -> ModelData:
         """ Pull all .eimu files from one directory into a list of pairs of (data, annotations).
         Pass result into fromAnnotatedDataList to get a ModelData object. """
-        return commons.mapToDirectory(self.fromPathOrCache, directoryPath) 
-        
-    def fromAnnotatedDataList(self, annotatedDataList : list[commons.AnnotatedData], shuffle : bool = True, equalPositiveAndNegative : bool = True, trainSplit : float = config.get("TRAIN_SPLIT")) -> commons.ModelData:
-        try:
-            # combine all the inputs into a single tuple of (data, annotations)
-            combinedInputs = np.concatenate(list(map(lambda x: x[0], annotatedDataList))), np.concatenate(list(map(lambda x: x[1], annotatedDataList)))
-
-            # split the data into training and test sets (the model data); (trainSplit * 100%) of the data is used for training
-            trainLength = int(len(combinedInputs[0]) * trainSplit)
-            modelData = (combinedInputs[0][:trainLength], combinedInputs[1][:trainLength]), (combinedInputs[0][trainLength:], combinedInputs[1][trainLength:])
-        except ValueError as e:
-            raise ValueError(f"Data could not be combined. Ensure all files use the same sampling rate.", e)
-        
-        if equalPositiveAndNegative:
-            modelData = commons.equalisePositiveAndNegative(modelData, shuffle)
-        if shuffle:
-            modelData = commons.shuffleAllData(modelData, trainSplit)
+        # todo: update descriptions
+        # todo: merge this with fromHafarDirectory (move L2 of fromAnnotatedDataList to before use of this)
+        combinedList = commons.mapToDirectory(self.applyModelTransformOnCachedPath, directoryPath)
+        return ModelData.fromAnnotatedDataList(combinedList, None, 96, trainSplit=trainSplit, equalPositiveAndNegative=equalPositiveAndNegative, shuffle=shuffle)
     
-        return modelData
+    def fromHafarDirectory(self, directoryPath : str, trainSplit : float = config.get("TRAIN_SPLIT"), isTrain=True, equalPositiveAndNegative=True, shuffle=True) -> ModelData:
+        """ Put all .csv files from the HAFAR dataset into a combined tuple of (data, annotations).
+        Pass result into fromCombinedTuple to get a ModelData object. """
+        hafarData = hafarToEimu.convert(
+            directoryPath, 
+            specificUsers=config.get("HAFAR_USERS"),
+            poiUsers=config.get("HAFAR_POI_USERS"),
+            poiTrainSplit=config.get("HAFAR_POI_TRAIN_SPLIT"),
+            isTrain=isTrain
+        )
+        
+        if self.getType() not in self.cachedData:
+            self.cachedData = {} # clear cache. ideally we wouldn't but when training sequentially as from main.py this frees up memory
+            print(f"Applying {self.getType()} transform...")
+            annotatedData, weights = self.applyModelTransformOnWeightedAnnotatedData(hafarData)
+            print("Transform applied.")
+            self.cachedData[self.getType()] = annotatedData, weights
+        else:
+            print(f"Using cached {self.getType()} transform.")
+            annotatedData, weights = self.cachedData[self.getType()]
+        return ModelData.fromCombinedTuple(annotatedData, weights, config.get("HAFAR_SAMPLE_RATE"), trainSplit=trainSplit, equalPositiveAndNegative=equalPositiveAndNegative, shuffle=shuffle)
     
     def _getCachePathForFile(self, fileName : str) -> str:
         cacheDirectory = config.get("CACHE_DIRECTORY")

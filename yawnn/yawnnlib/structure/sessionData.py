@@ -36,7 +36,7 @@ class SessionData:
         used exclusively for splitting a session; the total number of splits. -1 if not used 
     """
     
-    def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1):
+    def __init__(self, dataset : np.ndarray, timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1, weights : commons.SampleWeights = None):
         """ Constructs the necessary attributes for the SessionData object.
 
         Attributes
@@ -54,13 +54,12 @@ class SessionData:
         totalFiles : optional int
             used exclusively for splitting a session; the total number of splits. -1 if not used
         """
-        self.rawDataset = dataset,
-        self.accel = list(map(lambda x: x.accel, dataset))
-        self.gyro = list(map(lambda x: x.gyro, dataset))
-        self.accelLim = max(abs(min(map(min, self.accel))), abs(max(map(max, self.accel))))
-        self.gyroLim = max(abs(min(map(min, self.gyro))), abs(max(map(max, self.gyro))))
+        self.data = dataset
         self.numPoints = len(dataset)
         self.timestamps = timestamps
+        self.accel = dataset[:, :3]
+        self.gyro = dataset[:, 3:]
+        self.weights = weights
         self.sampleRate = sampleRate
         self.version = version
         self.fileNum = fileNum
@@ -83,16 +82,24 @@ class SessionData:
                 timestamps.append(Timestamp(max(0, int(split[0]) + correction), split[1]))
             for i in range(4 + numTimestamps, len(lines)):
                 if lines[i]:
-                    data.append(SensorReading.fromString(lines[i]))
-
-        return cls(data, timestamps, sampleRate, version, fileNum, totalFiles)
+                    reading = SensorReading.fromString(lines[i])
+                    data.append(reading.accel + reading.gyro)
+        
+        return cls(np.array(data), timestamps, sampleRate, version, fileNum, totalFiles)
     
     @classmethod
-    def from6DDataVectors(cls, data : list[list[float]], timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1):
+    def from6DDataVectors(cls, data : np.ndarray, timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1, weights : commons.SampleWeights = None):
         """ Create a SessionData object from a 6D data vector. 
         Note that this will not apply a correction to the yawn times. """
-        sensorReadings = list(map(lambda x: SensorReading(x[:3], x[3:]), data))
-        return cls(sensorReadings, timestamps, sampleRate, version, fileNum, totalFiles)
+        # sensorReadings = list(map(lambda x: SensorReading(x[:3], x[3:]), data))
+        return cls(np.array(data), timestamps, sampleRate, version, fileNum=fileNum, totalFiles=totalFiles, weights=weights)
+    
+    @classmethod
+    def fromWeightedAnnotatedData(cls, waData : commons.WeightedAnnotatedData, sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1):
+        """ Create a SessionData object from a WeightedAnnotatedData object. """
+        annotatedData, weights = waData
+        timestamps = list(map(lambda x: Timestamp(x, "yawn"), np.where(annotatedData[1] == 1)[0].tolist()))
+        return cls.from6DDataVectors(annotatedData[0], timestamps, sampleRate, version, fileNum=fileNum, totalFiles=totalFiles, weights=weights.tolist())
         
     def getEimuData(self, windowSize : float, windowSep : float, dataFilter : filters.DataFilter = filters.NoneFilter()) -> tuple[np.ndarray, list[list[Timestamp]]]:
         """ Returns the data to input to the model.
@@ -194,7 +201,8 @@ class SessionData:
         converted = []
         for i in range(0, self.numPoints - windowSize + 1, windowSep):
             converted.append(SessionData(
-                self._toSensorReadings(self.accel[i:i+windowSize], self.gyro[i:i+windowSize]),
+                self.data[i:i+windowSize],
+                # self._toSensorReadings(self.accel[i:i+windowSize], self.gyro[i:i+windowSize]),
                 self._getRelevantTimestamps(self.timestamps, i, i + windowSize),
                 self.sampleRate,
                 self.version
@@ -203,7 +211,8 @@ class SessionData:
     
     def get6DDataVectors(self):
         """ Convert accel and gyro into one list of 6D vectors. """
-        return np.array(list(map(lambda x: sum(x, start=[]), zip(self.accel, self.gyro)))) #type: ignore
+        return self.data
+        # return np.array(list(map(lambda x: sum(x, start=[]), zip(self.accel, self.gyro)))) #type: ignore
     
     def getYawnIndices(self):
         """ Return a list of 0s and 1s for each point in the session, where 1s represent the presence of a yawn timestamp at most one YAWN_TIME//2 seconds before or after the point. """
@@ -282,7 +291,7 @@ class SessionData:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SessionData):
             return False
-        return self.accel == other.accel and self.gyro == other.gyro and self.timestamps == other.timestamps and self.sampleRate == other.sampleRate and self.version == other.version
+        return self.data == other.data and self.timestamps == other.timestamps and self.sampleRate == other.sampleRate and self.version == other.version
 
 if __name__ == "__main__":
     # s = SessionData.fromPath(f"{commons.PROJECT_ROOT}/data/tests/96hz/96hz-yawns1.eimu")

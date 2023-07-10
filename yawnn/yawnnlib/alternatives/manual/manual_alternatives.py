@@ -20,7 +20,7 @@ def trainSVM(path : str):
     
 def trainKNN(dataPath : str, useScipy : bool = True):
     modelType = EimuModelInput(windowSize=commons.YAWN_TIME*1.5, windowSep=commons.YAWN_TIME/2)
-    annotatedData = modelType.fromDirectory(dataPath)
+    annotatedData = modelType.fromEimuDirectory(dataPath)
     (trainX, trainY), (testX, testY) = modelType.fromAnnotatedDataList(
         annotatedData,
         shuffle=True,

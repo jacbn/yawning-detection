@@ -162,7 +162,13 @@ class NormalisationFilter(DataFilter):
         super().__init__()
     
     def apply(self, data : np.ndarray) -> np.ndarray:
-        return np.apply_along_axis(lambda d: d / np.max(np.abs(d)), 0, data)
+        return np.apply_along_axis(self._normalise, 0, data)
+    
+    @staticmethod
+    def _normalise(array : np.ndarray):
+        if np.max(np.abs(array)) == 0:
+            return array
+        return array / np.max(np.abs(array))
     
     def getApplyType(self) -> ApplyType:
         return ApplyType.SESSION

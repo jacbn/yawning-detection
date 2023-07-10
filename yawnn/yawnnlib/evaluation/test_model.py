@@ -54,7 +54,7 @@ def visualizeModel(model : tf.keras.models.Model) -> None:
     
     vk.layered_view(model, spacing=50, max_xy=800, draw_volume=True, to_file="model.png", legend=True, font=font, color_map=colorMap).show() # type: ignore
 
-def testDataOnModel(model, modelType : ModelInput, dataDirectory : str, resampleFrequency : int = -1):
+def testDataOnModel(model, modelType : ModelInput, dataDirectory : str, isHafar : bool = False, resampleFrequency : int = -1):
     """ Tests the model on the data in a given directory. 
     
     Attributes
@@ -66,10 +66,17 @@ def testDataOnModel(model, modelType : ModelInput, dataDirectory : str, resample
     dataDirectory : str
         The directory containing the data to test.
     """
-    annotatedData = modelType.fromDirectory(dataDirectory)
-    _, (X, Y) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
+    if isHafar:
+        # combinedTuple = modelType.fromHafarDirectory(dataDirectory)
+        # _, (X, Y) = modelType.fromCombinedTuple(combinedTuple, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
+        modelData = modelType.fromHafarDirectory(dataDirectory, isTrain=False, shuffle=True, equalPositiveAndNegative=True, trainSplit=1.0)
+    else:
+        # annotatedData = modelType.fromEimuDirectory(dataDirectory)
+        # _, (X, Y) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
+        modelData = modelType.fromEimuDirectory(dataDirectory, shuffle=True, equalPositiveAndNegative=True, trainSplit=1.0)
+    (X, Y) = modelData.train
     if resampleFrequency > 0:
-        (X, Y) = eimuResampler.resampleAnnotatedData((X, Y), 96, resampleFrequency)
+        (X, Y) = eimuResampler.resampleAnnotatedData((X, Y), modelData.sampleRate, resampleFrequency)
     if "CNN-LSTM" in modelType.getType():
         (X, Y) = commons.timeDistributeAnnotatedData((X, Y))
     # res1 = model.evaluate(X, Y)
@@ -83,7 +90,7 @@ def testDataOnAlternativeModels(altModelsPath : str, dataDirectory : str):
     
     ALT_MODELS_PATH = MODELS_PATH + "/alternative/"
     modelType = MODEL_INPUTS['altModels']
-    annotatedData = modelType.fromDirectory(dataDirectory)
+    annotatedData = modelType.fromEimuDirectory(dataDirectory)
     _, (testX, testY) = modelType.fromAnnotatedDataList(annotatedData, shuffle=True, equalPositiveAndNegative=True, trainSplit=0.0)
     fig = 1
     
@@ -108,11 +115,29 @@ def testDataOnAlternativeModels(altModelsPath : str, dataDirectory : str):
     plt.show()
 
 if __name__ == "__main__":
-    modelType = MODEL_INPUTS['eimuLSTM']
-    model = loadModel(f"{MODELS_PATH}/eimuLSTM_0.h5")
-    # visualizeModel(model)
     
-    testDataOnModel(model, modelType, f"{commons.PROJECT_ROOT}/data/user_trials/PRESENTATION/")
+    testSingle = False
+    # saves a text file of results. if further analysis (graphs etc) is required, use eval_models.py and plot_xxx_eval.py instead
+    saveResults = True
+    results = []
+    
+    if testSingle:
+        modelType = MODEL_INPUTS['eimuCNN']
+        model = loadModel(f"{MODELS_PATH}/eimuCNN_1.h5")
+        # visualizeModel(model)
+        results = [testDataOnModel(model, modelType, config.get("HAFAR_PATH"), isHafar=True)]
+    else:
+        for mType in ['eimuLSTM', 'eimuCNN', 'fftLSTM', 'fftCNN']:
+            modelType = MODEL_INPUTS[mType]
+            for i in range(10):
+                model = loadModel(f"{MODELS_PATH}/{mType}_{i}.h5")
+                res = testDataOnModel(model, modelType, config.get("HAFAR_PATH"), isHafar=True)
+                if saveResults:
+                    results.append(res)
+    if saveResults:
+        with open("results.txt", "w") as f:
+            for r in results:
+                f.write(str(r) + '\n')
     
     # testDataOnModel(model, modelType, f"{TEST_PATH}/", resampleFrequency=32)
     # testDataOnAlternativeModels(f"{MODELS_PATH}/alternative/", f"{TEST_PATH}/")

@@ -2,6 +2,7 @@ print("Loading imports...")
 
 from yawnnlib.utils import commons, config
 from yawnnlib.preprocessing.modelInput import ModelInput
+from yawnnlib.preprocessing.modelData import ModelData
 from yawnnlib.alternatives.alternative_classifier import AlternativeClassifier
 import tools.eimuResampler as eimuResampler
 
@@ -13,8 +14,6 @@ import pickle
 print("Imports loaded.")
 
 MODELS_PATH = config.get("MODELS_PATH")
-
-currentModelTypeData = []
 
 def makeSequentialModel(layers : list, compile_ : bool = True, learningRate : float = 0.0003) -> tf.keras.models.Sequential:
     """ Creates a sequential model from a list of layers.
@@ -38,42 +37,7 @@ def makeSequentialModel(layers : list, compile_ : bool = True, learningRate : fl
         model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
-def getValidatedModelData(modelType : ModelInput, annotatedData : list[commons.AnnotatedData], shuffle : bool = True, equalPositiveAndNegative : bool = True, modelNum : int = 0, totalModels : int = 1):
-    """ Gets the training, validation and test data from a list of annotated data.
-
-    Parameters
-    ----------
-    modelType : commons.ModelType
-        The type of model to train.
-    annotatedData : list[commons.AnnotatedData]
-        The annotated data to use.
-    shuffle : bool
-        Whether to shuffle the data before training.
-    equalPositiveAndNegative : bool
-        Whether to equalize the number of positive and negative samples before training.
-    modelNum : int
-        Used when training multiple models on the same data. The number of the current model.
-    totalModels : int
-        Used when training multiple models on the same data. The total number of models.
-
-    Returns
-    -------
-    commons.ModelData
-        The training, validation and test data, as a tuple of ((trainX, trainY), (valX, valY), (testX, testY)).
-    """
-    global currentModelTypeData # needed as this state must be preserved between calls
-    
-    if (modelNum == 0):
-        currentModelTypeData = modelType.fromAnnotatedDataList(annotatedData, shuffle=shuffle, equalPositiveAndNegative=equalPositiveAndNegative)
-    
-    assert currentModelTypeData != [], "Model number incorrect. Models must start from modelNum=0."
-    
-    (allTrainX, allTrainY), (testX, testY) = currentModelTypeData
-    (trainX, trainY), (valX, valY) = commons.splitTrainingData((allTrainX, allTrainY), modelNum, totalModels)
-    
-    return ((trainX, trainY), (valX, valY), (testX, testY))
-
-def trainModel(modelType : ModelInput, model : tf.keras.models.Sequential, data : commons.ValidatedModelData, epochs : int, batchSize : int, saveCheckpoints : bool = False, resampleFrequency : int = -1):
+def trainModel(modelType : ModelInput, model : tf.keras.models.Sequential, data : commons.ValidatedModelData, sampleWeights : np.ndarray, sampleRate : int, epochs : int, batchSize : int, saveCheckpoints : bool = False, resampleFrequency : int = -1):
     """ Trains a model on the data in a given directory.
     
     Attributes
@@ -82,8 +46,8 @@ def trainModel(modelType : ModelInput, model : tf.keras.models.Sequential, data 
         The type of model to train.
     model : tensorflow.keras.models.Sequential
         The tensorflow model on which to train.
-    data : commons.ModelData
-        The annotated data to use, as a tuple of ((trainX, trainY), (testX, testY)).
+    data : ModelData
+        The annotated data to use.
     epochs : int
         The number of epochs to train for.
     batchSize : int
@@ -109,20 +73,20 @@ def trainModel(modelType : ModelInput, model : tf.keras.models.Sequential, data 
         save_weights_only=True,
         save_freq=5*batchSize) # type: ignore
     
-    
     if resampleFrequency < 0:
         (trainX, trainY), (valX, valY), (testX, testY) = data
     else:
-        (trainX, trainY), (valX, valY), (testX, testY) = list(map(lambda x: eimuResampler.resampleAnnotatedData(x, 96, resampleFrequency), data))
+        (trainX, trainY), (valX, valY), (testX, testY) = list(map(lambda x: eimuResampler.resampleAnnotatedData(x, sampleRate, resampleFrequency), data))
     
-    print(f"TrainX data shape: {trainX.shape}")
-    print(f"TrainY data shape: {trainY.shape}")
-    print(f"ValX data shape: {valX.shape}")
-    print(f"ValY data shape: {valY.shape}")
-    print(f"TestX data shape: {testX.shape}")
-    print(f"TestY data shape: {testY.shape}")
-    
-    history = model.fit(trainX, trainY, epochs=epochs, batch_size=batchSize, validation_data=(valX, valY), shuffle=True, callbacks=[cpCallback] if saveCheckpoints else None)
+    print(f"TrainX data shape: {trainX.shape}, type {trainX.dtype}")
+    print(f"TrainY data shape: {trainY.shape}, type {trainX.dtype}")
+    print(f"ValX data shape: {valX.shape}, type {trainX.dtype}")
+    print(f"ValY data shape: {valY.shape}, type {trainX.dtype}")
+    print(f"TestX data shape: {testX.shape}, type {trainX.dtype}")
+    print(f"TestY data shape: {testY.shape}, type {trainX.dtype}")
+    print(f"Sample weights shape: {sampleWeights.shape}")
+        
+    history = model.fit(trainX, trainY, epochs=epochs, sample_weight=sampleWeights, batch_size=batchSize, validation_data=(valX, valY), shuffle=True, callbacks=[cpCallback] if saveCheckpoints else None)
     
     model.summary()
     model.save(path := f"{MODELS_PATH}/{modelType.getType()}_{modelNum}.h5")
@@ -132,7 +96,7 @@ def trainModel(modelType : ModelInput, model : tf.keras.models.Sequential, data 
         model.evaluate(testX, testY)
     return model, history
 
-def trainAlternatives(classifiers : list[AlternativeClassifier], data : commons.ModelData, resampleFrequency : int = -1):
+def trainAlternatives(classifiers : list[AlternativeClassifier], data : commons.TrainTestData, resampleFrequency : int = -1):
     if  resampleFrequency > 0:
         (trainX, trainY), (testX, testY) = list(map(lambda x: eimuResampler.resampleAnnotatedData(x, 96, resampleFrequency), data))
     else:

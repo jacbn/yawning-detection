@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from typing import Callable
 
 class FourierData(SessionData):
-    def __init__(self, dataset : list[SensorReading], timestamps : list[Timestamp], sampleRate : int, version : int, sessionID : int = -1, totalSessions : int = -1, nPerSeg : int = 128, nOverlap : int = 96):
+    def __init__(self, dataset : np.ndarray, timestamps : list[Timestamp], sampleRate : int, version : int, fileNum : int = -1, totalFiles : int = -1, nPerSeg : int = 128, nOverlap : int = 96, weights : commons.SampleWeights = None):
         """ Initializes a FourierData object.
 
         Parameters
@@ -23,16 +23,16 @@ class FourierData(SessionData):
             The sample rate of the data.
         version : int
             The version of the data.
-        sessionID : int, optional
-            The ID of a session when split, by default -1
-        totalSessions : int, optional
-            The total number of sessions in the split, by default -1
+        fileNum : int, optional
+            The file/session number when split, by default -1
+        totalFiles : int, optional
+            The total number of files/sessions in the split, by default -1
         nPerSeg : int, optional
             FFT parameter, used to determine width of FFT windows. ~256 is optimal, but has high runtime length and data size. By default 128
         nOverlap : int, optional
             FFT parameter, used to determine separation of windows. nPerSeg-1 is optimal, but at a significant runtime cost. By default 96
         """
-        super().__init__(dataset, timestamps, sampleRate, version, sessionID, totalSessions)
+        super().__init__(dataset, timestamps, sampleRate, version, fileNum=fileNum, totalFiles=totalFiles, weights=weights)
         self.nPerSeg = nPerSeg
         self.nOverlap = nOverlap
     
@@ -59,6 +59,14 @@ class FourierData(SessionData):
             The FourierData object.
         """
         session = super().fromPath(path, fileNum, totalFiles)
+        session.__class__ = cls
+        session.nPerSeg = nPerSeg
+        session.nOverlap = nOverlap
+        return session
+    
+    @classmethod
+    def fromWeightedAnnotatedData(cls, data: commons.WeightedAnnotatedData, sampleRate: int, version: int, fileNum: int = -1, totalFiles: int = -1, nPerSeg : int = 128, nOverlap : int = 96):
+        session = super().fromWeightedAnnotatedData(data, sampleRate, version, fileNum, totalFiles)
         session.__class__ = cls
         session.nPerSeg = nPerSeg
         session.nOverlap = nOverlap
@@ -95,8 +103,8 @@ class FourierData(SessionData):
         trueWindowSep = int(windowSep * self.sampleRate)
         boundary = self.nPerSeg//2
           
-        pString = f"  Calculating Fourier frequencies: "
-        print(pString + "......", end='')
+        # pString = f"  Calculating Fourier frequencies: "
+        # print(pString + "......", end='')
             
         for axis in range(6):
             # obtain and filter the data
@@ -105,13 +113,13 @@ class FourierData(SessionData):
             
             # there won't be any spectrogram data outside of dataFiltered[boundary:-boundary] as this is the boundary required to calculate the fft
             if trueWindowSize > len(dataFiltered[boundary:-boundary]):
-                raise ValueError(f"Not enough data to split into windows of {windowSize} seconds. Try lowering the window size, or using larger files.")
+                raise ValueError(f"Not enough data to split into windows of {windowSize} seconds ({trueWindowSize} > {len(dataFiltered[boundary:-boundary])}). Try lowering the window size ({windowSize}s) or the nPerSeg value ({self.nPerSeg}), or use larger files.")
             
             # split the data into windows
             windowResults = []            
             windowStart = boundary
 
-            while windowStart + trueWindowSize < len(dataFiltered) - boundary:
+            while windowStart + trueWindowSize <= len(dataFiltered) - boundary:
                 window = dataFiltered[windowStart-boundary : windowStart+trueWindowSize+boundary]
                 
                 windowResult = applyFunction(window)
@@ -125,7 +133,7 @@ class FourierData(SessionData):
             
             axisResults.append(windowResults)
             
-            print('\r' + pString + '#' * (axis+1) + '.' * (5-axis), end='' if axis < 5 else '\n')
+            # print('\r' + pString + '#' * (axis+1) + '.' * (5-axis), end='' if axis < 5 else '\n')
         
         data = np.array(axisResults, dtype=np.float64)
         return data, timestamps
