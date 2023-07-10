@@ -29,12 +29,23 @@ class ModelEvaluation:
             else:
                 accuracy, prec, recall, f1 = test_model.testDataOnModel(model, modelType, TEST_PATH)
             self.results[modelType.getType()][modelPath] = [accuracy, prec, recall, f1]
+            self.save(modelPaths.index(modelPath))
             del model
             
-    def save(self):
-        pickle.dump(self.results, open(f"{MODELS_PATH}/evaluation/{self.name}_results.pkl", "wb"))
+    def save(self, ckpt : int = -1):
+        if ckpt == -1:
+            pickle.dump(self.results, open(f"{MODELS_PATH}/evaluation/{self.name}_results.pkl", "wb"))
+        else:
+            pickle.dump(self.results, open(f"{MODELS_PATH}/evaluation/{self.name}_results_{ckpt}.pkl", "wb"))
 
-paramEval = ModelEvaluation("main_models") 
+paramEval = ModelEvaluation("W_highpass") 
 paramEval.evaluate(isHafar=True)
 paramEval.save()
 print(paramEval.results)
+
+# plan:
+# 1. change MODEL_INPUTS to be the baseline
+# 2. run this
+# 3. change MODEL_INPUTS to be lowpass
+# 4. run this
+# 5. when done run plot_paper_eval.py (note that the list [2, 1, 0, 5, 4, 3, 6] will need to be changed)

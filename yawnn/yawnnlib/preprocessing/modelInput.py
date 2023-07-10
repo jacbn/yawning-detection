@@ -6,9 +6,12 @@ import numpy as np
 from abc import ABC, abstractmethod
 from os import mkdir
 from os.path import exists, basename, normpath
+import pickle
 
 class ModelInput(ABC):
     """ An abstract class that represents an input to a NN model. """
+    cachedData = {}
+    
     # todo: make private
     @abstractmethod
     def applyModelTransformOnPath(self, path : str, fileNum : int = -1, totalFiles : int = -1) -> commons.AnnotatedData:
@@ -61,9 +64,15 @@ class ModelInput(ABC):
             isTrain=isTrain
         )
         
-        print(f"Applying {self.getType()} transform...")
-        annotatedData, weights = self.applyModelTransformOnWeightedAnnotatedData(hafarData)
-        print("Transform applied.")
+        if self.getType() not in self.cachedData:
+            self.cachedData = {} # clear cache. ideally we wouldn't but when training sequentially as from main.py this frees up memory
+            print(f"Applying {self.getType()} transform...")
+            annotatedData, weights = self.applyModelTransformOnWeightedAnnotatedData(hafarData)
+            print("Transform applied.")
+            self.cachedData[self.getType()] = annotatedData, weights
+        else:
+            print(f"Using cached {self.getType()} transform.")
+            annotatedData, weights = self.cachedData[self.getType()]
         return ModelData.fromCombinedTuple(annotatedData, weights, config.get("HAFAR_SAMPLE_RATE"), trainSplit=trainSplit, equalPositiveAndNegative=equalPositiveAndNegative, shuffle=shuffle)
     
     def _getCachePathForFile(self, fileName : str) -> str:
